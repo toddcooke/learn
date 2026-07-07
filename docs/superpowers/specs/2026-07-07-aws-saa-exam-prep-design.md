@@ -59,6 +59,17 @@ unverified memory, because a wrong answer key actively hurts a learner.
 4. **Assembly.** Verified study notes, questions, and flashcards are compiled
    into the static JS data files described below.
 
+### Local doc cache (not checked in)
+
+Every AWS page fetched during research (exam guide pages, service docs, etc.)
+is saved verbatim to `.cache/aws-docs/<slug>.md` keyed by a filesystem-safe
+slug of its URL, with a `.cache/aws-docs/index.json` mapping URL → slug →
+fetch date. Before fetching a URL, the pipeline checks this cache first and
+reuses the cached copy if present, so no doc is fetched from AWS more than
+once across the whole research effort (including if the pipeline is re-run
+later, e.g. to add more questions or refresh content). This directory is
+gitignored — it's a local convenience cache, not a content deliverable.
+
 Target volume: 100+ scored practice questions total, distributed roughly by
 domain weighting (e.g. ~30 Secure, ~26 Resilient, ~24 High-Performing, ~20
 Cost-Optimized, rounded to reasonable batch sizes), plus a flashcard deck

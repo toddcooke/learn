@@ -18,13 +18,13 @@ export const QUESTIONS = [
       'When a new AWS account is created, what access level does the initial root user have?',
     options: [
       'Only the ability to view billing information',
-      'Complete access to all AWS services and resources in the account',
+      'Unrestricted access to every AWS service and resource in the account',
       'Read-only access to all resources until IAM policies are attached',
       'No access until multi-factor authentication (MFA) is configured',
     ],
     correctIndexes: [1],
     explanation:
-      'AWS IAM documentation states that the root user "has complete access to all AWS services and resources" from the moment the account is created, which is exactly why AWS recommends not using it for everyday tasks.',
+      'The root user is the very first identity on a brand-new account and starts out with full administrative control over everything in it, with no permissions to configure separately. That sweeping scope is exactly why AWS advises reserving the root user for a short list of account-level tasks and doing everyday work through separately created IAM identities instead.',
   },
   {
     id: 'secure-002',
@@ -40,7 +40,7 @@ export const QUESTIONS = [
     ],
     correctIndexes: [0],
     explanation:
-      "IAM's introduction explains that when a request is made, AWS checks \"if your identity is on the list of authorized users, what policies are being enforced to control the level of access granted, and any other policies that might be in effect.\" IP history, billing alerts, and Region matching are not part of this evaluation.",
+      "IAM's authorization check has two parts: confirming the caller's identity is recognized, and then checking whatever policies apply to see if any of them grant the specific permission being requested. Prior login locations, billing configuration, and matching Regions play no part in that decision.",
   },
   {
     id: 'secure-003',
@@ -56,7 +56,7 @@ export const QUESTIONS = [
     ],
     correctIndexes: [1],
     explanation:
-      'IAM documentation on identity-based vs. resource-based policies states that resource-based policies "are attached to a resource" (such as an S3 bucket) and let you "specify who has access to the resource," which is the mechanism for granting access without creating a role. Identity-based policies attach to users/groups/roles, SCPs never grant permissions, and permissions boundaries only limit what a policy can grant.',
+      'A resource-based policy attaches straight to the resource itself — an S3 bucket in this case — and spells out which principals, including ones from other accounts, are allowed to reach it, so no separate role has to be created. Identity-based policies live on IAM principals rather than resources, an SCP can only restrict what an account is allowed to do rather than grant access, and a permissions boundary merely caps what a policy can grant.',
   },
   {
     id: 'secure-004',
@@ -72,7 +72,7 @@ export const QUESTIONS = [
     ],
     correctIndexes: [2],
     explanation:
-      'IAM documentation states: "the requester in Account A must have an identity-based policy that allows them to make a request to the resource in Account B. Also, the resource-based policy in Account B must allow the requester in Account A to access the resource. There must be policies in both accounts that allow the operation, otherwise the request fails."',
+      "Cross-account access needs sign-off on both ends: the caller's own account must have an identity-based policy permitting the action, and separately the account that owns the resource must have a resource-based policy naming that caller as allowed. If either side stays silent or denies it, the call fails — a policy on only one side is never enough once two accounts are involved.",
   },
   {
     id: 'secure-005',
@@ -88,7 +88,7 @@ export const QUESTIONS = [
     ],
     correctIndexes: [1],
     explanation:
-      'IAM documentation on temporary security credentials states they "have a limited lifetime, so you do not have to update them or explicitly revoke them when they\'re no longer needed. After temporary security credentials expire, they cannot be reused." It also notes they "are not stored with the user but are generated dynamically."',
+      "Temporary credentials are generated on the fly rather than being tied permanently to a user, so there's nothing for an administrator to manually revoke — they simply stop functioning once their short lifetime runs out, and any attempt to reuse them after that point is always rejected.",
   },
   {
     id: 'secure-006',
@@ -104,7 +104,7 @@ export const QUESTIONS = [
     ],
     correctIndexes: [0],
     explanation:
-      'The IAM guide on "Roles for cross-account access" explains: "Using roles and cross-account access, you can define user identities in one account, and use those identities to access AWS resources in other accounts... This is known as the delegation approach to temporary access."',
+      "This is the classic cross-account role pattern: Account B creates a role that trusts Account A, and A's users assume that role to obtain short-lived credentials scoped to B, with no duplicate identities or shared passwords required. IAM documentation labels this the delegation model for temporary access, which is distinct from the single sign-on model used to federate an external identity provider.",
   },
   {
     id: 'secure-007',
@@ -120,7 +120,7 @@ export const QUESTIONS = [
     ],
     correctIndexes: [1],
     explanation:
-      'AWS Organizations documentation is explicit: "SCPs do not grant permissions... An SCP defines a permission guardrail, or sets limits, on the actions that the IAM users and IAM roles in your organization can perform," and elsewhere: SCPs "specify the maximum available permissions for the IAM users and IAM roles in your organization."',
+      "An SCP acts as a ceiling, never a floor — it can only narrow which actions the accounts underneath it are allowed to attempt, and it cannot hand out new permissions on its own. Actual permissions still have to come from identity-based or resource-based policies inside the account; the SCP just limits how far those policies are allowed to reach.",
   },
   {
     id: 'secure-008',
@@ -136,7 +136,7 @@ export const QUESTIONS = [
     ],
     correctIndexes: [2],
     explanation:
-      'AWS Organizations documentation states plainly: "SCPs don\'t affect users or roles in the management account. They affect only the member accounts in your organization."',
+      "SCP enforcement is scoped to member accounts only — the management account sits outside that boundary entirely, so anyone working from it is never limited by SCPs attached elsewhere in the hierarchy. Control Tower has nothing to do with this behavior; it's simply how AWS Organizations defines SCP scope by default.",
   },
   {
     id: 'secure-009',
@@ -145,14 +145,14 @@ export const QUESTIONS = [
     question:
       'What does AWS Control Tower provide for organizations managing multiple AWS accounts?',
     options: [
-      'A straightforward way to set up and govern a multi-account environment by orchestrating services like AWS Organizations, AWS Service Catalog, and IAM Identity Center to build a landing zone',
+      'A quick way to configure and govern a multi-account setup, orchestrating AWS Organizations together with Service Catalog and IAM Identity Center to assemble a landing zone in under an hour',
       'A replacement for AWS KMS that centrally manages encryption keys across accounts',
       'A content delivery network for distributing static assets across accounts',
       'A billing-only tool with no effect on account governance or guardrails',
     ],
     correctIndexes: [0],
     explanation:
-      'AWS Control Tower documentation states it "offers a straightforward way to set up and govern an AWS multi-account environment... AWS Control Tower orchestrates the capabilities of several other AWS services, including AWS Organizations, AWS Service Catalog, and AWS IAM Identity Center, to build a landing zone in less than an hour."',
+      "Control Tower packages together the account-governance capabilities of several underlying services — Organizations for account structure, Service Catalog for provisioning, and IAM Identity Center for access — into one guided setup that produces a working landing zone quickly, rather than replacing any single one of those services.",
   },
   {
     id: 'secure-010',
@@ -168,7 +168,7 @@ export const QUESTIONS = [
     ],
     correctIndexes: [1],
     explanation:
-      'IAM documentation on temporary credentials states: "OpenID Connect (OIDC) federation – You can let users sign in using a well-known third-party identity provider such as Login with Amazon, Facebook, Google, or any OIDC-compatible provider." SAML federation is described for authenticating an organization\'s own network users, not consumer social logins.',
+      "For consumer-style sign-in through a well-known outside provider such as Google, AWS STS offers OIDC federation, which lets an app trade a token from that provider for temporary AWS credentials without building custom sign-in logic. SAML federation targets a different scenario — bringing an organization's own workforce, already authenticated against its corporate directory, into AWS through single sign-on.",
   },
   {
     id: 'secure-011',
@@ -184,7 +184,7 @@ export const QUESTIONS = [
     ],
     correctIndexes: [0, 2],
     explanation:
-      'AWS Organizations documentation confirms it lets you "simplify billing by using a single payment method for all of your accounts" and that CloudTrail "creates a log of all activity... that cannot be turned off or modified by member accounts." SCPs never grant permissions (they only restrict), and the SCP documentation states SCPs "aren\'t available if your organization has enabled only the consolidated billing features."',
+      "Consolidated billing is a core Organizations feature — a single payment method covers every linked account — and an organization-wide CloudTrail trail can be locked so that member accounts have no way to disable or edit it. The other two statements don't hold: SCPs can only restrict what a policy already allows, never add to it, and SCPs require all features to be enabled, so they are unavailable in a setup that only has consolidated billing turned on. IAM Identity Center is likewise just one option for federated access, not a mandatory one.",
   },
   {
     id: 'secure-012',
@@ -201,7 +201,7 @@ export const QUESTIONS = [
     ],
     correctIndexes: [0, 2],
     explanation:
-      'IAM security best practices documentation recommends that compute workloads use IAM role temporary credentials ("there is no need to distribute long lived credentials") and that privileged access require MFA, "phishing-resistant MFA such as passkeys and security keys wherever possible." It also states least privilege (not blanket admin access), that "a permissions boundary does not grant permissions on its own," and Secrets Manager documentation warns against hard-coded credentials in source code.',
+      "AWS guidance calls for compute workloads to obtain temporary, automatically-refreshed credentials through an IAM role rather than embedding long-lived access keys, and for privileged human access to require MFA — ideally a phishing-resistant method such as a passkey or hardware security key. The other options contradict documented guidance: granting blanket admin rights to every new user defeats least privilege, a permissions boundary only limits what a role's own policy can grant rather than adding to it, and hard-coding access keys in source code is precisely the practice that Secrets Manager and IAM guidance warn against.",
   },
 
   // ---------------------------------------------------------------------
@@ -214,14 +214,14 @@ export const QUESTIONS = [
     question:
       'A security group attached to an EC2 instance allows inbound traffic on port 443. What happens to the corresponding outbound response traffic?',
     options: [
-      'It is automatically allowed to leave the instance, regardless of the outbound rules, because security groups are stateful',
+      'It automatically leaves the instance without needing a matching outbound rule, because security groups are stateful and track the state of allowed connections',
       'It is blocked unless a matching outbound rule explicitly allows port 443',
       'It is only allowed if the destination is within the same subnet',
       'It is dropped because security groups only evaluate inbound traffic',
     ],
     correctIndexes: [0],
     explanation:
-      'AWS VPC documentation states: "Security groups are stateful... if a security group allows inbound traffic to an EC2 instance, responses are automatically allowed regardless of outbound security group rules."',
+      "Security groups track connection state, so once inbound traffic on port 443 is permitted, the reply traffic for that same connection is let out automatically — there's no need for a matching outbound allow rule. This statefulness is what separates security groups from network ACLs, which evaluate inbound and outbound traffic independently of each other.",
   },
   {
     id: 'secure-014',
@@ -237,7 +237,7 @@ export const QUESTIONS = [
     ],
     correctIndexes: [1],
     explanation:
-      'AWS VPC documentation on network ACLs states: "NACLs are stateless, which means that information about previously sent or received traffic is not saved. If, for example, you create a NACL rule to allow specific inbound traffic to a subnet, responses to that traffic are not automatically allowed."',
+      "Network ACLs don't remember connection state the way security groups do, so permitting inbound traffic through one rule doesn't clear a path for the reply — the return traffic on the ephemeral ports needs its own outbound rule, or it gets dropped at the subnet boundary.",
   },
   {
     id: 'secure-015',
@@ -253,7 +253,7 @@ export const QUESTIONS = [
     ],
     correctIndexes: [0],
     explanation:
-      'AWS VPC documentation states: "We evaluate the rules in order, starting with the lowest numbered rule, when deciding whether allow or deny traffic. If the traffic matches a rule, the rule is applied and we do not evaluate any additional rules."',
+      "Rule numbers set the evaluation order: AWS steps through the rules from the smallest number upward and stops at the first one that matches the traffic, ignoring everything numbered higher after that. That's why administrators typically space rule numbers out (in gaps of 10 or 100), leaving room to slot new rules in later without renumbering the whole list.",
   },
   {
     id: 'secure-016',
@@ -269,7 +269,7 @@ export const QUESTIONS = [
     ],
     correctIndexes: [0],
     explanation:
-      'AWS VPC documentation on NAT gateways states: "Instances in private subnets can connect to the internet through a public NAT gateway, but the instances can\'t receive unsolicited inbound connections from the internet. You create a public NAT gateway in a public subnet and must associate an Elastic IP address with the NAT gateway." A private NAT gateway, by contrast, cannot have an Elastic IP and connects only to other VPCs or on-premises networks, not the internet.',
+      "A public NAT gateway lives in a public subnet with its own Elastic IP, and it lets private-subnet instances reach the internet for things like updates while blocking any outside host from being the one to open a connection toward them. A private NAT gateway serves a similar one-way purpose but only for reaching other VPCs or on-premises networks, and it can't hold an Elastic IP since it never talks to the public internet directly.",
   },
   {
     id: 'secure-017',
@@ -277,14 +277,14 @@ export const QUESTIONS = [
     questionType: 'multiple-choice',
     question: 'Which statement about NAT gateway connections is correct, per AWS documentation?',
     options: [
-      'Connections through a NAT gateway must always be initiated from within the VPC containing the NAT gateway',
+      'Every connection routed through a NAT gateway has to originate from inside the VPC that hosts it, not from outside',
       'A private NAT gateway can be assigned an Elastic IP address just like a public NAT gateway',
       'External services outside the VPC can freely initiate new connections to instances behind a NAT gateway',
       'A NAT gateway can only be used with IPv4 traffic, never IPv6',
     ],
     correctIndexes: [0],
     explanation:
-      'AWS VPC documentation lists as a NAT gateway consideration: "Connections must always be initiated from within the VPC containing the NAT gateway." It also states "You can\'t associate an Elastic IP address with a private NAT gateway," that external services "can\'t initiate a connection with those instances," and that "a NAT gateway is for use with IPv4 or IPv6 traffic."',
+      "NAT gateway traffic is one-directional by design: the connection always has to be opened from a resource inside the VPC that owns the gateway, never from the internet or another network. Elastic IPs only attach to a public NAT gateway; a private NAT gateway forwards traffic to other VPCs or on-premises networks and has no use for one. And a NAT gateway handles both IPv4 and IPv6, not just IPv4.",
   },
   {
     id: 'secure-018',
@@ -293,14 +293,14 @@ export const QUESTIONS = [
     question:
       'Which statement correctly distinguishes AWS Shield Standard from AWS Shield Advanced?',
     options: [
-      'Shield Standard is automatically included at no extra cost and protects against common volumetric DDoS attacks; Shield Advanced adds expanded protection and incurs additional charges',
+      'Shield Standard is included automatically with no added cost and defends against common large-scale volumetric DDoS attacks; Shield Advanced is a separately priced tier that adds broader DDoS protection',
       'Shield Standard is a paid add-on, while Shield Advanced is included automatically for free',
       'Shield Standard only protects Amazon S3 buckets, while Shield Advanced only protects EC2 instances',
       'Shield Advanced replaces the need for AWS WAF entirely',
     ],
     correctIndexes: [0],
     explanation:
-      'AWS documentation states: "AWS Shield Standard is automatically included at no extra cost beyond what you already pay for AWS WAF and your other AWS services... Shield Advanced provides expanded DDoS attack protection... Shield Advanced incurs additional charges."',
+      "The two tiers differ mainly in scope and price. Shield Standard ships with every AWS account, costs nothing extra, and blunts the most common large-scale DDoS techniques. Shield Advanced is an opt-in, separately billed upgrade that widens coverage to more resource types (EC2, load balancers, CloudFront, Route 53, Global Accelerator) and throws in extras like dedicated incident-response support — it complements AWS WAF rather than standing in for it.",
   },
   {
     id: 'secure-019',
@@ -315,7 +315,7 @@ export const QUESTIONS = [
     ],
     correctIndexes: [0],
     explanation:
-      'AWS WAF documentation states: "AWS WAF is a web application firewall that lets you monitor the HTTP and HTTPS requests that are forwarded to your protected web application resources... your protected resource responds to requests either with the requested content, with an HTTP 403 status code (Forbidden), or with a custom response," with rules that "allow, block, or count" matching requests.',
+      "AWS WAF inspects each web request heading toward a protected resource — CloudFront, an Application Load Balancer, API Gateway, and similar — against rules you define, then either lets the request through, blocks it, or just tallies it depending on which condition it matches. It operates at the web-request layer and has no role in DDoS mitigation, credential rotation, or encrypting stored data; those jobs belong to other dedicated services (Shield, Secrets Manager, and KMS, respectively).",
   },
   {
     id: 'secure-020',
@@ -331,7 +331,7 @@ export const QUESTIONS = [
     ],
     correctIndexes: [0],
     explanation:
-      'Amazon Cognito documentation states: "Create a user pool when you want to authenticate and authorize users to your app or API... From a user pool, you can issue authenticated JSON web tokens (JWTs) directly," while "Set up an Amazon Cognito identity pool when you want to authorize authenticated or anonymous users to access your AWS resources. An identity pool issues AWS credentials." It also notes "User pools don\'t require integration with an identity pool."',
+      "A user pool covers the directory-and-authentication side of Cognito: it verifies who someone is and can hand back tokens on its own, with no identity pool required. An identity pool covers the authorization side — given proof of a verified identity, whether from a user pool, a SAML provider, or even an unauthenticated guest, it calls AWS STS to mint temporary AWS credentials scoped to an IAM role. The two work well together but are independent building blocks.",
   },
   {
     id: 'secure-021',
@@ -347,7 +347,7 @@ export const QUESTIONS = [
     ],
     correctIndexes: [0],
     explanation:
-      'Amazon GuardDuty documentation states: "When you enable GuardDuty in an AWS account, GuardDuty automatically starts ingesting the foundational data sources associated with that account. These data sources include AWS CloudTrail management events, VPC flow logs (from Amazon EC2 instances), and DNS logs. You don\'t need to enable anything else."',
+      "Turning GuardDuty on kicks off automatic ingestion of three specific data sources at the account level — CloudTrail management events, VPC flow logs, and DNS logs — with no extra setup needed. Deeper capabilities such as scanning S3 object contents or EBS volumes for malware are separate, opt-in protection plans layered on top of that automatic baseline, not part of it.",
   },
   {
     id: 'secure-022',
@@ -362,7 +362,7 @@ export const QUESTIONS = [
     ],
     correctIndexes: [0],
     explanation:
-      'Amazon Macie documentation states: "Amazon Macie is a data security service that discovers sensitive data by using machine learning and pattern matching, provides visibility into data security risks, and enables automated protection against those risks," and it generates a finding when, for example, "a bucket... becomes publicly accessible."',
+      "Macie's job is finding sensitive information such as personal data inside S3 objects using a combination of machine learning and pattern-based detection, while separately keeping watch on bucket configuration so it can flag problems like a bucket becoming publicly readable. It has no role in network-layer DDoS detection, key rotation, or certificate management — those are handled by other dedicated services.",
   },
   {
     id: 'secure-023',
@@ -378,7 +378,7 @@ export const QUESTIONS = [
     ],
     correctIndexes: [0, 2],
     explanation:
-      'Secrets Manager documentation states you "replace hard-coded credentials with a runtime call to the Secrets Manager service." Macie documentation confirms it flags "a bucket that becomes publicly accessible." GuardDuty ingests its foundational data sources automatically with no extra setup, and Secrets Manager explicitly supports configuring "an automatic rotation schedule." GuardDuty and Macie are distinct services (threat detection vs. sensitive-data discovery).',
+      "Secrets Manager's whole value proposition is letting an application pull credentials through an API call at runtime instead of baking them into source code, and Macie does flag an S3 bucket when it detects that the bucket has turned publicly reachable. The other statements are backwards: GuardDuty's baseline detection turns on automatically with no manual setup, Secrets Manager explicitly supports scheduling rotation rather than requiring a manual process every time, and GuardDuty and Macie are distinct services solving different problems — threat detection versus sensitive-data discovery.",
   },
   {
     id: 'secure-024',
@@ -395,7 +395,7 @@ export const QUESTIONS = [
     ],
     correctIndexes: [0, 2],
     explanation:
-      'AWS Site-to-Site VPN documentation confirms it "supports Internet Protocol security (IPsec) VPN connections" and "each VPN connection includes two VPN tunnels which you can simultaneously use for high availability." Direct Connect documentation describes a "private virtual interface" as being "used to access an Amazon Virtual Private Cloud (VPC) using private IP addresses," and states Direct Connect links your network to AWS "over a standard Ethernet fiber-optic cable," bypassing internet service providers rather than routing over the public internet.',
+      "Site-to-Site VPN connections rely on IPsec encryption and come with a pair of tunnels per connection, giving a second path to fail over to for high availability. On the Direct Connect side, a private virtual interface is the piece that gives an account private-IP reachability into a VPC. Direct Connect itself is fundamentally different from a VPN: it's a dedicated fiber-optic link into an AWS facility that bypasses the public internet, not a tunnel that rides on top of it.",
   },
 
   // ---------------------------------------------------------------------
@@ -408,14 +408,14 @@ export const QUESTIONS = [
     question:
       'Why does AWS KMS protect a hierarchy of keys, where a top-level root key protects the keys that in turn protect your data, instead of using a single key to encrypt data directly?',
     options: [
-      'Because eventually you must protect the highest-level encryption key (the root key) in the hierarchy, and KMS is designed specifically to protect that root key using validated hardware security modules',
+      'Because you ultimately need to safeguard the single top-level key (the root key) that anchors the whole hierarchy, and KMS is purpose-built to guard that root key inside validated hardware security modules',
       'Because AWS KMS keys are never capable of encrypting data directly under any circumstances',
       'Because customer-managed keys are billed at a lower rate than data keys',
       "Because KMS keys automatically leave the service in plaintext form for backup purposes",
     ],
     correctIndexes: [0],
     explanation:
-      'AWS KMS documentation explains: "When you encrypt data, you need to protect your encryption key... Eventually, you must protect the highest level encryption key (known as a root key) in the hierarchy that protects your data. That\'s where AWS KMS comes in... AWS KMS protects your root keys." It also states KMS keys "never leave AWS KMS unencrypted."',
+      "Encryption keys need protecting too, and that chain of protection can't go on forever — eventually there has to be one top-level key that nothing else wraps, and that's the root key. KMS exists specifically to guard that root key, keeping it inside validated hardware security modules and never exposing it outside the service, so everything beneath it in the hierarchy inherits the same level of protection.",
   },
   {
     id: 'secure-026',
@@ -430,7 +430,7 @@ export const QUESTIONS = [
     ],
     correctIndexes: [0],
     explanation:
-      'AWS KMS documentation states: "A key policy is a resource policy for an AWS KMS key... Every KMS key must have exactly one key policy." The policy is scoped to that individual key, not shared across a whole Region.',
+      "Access to a KMS key is governed by a single resource-scoped policy attached to that key — you can't attach a second one, and it can't be skipped in favor of relying purely on IAM. That policy is also Regional in reach: it only controls the specific key it's attached to in that Region, not every key across the account.",
   },
   {
     id: 'secure-027',
@@ -445,7 +445,7 @@ export const QUESTIONS = [
     ],
     correctIndexes: [0],
     explanation:
-      'AWS KMS documentation states: "No AWS principal, including the account root user or key creator, has any permissions to a KMS key unless they are explicitly allowed, and never denied, in a key policy, IAM policy, or grant." It further clarifies that "unless the key policy explicitly allows it, you cannot use IAM policies to allow access to a KMS key."',
+      "KMS defaults to deny for everyone — the root user, the person who created the key, anyone — until a key policy, an IAM policy backed by that key policy, or a grant spells out an explicit allow. IAM policies alone can never reach a KMS key unless the key's own policy opens the door for them first.",
   },
   {
     id: 'secure-028',
@@ -461,14 +461,14 @@ export const QUESTIONS = [
     ],
     correctIndexes: [0],
     explanation:
-      'AWS KMS documentation states: "Unless the key policy explicitly allows it, you cannot use IAM policies to allow access to a KMS key. Without permission from the key policy, IAM policies that allow permissions have no effect. The default key policy enables IAM policies."',
+      "By default, an IAM policy has zero effect on a KMS key — the key policy first has to hand off that control explicitly before role-based IAM permissions can do anything. Fortunately, the standard default key policy already includes that hand-off statement, which is why teams can usually manage day-to-day access purely through IAM once a key is created with default settings.",
   },
   {
     id: 'secure-029',
     domain: 'secure',
     questionType: 'multiple-choice',
     question:
-      'When you enable automatic key rotation for a customer-managed KMS key without specifying a custom rotation period, how often does AWS KMS generate new cryptographic material by default?',
+      'If automatic key rotation is turned on for a customer-managed KMS key and no custom rotation period is set, how often does AWS KMS generate new key material by default?',
     options: [
       'Every 365 days (once a year)',
       'Every 30 days',
@@ -477,7 +477,7 @@ export const QUESTIONS = [
     ],
     correctIndexes: [0],
     explanation:
-      'AWS KMS documentation states: "By default, when you enable automatic key rotation for a KMS key, AWS KMS generates new cryptographic material for the KMS key every year," and "If you do not specify a value for RotationPeriodInDays when you enable automatic key rotation, the default value is 365 days."',
+      'Absent a custom setting, AWS KMS refreshes a key\'s cryptographic material on a one-year cadence — the underlying rotation-period value defaults to 365 days whenever it\'s left unspecified. So neither "every 30 days" nor "every 90 days" applies, and automatic rotation is designed to keep recurring, not fire just the one time.',
   },
   {
     id: 'secure-030',
@@ -493,7 +493,7 @@ export const QUESTIONS = [
     ],
     correctIndexes: [0],
     explanation:
-      'AWS KMS documentation states: "Neither automatic nor on-demand key rotation is supported for the following types of KMS keys, but you can rotate these KMS keys manually: Asymmetric KMS keys, HMAC KMS keys, KMS keys in custom key stores." Keys with AWS_KMS origin support both automatic and on-demand rotation; EXTERNAL-origin symmetric keys support on-demand rotation; AWS managed keys are rotated automatically by AWS every year.',
+      "Automatic and on-demand rotation both depend on AWS KMS being able to generate the replacement material itself, which rules out asymmetric keys (along with HMAC keys and keys living in a custom key store) — those can only be rotated manually, by creating a new key and switching applications over to it. Keys with AWS-generated symmetric material support both automatic and on-demand rotation, imported (EXTERNAL) symmetric keys support on-demand rotation, and AWS managed keys are rotated automatically by AWS roughly every year with no customer control over that schedule.",
   },
   {
     id: 'secure-031',
@@ -509,7 +509,7 @@ export const QUESTIONS = [
     ],
     correctIndexes: [0],
     explanation:
-      'AWS KMS documentation states: "When you use the rotated KMS key to decrypt ciphertext, AWS KMS uses the same version of the key material that was used to encrypt it. You cannot select a particular version... AWS KMS automatically chooses the correct version," and "you can safely use a rotated KMS key in applications and AWS services without code changes." It also confirms rotation does "not... re-encrypt any data protected by the KMS key."',
+      "AWS KMS keeps an internal record of exactly which version of the key material encrypted each piece of ciphertext, so a decrypt call automatically reaches for the matching version — applications never need to name a version or change any code because rotation happened. Rotation only swaps in fresh material for future encrypt operations; it doesn't touch, re-encrypt, or invalidate anything that was already protected.",
   },
   {
     id: 'secure-032',
@@ -525,7 +525,7 @@ export const QUESTIONS = [
     ],
     correctIndexes: [0],
     explanation:
-      'AWS Certificate Manager documentation states: "To use an ACM certificate with Amazon CloudFront, you must request or import the certificate in the US East (N. Virginia) region." ACM certificates are otherwise Regional resources that cannot be copied between Regions.',
+      "CloudFront is a global service, but ACM's integration with it is pinned to one specific Region — N. Virginia — no matter where the origin server sits or where most viewers are located. Once issued there, the certificate propagates out to every edge location the distribution uses; ACM certificates are otherwise tied to whichever Region they were requested in and cannot be moved between Regions.",
   },
   {
     id: 'secure-033',
@@ -541,7 +541,7 @@ export const QUESTIONS = [
     ],
     correctIndexes: [0],
     explanation:
-      'AWS Backup documentation states: "The first backup of an AWS resource backs up a full copy of your data. For each successive incremental backup, only the changes to your AWS resources are backed up."',
+      "Incremental backup support means the very first backup job has to capture everything, since there's no earlier backup to compare against — but every job after that stores only what's different from the last one, which is what keeps ongoing storage costs down.",
   },
   {
     id: 'secure-034',
@@ -552,13 +552,13 @@ export const QUESTIONS = [
     options: [
       'A public certificate issued by ACM and associated with an Elastic Load Balancer',
       'A certificate imported into ACM from a third-party certificate authority',
-      'A private certificate issued by calling the ACM RequestCertificate API and then exported',
+      'A private certificate that ACM issued through a RequestCertificate API call and that was later exported',
       'A private certificate issued directly through the AWS Private CA IssueCertificate API',
       'A certificate that has already expired',
     ],
     correctIndexes: [0, 2],
     explanation:
-      'ACM managed-renewal documentation lists as ELIGIBLE: "if associated with another AWS service, such as Elastic Load Balancing or CloudFront" and "if it is a private certificate issued by calling the ACM RequestCertificate API and then exported or associated with another AWS service." It lists as NOT ELIGIBLE: imported certificates, certificates issued directly through the AWS Private CA IssueCertificate API, and certificates that have already expired.',
+      "ACM's managed renewal only covers certificates it can still act on automatically: ones tied to another AWS service such as a load balancer, and private certificates that were originally requested through the RequestCertificate API and then exported (or likewise associated with a service). It excludes anything ACM didn't originate or can no longer touch after issuance — imported third-party certificates, certificates issued straight through AWS Private CA's own issuance API, and certificates that have already lapsed.",
   },
   {
     id: 'secure-035',
@@ -575,7 +575,7 @@ export const QUESTIONS = [
     ],
     correctIndexes: [0, 2],
     explanation:
-      'AWS KMS documentation states you "can perform on-demand rotation, regardless of whether or not automatic key rotation is enabled," and "AWS KMS automatically rotates AWS managed keys every year (approximately 365 days). You cannot enable or disable key rotation for AWS managed keys." It also states the rotation fee increase "is capped at the second rotation," rotation does not re-encrypt existing data, and re-enabling rotation after disabling it changes the rotation date ("AWS KMS rotates the key material based on the new rotation-enable date").',
+      "On-demand rotation doesn't depend on the automatic setting at all — you can trigger it whether or not automatic rotation happens to be turned on. AWS managed keys get rotated by AWS on a roughly annual cycle, and that schedule isn't something a customer can toggle. The other two claims are inaccurate: the rotation fee stops climbing after the second rotation instead of increasing forever, rotating key material never touches data that was already encrypted under the earlier material, and toggling automatic rotation off and back on resets the future rotation date rather than leaving it untouched.",
   },
   {
     id: 'secure-036',
@@ -583,14 +583,14 @@ export const QUESTIONS = [
     questionType: 'multiple-response',
     question: 'Which of the following statements about AWS Backup are correct? (Select TWO.)',
     options: [
-      'AWS Backup Vault Lock can prevent anyone, including the account owner, from deleting backups or altering their retention period',
-      'AWS Backup can copy backups to other AWS Regions on demand or automatically as part of a scheduled backup plan',
+      "AWS Backup Vault Lock can stop anyone, including the account owner, from erasing backups or changing how long they're retained",
+      'AWS Backup lets you replicate backups into different AWS Regions either manually whenever you choose or automatically through a backup plan schedule',
       'AWS Backup governs and tracks all backups taken in an AWS environment, even ones created outside of AWS Backup',
       'AWS Backup requires a separate manual encryption setup for every resource type before any backup can be created',
       'AWS Backup only supports Amazon EC2 as a backup target; no other AWS services are supported',
     ],
     correctIndexes: [0, 1],
     explanation:
-      'AWS Backup documentation states: "You can use AWS Backup Vault Lock to prevent anyone (including you) from deleting backups or altering their retention period," and "you can copy backups to multiple different AWS Regions on demand or automatically as part of a scheduled backup plan." It also explicitly states "AWS Backup does not govern backups you take in your AWS environment outside of AWS Backup," supports many resource types beyond EC2 (S3, DynamoDB, RDS, EFS, and more), and resources under full AWS Backup management are automatically encrypted with the backup vault\'s KMS key rather than requiring manual per-resource setup.',
+      "Backup Vault Lock is AWS Backup's write-once-read-many safeguard — once applied, it blocks every principal, including the account owner, from deleting a backup or shortening how long it's retained. Separately, Backup can send copies of backups to additional Regions, either as a one-off action or built into a recurring backup plan. The remaining statements don't hold up: AWS Backup has no visibility into backups created outside of it, plenty of resource types beyond EC2 are supported (S3, DynamoDB, RDS, EFS, and more), and resources under full Backup management get encrypted automatically with the vault's own KMS key rather than needing a manual per-resource setup.",
   },
 ];

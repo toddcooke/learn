@@ -643,9 +643,9 @@ export const QUESTIONS = [
     question:
       'A publisher sends events to an SNS topic that fans out to several subscribers. One subscriber, an HTTPS endpoint, is occasionally taken down for maintenance. What should sit in front of that subscriber so events aren\'t lost while it\'s offline?',
     options: [
-      'An SQS queue subscribed to the topic in place of calling the endpoint directly',
-      "Setting the topic's message retention window to zero",
-      'A rule that pauses the entire topic whenever any subscriber is unavailable',
+      'An SQS queue subscribed to the topic instead of calling the endpoint directly',
+      "Setting the topic's message retention window down to zero seconds",
+      'A rule that pauses the entire topic whenever one subscriber goes down',
       'Removing the subscriber from the topic until it comes back online',
     ],
     correctIndexes: [0],
@@ -675,10 +675,10 @@ export const QUESTIONS = [
     question:
       'A live-pricing application needs a persistent, two-way connection so the server can push updates to a connected client without the client repeatedly asking for new data. Which API Gateway API type is built for this?',
     options: [
-      'A REST API',
-      'An HTTP API',
-      'A WebSocket API',
-      'A private API',
+      'A REST API, which is stateless request/response',
+      'An HTTP API, also a stateless request/response model',
+      'A WebSocket API, the stateful two-way option',
+      'A private API, reachable only from inside a VPC',
     ],
     correctIndexes: [2],
     explanation:
@@ -723,8 +723,8 @@ export const QUESTIONS = [
     question:
       'How does an AWS Lambda function typically handle a sudden jump in the number of incoming events, per AWS documentation?',
     options: [
-      'A single long-lived process queues every event and works through them one at a time',
-      'Lambda launches more independent execution environments in parallel, scaling out without any capacity you provisioned in advance',
+      'A single long-lived process queues events and works through them one at a time',
+      'Lambda automatically launches more execution environments to run events in parallel',
       'New events are rejected outright until an administrator manually raises a concurrency setting',
       'The function is automatically migrated onto a larger, more powerful compute instance to absorb the load',
     ],
@@ -756,9 +756,9 @@ export const QUESTIONS = [
     question:
       "A reporting dashboard runs heavy analytical queries against the same RDS database that handles live transactions, and it's starting to slow down normal application traffic. What's the standard way to offload that reporting load without resizing the primary database?",
     options: [
-      'Point the dashboard at one or more RDS read replicas kept in sync from the primary',
+      'Point the dashboard at one or more RDS read replicas kept in sync',
       'Turn off the Multi-AZ standby configured on the primary instance',
-      'Move the reporting dashboard into a different AWS Region than the database',
+      'Move the reporting dashboard into a different AWS Region',
       'Convert the primary database itself into a read-only instance',
     ],
     correctIndexes: [0],
@@ -773,9 +773,9 @@ export const QUESTIONS = [
       'A team wants Amazon RDS to automatically add or remove read replicas as read traffic rises and falls, the same way an Auto Scaling group adds EC2 instances. Does RDS support this today?',
     options: [
       'Yes, once autoscaling is turned on for the source DB instance',
-      "No — replicas must be created by hand, and RDS won't add or remove them on its own",
-      'Yes, but only for a Multi-AZ standby replica',
-      'No — a replica can only be created when the source database is first launched',
+      "No — replicas must be created by hand; RDS won't add or remove them on its own",
+      'Yes, but only for a Multi-AZ standby replica, which exists purely for failover',
+      'No — a replica can only be created when the source database is first launched, and never afterward',
     ],
     correctIndexes: [1],
     explanation:
@@ -788,10 +788,10 @@ export const QUESTIONS = [
     question:
       "A media company wants to give outside partners SFTP access that drops files straight into an S3 bucket, without standing up or patching its own file-transfer servers. Which AWS service is built for exactly this?",
     options: [
-      'AWS Transfer Family',
-      'AWS Direct Connect',
-      'Amazon FSx',
-      'AWS Snowball',
+      'AWS Transfer Family, a managed SFTP endpoint',
+      'AWS Direct Connect, a dedicated network link',
+      'Amazon FSx, a managed file system service',
+      'AWS Snowball, a physical data transport device',
     ],
     correctIndexes: [0],
     explanation:
@@ -837,10 +837,10 @@ export const QUESTIONS = [
     question:
       "In a monolithic application, a spike in demand for one feature forces the whole application to be scaled together. How does breaking that application into microservices change this?",
     options: [
-      'Each independent service can be scaled on its own to match demand for just the feature it supports',
-      'The whole application must still be scaled as one unit, but deployments happen faster',
+      'Each independent service can be scaled on its own to match its demand',
+      'The whole application must still be scaled as one unit, just faster',
       'Microservices remove any need for load balancing between components',
-      'Microservices require every service to share one common database to stay in sync',
+      'Microservices require every service to share one common database',
     ],
     correctIndexes: [0],
     explanation:
@@ -889,10 +889,10 @@ export const QUESTIONS = [
     question:
       'A three-tier web application currently runs entirely inside one Availability Zone. What resilience gap does this create, and what is the standard fix?',
     options: [
-      "That AZ's own outage would take the whole application down with it; spreading compute across at least two AZs behind a load balancer addresses this",
-      'The application would be unable to scale past a fixed number of users; adding a content delivery network fixes this',
-      'IAM policies would stop being enforced once resources cross AZ boundaries, so staying in one AZ is actually preferred',
-      'A single-AZ design cannot use encryption at rest, and moving to multiple Regions is required to enable it',
+      "That AZ's own outage would take the whole application down; spreading compute across AZs fixes this",
+      'The application would be unable to scale past a fixed number of users; a CDN fixes this',
+      'IAM policies would stop being enforced once resources cross AZ boundaries entirely',
+      'A single-AZ design cannot use encryption at rest, so multiple Regions are required',
     ],
     correctIndexes: [0],
     explanation:
@@ -905,10 +905,10 @@ export const QUESTIONS = [
     question:
       "Amazon Route 53 is running health checks against a web application's endpoints. What happens once one endpoint starts failing its check?",
     options: [
-      'Route 53 can stop sending traffic to that unhealthy endpoint and notify you of the change',
+      'Route 53 can stop sending traffic to it and notify you of the change',
       'Route 53 automatically launches a replacement EC2 instance for the failed endpoint',
-      "Route 53 cancels the domain's registration",
-      'Route 53 blocks the domain name from ever resolving again',
+      "Route 53 cancels the domain's registration and releases the name for others to buy",
+      'Route 53 blocks the domain name from ever resolving again, even for healthy endpoints',
     ],
     correctIndexes: [0],
     explanation:
@@ -921,10 +921,10 @@ export const QUESTIONS = [
     question:
       'Which AWS service improves multi-Region availability by assigning an application static anycast IP addresses and steering traffic to the nearest healthy endpoint over the AWS backbone network?',
     options: [
-      'AWS Global Accelerator',
-      'Amazon Route 53',
-      'AWS Direct Connect',
-      'Amazon CloudFront',
+      'AWS Global Accelerator, which assigns static anycast IP addresses',
+      'Amazon Route 53, using DNS records pointed at the nearest endpoint',
+      'AWS Direct Connect, a dedicated private link into a single Region',
+      'Amazon CloudFront, caching content at edge locations worldwide',
     ],
     correctIndexes: [0],
     explanation:
@@ -937,10 +937,10 @@ export const QUESTIONS = [
     question:
       'A CloudFront distribution has origin failover configured, and one request to the primary origin fails. What happens, according to AWS guidance?',
     options: [
-      'CloudFront retries that one request against the secondary origin, but the next request still tries the primary first',
-      'CloudFront switches every future request over to the secondary origin from that point forward',
-      'CloudFront takes the entire distribution offline until the primary origin recovers',
-      'CloudFront permanently purges the cached content tied to the primary origin',
+      'CloudFront retries that request against the secondary, but tries the primary again next time',
+      'CloudFront switches every future request to the secondary origin from that point forward',
+      'CloudFront takes the entire distribution completely offline until the primary origin recovers',
+      'CloudFront permanently purges all cached content that was tied to the primary origin',
     ],
     correctIndexes: [0],
     explanation:
@@ -1019,9 +1019,9 @@ export const QUESTIONS = [
     question:
       'A VPC has private subnets spread across three Availability Zones, but every one of them routes outbound traffic through a single NAT gateway sitting in just one public subnet. What resilience problem does this create?',
     options: [
-      "If that NAT gateway's Availability Zone has an outage, every private subnet relying on it loses its outbound connectivity",
-      'NAT gateways are not allowed to be created inside a public subnet, so this setup would fail to deploy at all',
-      'A single NAT gateway causes every private subnet to lose its private IP address ranges',
+      "If that NAT gateway's Availability Zone has an outage, all three private subnets lose outbound access",
+      'NAT gateways cannot be created inside a public subnet, so this setup would fail to deploy',
+      'A single NAT gateway causes every private subnet to lose its own IP address ranges',
       'This setup disables Auto Scaling for any instance running in the private subnets',
     ],
     correctIndexes: [0],
@@ -1067,7 +1067,7 @@ export const QUESTIONS = [
     question:
       "Comparing AWS's pilot light and warm standby disaster recovery strategies, what's the key operational difference the moment a failover happens?",
     options: [
-      'Pilot light needs its idle servers switched on and scaled up first, while warm standby can already serve traffic at reduced capacity right away',
+      'Pilot light needs its idle servers switched on first; warm standby can already serve traffic',
       'Pilot light keeps a full-capacity copy of everything running around the clock, while warm standby keeps nothing running at all',
       'Warm standby only protects data, while pilot light protects both data and compute at full scale',
       'The two terms describe the same architecture, just under different names',
@@ -1083,10 +1083,10 @@ export const QUESTIONS = [
     question:
       'Backup and restore is both the cheapest and slowest of the four DR tiers. Why does AWS guidance stress deploying infrastructure as code specifically for this strategy?',
     options: [
-      'Because nothing runs in the recovery Region beforehand, so a fast, accurate rebuild is what keeps recovery on target',
-      'Because backup and restore has no way to replicate or copy any data whatsoever',
-      'Because infrastructure as code is a prerequisite for turning on backup encryption',
-      "Because AWS Backup won't operate unless its surrounding infrastructure is defined as code",
+      'Nothing runs in the recovery Region beforehand, so a fast, accurate rebuild keeps recovery on target',
+      'Because backup and restore has no way to replicate or copy any data whatsoever, at any tier',
+      'Because infrastructure as code is a prerequisite for turning on backup encryption for any resource',
+      "Because AWS Backup won't operate at all unless its surrounding infrastructure is fully defined as code",
     ],
     correctIndexes: [0],
     explanation:
@@ -1099,9 +1099,9 @@ export const QUESTIONS = [
     question:
       'What distinguishes a multi-site active/active disaster recovery strategy from a hot standby active/passive strategy?',
     options: [
-      'Active/active serves live traffic from every Region it runs in, while hot standby serves traffic from just one Region at a time',
+      'Active/active serves traffic from every Region it runs in; hot standby serves from just one',
       'Hot standby serves traffic from every Region at once, while active/active reserves one Region purely for recovery',
-      'Active/active is the cheaper and operationally simpler of the two approaches',
+      'Active/active is the cheaper and operationally simpler of the two approaches to run',
       'Hot standby depends on promoting a database replica, while active/active never uses replicas at all',
     ],
     correctIndexes: [0],
@@ -1115,7 +1115,7 @@ export const QUESTIONS = [
     question:
       'Which TWO statements about AWS Backup are correct, according to AWS documentation? (Select TWO.)',
     options: [
-      'AWS Backup can push a copy of a backup to another AWS Region, either manually or on a recurring schedule',
+      'AWS Backup can automatically move a backup from warm storage into a lower-cost cold storage tier once a lifecycle schedule you configure is reached',
       'Inside an AWS Organizations structure, AWS Backup can gather backups from many accounts into one repository account',
       'AWS Backup automatically discovers and takes over management of backups created by tools other than itself',
       'Every resource that AWS Backup protects must sit in the exact same Region as its backup vault',
@@ -1123,7 +1123,7 @@ export const QUESTIONS = [
     ],
     correctIndexes: [0, 1],
     explanation:
-      "AWS Backup documentation confirms it can send backup copies to other Regions on a schedule or on demand, and that within an organization it supports gathering backups from multiple accounts into a single repository account. It explicitly does not govern or track backups made outside of it, so the third statement is false; cross-Region copying directly contradicts the same-Region requirement in the fourth statement; and a backup plan is meant to apply across many resources at once, not just a single one, ruling out the fifth.",
+      "AWS Backup documentation confirms it supports lifecycle policies that automatically transition a backup from warm storage into a low-cost cold storage tier on a schedule you define, and that within an organization it supports gathering backups from multiple accounts into a single repository account. It explicitly does not govern or track backups made outside of it, so the third statement is false; AWS Backup also supports copying a resource's backups into a vault in a different Region, which contradicts the same-Region requirement in the fourth statement; and a backup plan is meant to apply across many resources at once, not just a single one, ruling out the fifth.",
   },
   {
     id: 'resilient-033',
@@ -1134,8 +1134,8 @@ export const QUESTIONS = [
     options: [
       'AWS Elastic Disaster Recovery',
       'Amazon S3 Cross-Region Replication',
-      'AWS Backup',
-      'Amazon RDS Proxy',
+      'AWS Backup, using its scheduled backup plans',
+      'Amazon RDS Proxy, for database connection pooling',
     ],
     correctIndexes: [0],
     explanation:
@@ -1164,7 +1164,7 @@ export const QUESTIONS = [
     question:
       "A workload's projected peak traffic is expected to exceed a default account-level service limit next quarter. What does AWS recommend doing about this kind of limit?",
     options: [
-      'Check whether Service Quotas marks the limit as adjustable and request an increase well ahead of time',
+      'Check whether Service Quotas marks it as adjustable and request an increase',
       'Accept it — service quotas are permanently fixed values that AWS never changes',
       'Open a brand-new AWS account whenever an existing one runs into a quota',
       'Assume the limit is storage-only, since compute services carry no quotas at all',

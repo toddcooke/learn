@@ -1222,4 +1222,404 @@ export const QUESTIONS = [
     explanation:
       "EFS documentation draws a clear line between its two file system types: Regional file systems spread data across multiple AZs specifically so it survives the loss of any one of them, while One Zone file systems keep data in a single AZ and accept the risk that damage to that AZ could mean data loss. An EBS volume lives in one Availability Zone rather than being copied across all of them, which rules out the third statement, and the fourth and fifth statements both contradict the documented gap between Regional and One Zone availability.",
   },
+
+  // ---------------------------------------------------------------------
+  // Task 3.1: Determine high-performing and/or scalable storage solutions
+  // ---------------------------------------------------------------------
+  {
+    id: 'performant-001',
+    domain: 'performant',
+    questionType: 'multiple-choice',
+    question:
+      'A latency-sensitive application needs the fastest possible object storage access and can accept keeping its data in a single Availability Zone alongside its compute resources. Which S3 storage class is purpose-built for this scenario?',
+    options: [
+      'S3 Standard',
+      'S3 Express One Zone',
+      'S3 Intelligent-Tiering',
+      'S3 Glacier Instant Retrieval',
+    ],
+    correctIndexes: [1],
+    explanation:
+      "S3 Express One Zone is built specifically for single-digit-millisecond access by keeping data in one Availability Zone next to compute, trading the multi-AZ redundancy of the other classes for that speed. S3 Standard spreads data across multiple AZs for general-purpose use, Intelligent-Tiering optimizes cost by shifting objects between tiers as access patterns change, and Glacier Instant Retrieval targets rarely accessed archival data rather than latency-sensitive workloads.",
+  },
+  {
+    id: 'performant-002',
+    domain: 'performant',
+    questionType: 'multiple-choice',
+    question:
+      "An Amazon EFS file system experiences I/O activity that varies significantly over the course of a day. Which EFS throughput mode is designed to automatically scale bandwidth up or down to match that changing activity?",
+    options: [
+      'Provisioned Throughput mode, which requires specifying a fixed throughput value ahead of time',
+      'Elastic throughput mode, which adjusts bandwidth automatically as activity changes',
+      "Bursting Throughput mode, which scales available throughput with the file system's stored data size",
+      'General Purpose performance mode, which targets low latency rather than automatic bandwidth scaling',
+    ],
+    correctIndexes: [1],
+    explanation:
+      "EFS documentation describes Elastic throughput mode as automatically scaling performance up or down to meet a workload's actual activity, with no manual sizing required. Provisioned Throughput instead has you set a fixed value ahead of time, Bursting Throughput ties available bandwidth to how large the file system already is rather than to current activity, and General Purpose is a performance mode aimed at latency, not a throughput-scaling mechanism.",
+  },
+  {
+    id: 'performant-003',
+    domain: 'performant',
+    questionType: 'multiple-choice',
+    question:
+      'A team needs storage that attaches to a single EC2 instance, behaves like a local hard drive, and can have its size or performance tier changed on a live volume with no downtime. Which AWS storage service fits this need?',
+    options: ['Amazon EBS', 'Amazon EFS', 'Amazon S3', 'AWS Storage Gateway'],
+    correctIndexes: [0],
+    explanation:
+      "EBS volumes attach to one EC2 instance and can be used exactly like a local disk, and Elastic Volumes let a team resize capacity or switch performance tier on a live volume without any downtime. EFS is a shared, multi-instance file system rather than a private attached disk, S3 is object storage reached over an API instead of mounted as a drive, and Storage Gateway connects on-premises applications to AWS storage rather than attaching a volume directly to an EC2 instance.",
+  },
+  {
+    id: 'performant-004',
+    domain: 'performant',
+    questionType: 'multiple-choice',
+    question:
+      'Several EC2 instances in a rendering farm need to concurrently read from and write to the exact same directory structure over the network. Which AWS storage service is designed for this kind of shared, concurrent file access?',
+    options: ['Amazon S3', 'Amazon EFS', 'Amazon EBS', 'EC2 instance store'],
+    correctIndexes: [1],
+    explanation:
+      "EFS is a network file system that many compute resources can mount and use over NFS at the same time, which is exactly the shared-directory access pattern the rendering farm needs. S3 is reached through an object API rather than mounted as a shared directory, an EBS volume attaches to only one instance at a time in the general case, and instance store is ephemeral storage local to a single instance that disappears when it stops.",
+  },
+  {
+    id: 'performant-005',
+    domain: 'performant',
+    questionType: 'multiple-response',
+    question:
+      'Which THREE statements about AWS DataSync are correct, based on AWS documentation? (Select THREE.)',
+    options: [
+      'It uses a parallel, multithreaded transfer design that moves data faster than generic copy tools',
+      'It automatically validates data integrity during a transfer',
+      'It can transfer data through a VPC endpoint instead of over the public internet',
+      'It can only move data into Amazon S3 and no other AWS storage service',
+      'It requires an existing AWS Direct Connect connection before any transfer can run',
+    ],
+    correctIndexes: [0, 1, 2],
+    explanation:
+      "DataSync documentation describes a purpose-built, parallel, multithreaded transfer engine, automatic integrity validation, and the option to route transfers through a VPC endpoint so they never have to cross the public internet — all three genuine, documented capabilities. It isn't limited to S3 alone; it also supports EFS and several FSx file systems as destinations, and nothing in its documentation requires a Direct Connect connection to already be in place before a transfer can run.",
+  },
+
+  // ---------------------------------------------------------------------
+  // Task 3.2: Design high-performing and elastic compute solutions
+  // ---------------------------------------------------------------------
+  {
+    id: 'performant-006',
+    domain: 'performant',
+    questionType: 'multiple-choice',
+    question:
+      'According to AWS guidance, what is the recommended approach for choosing the right EC2 instance type for a new workload?',
+    options: [
+      'Launch a candidate instance type, benchmark it against the real application, and switch later if needed',
+      'Always choose the single largest instance size in the family, regardless of the workload',
+      'Judge the right type purely by its family name, without running the actual workload',
+      "Pick an instance type at launch and keep it fixed for the workload's entire lifetime",
+    ],
+    correctIndexes: [0],
+    explanation:
+      "AWS recommends launching a candidate type and testing it against your own application, since billing by the second makes it cheap to try a few options before committing, and switching later is straightforward if the choice turns out wrong. Defaulting to the largest size wastes budget on capacity that may never be used, judging a type by name alone skips the benchmarking step AWS recommends, and treating the initial choice as permanent ignores that instance types can be changed after launch.",
+  },
+  {
+    id: 'performant-007',
+    domain: 'performant',
+    questionType: 'multiple-choice',
+    question:
+      'An EC2 Auto Scaling group spans multiple Availability Zones. How does Amazon EC2 Auto Scaling distribute instances across those zones as the group scales?',
+    options: [
+      'It concentrates instances in a single Availability Zone until that zone is full, then moves to the next',
+      'It balances instances evenly across every configured Availability Zone as the group scales',
+      'It requires an administrator to manually assign each new instance to a specific Availability Zone',
+      'It stops performing health checks once the group first reaches its desired capacity',
+    ],
+    correctIndexes: [1],
+    explanation:
+      "AWS documentation states that Amazon EC2 Auto Scaling balances instances evenly across whichever Availability Zones a group is configured to use, so no single zone carries a disproportionate share of capacity. It doesn't fill one zone before moving to the next, doesn't need a human to place each instance manually, and keeps monitoring instance health continuously rather than stopping once desired capacity is reached.",
+  },
+  {
+    id: 'performant-008',
+    domain: 'performant',
+    questionType: 'multiple-choice',
+    question:
+      'A team wants to run containerized workloads on Amazon ECS without provisioning EC2 instances, patching hosts, or planning server capacity themselves. Which compute option should they choose?',
+    options: [
+      'AWS Fargate',
+      'Amazon EC2 Reserved Instances',
+      'AWS Batch running on self-managed EC2 capacity',
+      'Amazon EMR',
+    ],
+    correctIndexes: [0],
+    explanation:
+      "Fargate bills per task rather than per host and takes over the job of running and isolating container workloads, so nobody on the team has to size, patch, or babysit the machines underneath. Reserved Instances still require managing the underlying EC2 fleet, AWS Batch on self-managed EC2 capacity leaves that same team responsible for the capacity, and EMR is a managed big-data cluster platform rather than a general container runtime for ECS.",
+  },
+  {
+    id: 'performant-009',
+    domain: 'performant',
+    questionType: 'multiple-choice',
+    question:
+      'A design needs a single published event to reach several independent subscribers at once — for example a queue, an analytics pipeline, and an email service. Which AWS service is purpose-built for this fanout pattern?',
+    options: ['Amazon SQS', 'Amazon SNS', 'AWS Direct Connect', 'Amazon Route 53'],
+    correctIndexes: [1],
+    explanation:
+      "SNS publishes a message to a topic and replicates it out to every subscribed endpoint at once, which is exactly the fanout pattern described. SQS is documented as typically serving a single subscriber for ordered, loss-sensitive processing rather than broadcasting to many independent listeners, while Direct Connect and Route 53 solve private network connectivity and DNS routing, neither of which is a publish-subscribe messaging pattern.",
+  },
+  {
+    id: 'performant-010',
+    domain: 'performant',
+    questionType: 'multiple-response',
+    question:
+      'Which TWO of the following are documented features of Amazon EC2 Auto Scaling groups? (Select TWO.)',
+    options: [
+      'Automatically replacing instances that fail their health checks',
+      'Automatically registering and deregistering instances with an attached load balancer as the group scales',
+      'Requiring every instance in the group to use the same purchase option, either all On-Demand or all Spot',
+      'Removing the need to ever define a minimum or maximum group size',
+      'Automatically converting standard On-Demand instances into Spot Instances after 24 hours to cut cost',
+    ],
+    correctIndexes: [0, 1],
+    explanation:
+      "Auto Scaling groups automatically monitor instance health and replace any that fail a check, and they automatically register newly launched instances with an attached load balancer while deregistering ones that terminate. A single group can actually mix multiple instance types and purchase options rather than being locked to one, minimum and maximum size are core settings you must define rather than something the service removes the need for, and there's no documented feature that auto-converts On-Demand capacity into Spot after a fixed time.",
+  },
+
+  // ---------------------------------------------------------------------
+  // Task 3.3: Determine high-performing database solutions
+  // ---------------------------------------------------------------------
+  {
+    id: 'performant-011',
+    domain: 'performant',
+    questionType: 'multiple-choice',
+    question:
+      'Why can Amazon DynamoDB maintain consistent single-digit-millisecond response times even as a table grows to hundreds of terabytes?',
+    options: [
+      'It relies on a fixed relational schema with heavily indexed joins across many tables',
+      "It's a purpose-built NoSQL database that omits scale-limiting operations such as joins",
+      'It automatically migrates any table past a size threshold into Amazon Redshift',
+      'It keeps a permanent copy of every item cached in an attached ElastiCache cluster',
+    ],
+    correctIndexes: [1],
+    explanation:
+      "DynamoDB documentation attributes its performance at scale to being purpose-built as a NoSQL database that leaves out operations like joins, which don't scale efficiently against very large tables. It explicitly doesn't support a JOIN operator at all, which rules out the relational-schema option, and there's no documented behavior where DynamoDB migrates data into Redshift or depends on a permanently cached ElastiCache copy to hit its latency numbers.",
+  },
+  {
+    id: 'performant-012',
+    domain: 'performant',
+    questionType: 'multiple-choice',
+    question:
+      "How does Amazon Aurora's throughput on comparable hardware compare to stock MySQL or PostgreSQL, per AWS documentation?",
+    options: [
+      'About the same, since Aurora reuses the identical storage engine as the open-source versions',
+      'Up to six times the throughput of stock MySQL or PostgreSQL',
+      'Roughly half the throughput, accepted as a tradeoff for lower cost',
+      'Aurora only reaches stock-level throughput when run as a single instance with no cluster',
+    ],
+    correctIndexes: [1],
+    explanation:
+      "AWS documentation puts Aurora's throughput ceiling at six times what stock PostgreSQL or MySQL reaches on similar hardware, a gain it earns from a separated, fast distributed storage layer built specifically for it. Aurora doesn't reuse the same storage engine as open-source MySQL or PostgreSQL, its throughput advantage isn't a tradeoff that lowers performance for cost, and the higher throughput isn't limited to single-instance, non-clustered deployments.",
+  },
+  {
+    id: 'performant-013',
+    domain: 'performant',
+    questionType: 'multiple-choice',
+    question:
+      'A Multi-AZ RDS deployment already has a synchronous standby replica for failover. The team also wants to offload reporting queries from the primary instance. What should they add?',
+    options: [
+      'Nothing — the existing standby replica already serves read traffic',
+      'One or more separate read replicas that receive asynchronously replicated data',
+      'A second standby replica configured specifically to serve read-only queries',
+      'An RDS Proxy configured to replace the standby replica',
+    ],
+    correctIndexes: [1],
+    explanation:
+      "RDS documentation is explicit that, unlike a read replica, a standby only exists to take over on failover and never answers query traffic, so offloading reporting work requires one or more separate read replicas, which do accept read-only connections and can even coexist alongside a Multi-AZ standby. The first option is directly contradicted by that same documentation, a second standby wouldn't serve reads either since standby replicas by definition don't accept read connections, and RDS Proxy manages and pools connections rather than substituting for read capacity or failover standby duties.",
+  },
+  {
+    id: 'performant-014',
+    domain: 'performant',
+    questionType: 'multiple-choice',
+    question:
+      'How does Amazon RDS Proxy help an application stay connected during a database failover?',
+    options: [
+      'It automatically upgrades the database to a larger instance class during the failover',
+      'It keeps application-side connections intact while switching its own connection to the new primary',
+      'It converts every connection to read-only until the failover finishes',
+      'It pauses all application traffic until DNS changes finish propagating',
+    ],
+    correctIndexes: [1],
+    explanation:
+      "RDS Proxy documentation describes it as automatically connecting to the standby instance during a failover while preserving the application's existing connections, so a client never has to reconnect. It doesn't resize the database instance, doesn't force connections into read-only mode, and doesn't need to pause application traffic while waiting on DNS, since it keeps its own connection to the database current on the app's behalf.",
+  },
+  {
+    id: 'performant-015',
+    domain: 'performant',
+    questionType: 'multiple-response',
+    question:
+      'Which TWO statements about Amazon ElastiCache are correct, based on AWS documentation? (Select TWO.)',
+    options: [
+      'ElastiCache Serverless removes the need to provision or size cache nodes ahead of time',
+      'A node-based cluster supports cluster mode for horizontal scaling, or none for vertical scaling',
+      'ElastiCache only supports the Memcached engine and no others',
+      'ElastiCache is meant to replace a primary database rather than sit in front of one',
+      'Every ElastiCache node-based cluster automatically spans multiple AWS Regions on its own',
+    ],
+    correctIndexes: [0, 1],
+    explanation:
+      "ElastiCache Serverless is documented as skipping node and cluster setup entirely, letting a cache spin up without any capacity planning, and a node-based cluster can be run with cluster mode enabled for horizontal scaling or without it for simpler vertical scaling. It supports the Valkey and Redis OSS engines in addition to Memcached, it's designed as a cache layer that sits in front of a primary data store rather than replacing one, and node placement is chosen across Availability Zones within a Region, not automatically spread across multiple Regions.",
+  },
+
+  // ---------------------------------------------------------------------
+  // Task 3.4: Determine high-performing and/or scalable network architectures
+  // ---------------------------------------------------------------------
+  {
+    id: 'performant-016',
+    domain: 'performant',
+    questionType: 'multiple-choice',
+    question:
+      'How does Amazon CloudFront reduce the latency a viewer experiences when requesting content that is already cached?',
+    options: [
+      'By routing the request back to the origin server no matter where the viewer is located',
+      'By serving the content from a nearby edge location instead of contacting the origin server',
+      'By requiring the origin server to sit in the same city as every viewer',
+      'By removing the origin server from the architecture entirely once caching begins',
+    ],
+    correctIndexes: [1],
+    explanation:
+      "CloudFront documentation explains that when requested content is already sitting at the edge location with the lowest latency to the viewer, CloudFront delivers it immediately from there instead of reaching back to the origin. It doesn't route every request to the origin regardless of location, doesn't require origin and viewer to share a city, and still needs an origin defined to fetch content that isn't cached yet.",
+  },
+  {
+    id: 'performant-017',
+    domain: 'performant',
+    questionType: 'multiple-choice',
+    question:
+      'A gaming company runs a UDP-based backend across several AWS Regions and wants static IP addresses plus fast rerouting to the nearest healthy Region if one becomes impaired. Which service best fits this need?',
+    options: [
+      'Amazon CloudFront',
+      'AWS Global Accelerator',
+      'Amazon Route 53 latency-based routing alone',
+      'AWS Direct Connect',
+    ],
+    correctIndexes: [1],
+    explanation:
+      "Global Accelerator hands out static anycast IP addresses and routes traffic over the AWS global network to the nearest healthy Regional endpoint, reacting within seconds to health changes — a fit for non-HTTP protocols like UDP that CloudFront isn't built to accelerate. Route 53 latency routing alone doesn't provide static IP addresses or Global Accelerator's rapid health-based failover, and Direct Connect is a dedicated private link unrelated to routing traffic between distributed Regional endpoints.",
+  },
+  {
+    id: 'performant-018',
+    domain: 'performant',
+    questionType: 'multiple-choice',
+    question:
+      'Instances in a private subnet need to reach the internet for software updates, but nothing on the internet should be able to open a connection to them. What should be placed in a public subnet to enable this?',
+    options: [
+      'An internet gateway attached directly to the private subnet',
+      'A public NAT gateway, with private-subnet traffic routed to it',
+      'A Site-to-Site VPN connection to an on-premises network',
+      'A Network Load Balancer placed in front of the private subnet',
+    ],
+    correctIndexes: [1],
+    explanation:
+      "NAT gateway documentation describes exactly this pattern: instances in a private subnet route outbound traffic to a public NAT gateway, which lets them reach the internet while external hosts can't initiate connections back to them. An internet gateway doesn't attach to an individual subnet the way described, a Site-to-Site VPN connects to an on-premises network rather than the public internet, and a load balancer distributes incoming traffic rather than providing outbound internet access.",
+  },
+  {
+    id: 'performant-019',
+    domain: 'performant',
+    questionType: 'multiple-choice',
+    question:
+      'Which type of AWS Direct Connect virtual interface should a company configure to reach resources inside one specific Amazon VPC using private IP addresses?',
+    options: [
+      'Public virtual interface',
+      'Private virtual interface',
+      'Transit virtual interface',
+      'Site-to-Site VPN interface',
+    ],
+    correctIndexes: [1],
+    explanation:
+      "Direct Connect documentation describes the private virtual interface as the type used to reach a VPC with private IP addresses, connecting directly to a single VPC per interface. A public virtual interface instead reaches public AWS services and endpoints, a transit virtual interface is meant for reaching multiple VPCs through a transit gateway rather than one specific VPC, and a Site-to-Site VPN interface isn't a Direct Connect virtual interface type at all — it belongs to a separate AWS service.",
+  },
+  {
+    id: 'performant-020',
+    domain: 'performant',
+    questionType: 'multiple-response',
+    question:
+      'Which TWO capabilities does an Application Load Balancer provide, according to AWS documentation? (Select TWO.)',
+    options: [
+      'Sending a request to whichever target group matches its URL path or host header',
+      'Operating at the transport layer for the lowest possible latency on non-HTTP protocols',
+      'Performing health checks on registered targets and routing only to the healthy ones',
+      'Guaranteeing every registered target an identical, fixed share of traffic no matter which routing algorithm is configured',
+      'Requiring every target to sit inside the same VPC as the load balancer, with no exceptions',
+    ],
+    correctIndexes: [0, 2],
+    explanation:
+      "An Application Load Balancer reads its configured listener rules and hands each incoming request to whichever target group its path or host field matches, while continuously health-checking registered targets so traffic only reaches the ones passing that check. Operating at the transport layer for non-HTTP protocols describes a Network Load Balancer rather than an ALB, the routing algorithm can be round robin or least-outstanding-requests rather than a guaranteed identical split, and ALBs explicitly support registering targets by IP address outside the load balancer's own VPC.",
+  },
+
+  // ---------------------------------------------------------------------
+  // Task 3.5: Determine high-performing data ingestion and transformation solutions
+  // ---------------------------------------------------------------------
+  {
+    id: 'performant-021',
+    domain: 'performant',
+    questionType: 'multiple-choice',
+    question:
+      'A company needs data records to become available to a consuming application in well under a second after being written, with more than one independent application able to read the same data at once. Which AWS service fits this requirement?',
+    options: ['AWS Glue', 'Amazon Kinesis Data Streams', 'AWS DataSync', 'Amazon Athena'],
+    correctIndexes: [1],
+    explanation:
+      "Kinesis Data Streams documentation describes a typical put-to-get delay of under a second, with multiple independent consumer applications able to read the same stream concurrently for separate purposes. Glue is built for cataloging and transforming data rather than continuous low-latency intake, DataSync is a bulk file-transfer service rather than a continuous streaming service, and Athena queries data already sitting in S3 rather than ingesting a live stream.",
+  },
+  {
+    id: 'performant-022',
+    domain: 'performant',
+    questionType: 'multiple-choice',
+    question:
+      'What does an AWS Glue crawler do to help make data stored in Amazon S3 queryable by a service like Athena?',
+    options: [
+      'It encrypts every object in the bucket before any query can run',
+      'It scans the data source and registers the inferred schema in the Glue Data Catalog',
+      'It converts every file in the bucket into one fixed CSV format',
+      'It physically relocates the data out of S3 into a Glue-managed database',
+    ],
+    correctIndexes: [1],
+    explanation:
+      "Glue documentation describes crawlers as scanning data sources, automatically inferring schema and table structure, and registering that structure in the Glue Data Catalog so tools like Athena can query it directly. A crawler doesn't perform encryption, doesn't force every file into one fixed format, and leaves the underlying data in place in S3 rather than moving it anywhere.",
+  },
+  {
+    id: 'performant-023',
+    domain: 'performant',
+    questionType: 'multiple-choice',
+    question:
+      'What differentiates Amazon Athena from a traditional data warehouse when querying data already stored in Amazon S3?',
+    options: [
+      'Athena requires provisioning and managing a cluster before it can run any query',
+      'Athena runs standard SQL directly against S3 data with no infrastructure to manage',
+      'Athena requires all queried data to be loaded first into an Athena-managed storage format',
+      "Athena is limited to NoSQL-style key lookups and doesn't support SQL at all",
+    ],
+    correctIndexes: [1],
+    explanation:
+      "Athena documentation describes it as running standard SQL directly against data sitting in S3 with no infrastructure to set up, billing only for the data a query actually scans. It doesn't require a provisioned cluster, doesn't require data to be pre-loaded into a proprietary storage format first, and it queries with standard SQL rather than being limited to NoSQL-style lookups.",
+  },
+  {
+    id: 'performant-024',
+    domain: 'performant',
+    questionType: 'multiple-choice',
+    question:
+      'A team wants to run extract-transform-load jobs on a managed Apache Spark engine without provisioning or sizing a Spark cluster themselves. Which AWS service directly addresses this need?',
+    options: ['Amazon EMR with manually managed core nodes', 'AWS Glue', 'Amazon Redshift', 'AWS Direct Connect'],
+    correctIndexes: [1],
+    explanation:
+      "Glue is documented as a serverless data integration service with no infrastructure to manage, running ETL jobs on a Spark-based engine it operates on the team's behalf. EMR with manually managed core nodes still leaves cluster sizing to the team, which is exactly what's being avoided, Redshift is a data warehouse rather than an ETL engine, and Direct Connect is a private network link unrelated to running transformation jobs.",
+  },
+  {
+    id: 'performant-025',
+    domain: 'performant',
+    questionType: 'multiple-response',
+    question:
+      'Which TWO of the following correctly pair an AWS service with a capability documented for it? (Select TWO.)',
+    options: [
+      'Amazon Kinesis Data Streams — supports multiple independent consumer applications reading the same stream at once',
+      'AWS Glue — provides a visual job canvas that automatically generates code for common transformations',
+      'Amazon Athena — requires manually provisioning a compute cluster sized to the dataset before querying',
+      'AWS DataSync — is a NoSQL database service for storing key-value data',
+      "AWS Glue Data Catalog — stores the dataset itself rather than metadata describing its structure",
+    ],
+    correctIndexes: [0, 1],
+    explanation:
+      "Kinesis Data Streams documentation confirms multiple consumer applications can read the same stream independently and concurrently, and Glue documentation describes a visual job canvas that generates ETL code for common transformations automatically. Athena is serverless and needs no provisioned cluster, DataSync is a data-transfer service rather than a database of any kind, and the Glue Data Catalog stores metadata about a dataset's schema and location rather than the dataset's actual contents.",
+  },
 ];

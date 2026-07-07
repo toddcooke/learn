@@ -77,9 +77,15 @@ covering the major in-scope services (~60–80 cards).
 
 ## Architecture
 
-Static site, **no build step**, opens directly via `file://` (data is
-embedded as ES module JS, not fetched JSON, so there's no CORS issue running
-without a local server).
+Static site, **no build step**. Data is embedded as ES module JS (not
+fetched JSON) so there's no `fetch()`/CORS concern about reading data files.
+However, browsers block `<script type="module">` imports when a page is
+opened via `file://` (a module-specific CORS restriction, most strictly
+enforced in Chrome) — so the site is served with a trivial zero-install
+static file server (Python's built-in `python3 -m http.server`, already
+present on this machine) rather than opened directly as a file. This is not
+a build step (nothing is compiled/bundled, files are served as-is); it's the
+"serve it locally" option from the earlier deployment discussion.
 
 ```
 learn_aws/

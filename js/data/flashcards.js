@@ -19,7 +19,7 @@ export const FLASHCARDS = [
     id: 'iam-policies',
     service: 'AWS IAM',
     front: 'Identity-based vs. resource-based policies: what is the exam-relevant difference?',
-    back: 'An identity-based policy lives on a user, group, or role and lists what that principal can do. A resource-based policy is attached straight to the resource being protected (think a bucket policy on S3, or a policy on a KMS key) and is what you reach for to grant access to a principal sitting in someone else\'s AWS account, since you can\'t hand that account a role of yours to assume.',
+    back: "An identity-based policy lives on a user, group, or role and lists what that principal can do. A resource-based policy is attached straight to the resource being protected instead (think a bucket policy on S3, or a policy on a KMS key), and it lets you name a principal in a completely different AWS account right in the policy — a second way to grant cross-account access alongside the more familiar pattern of having that account assume a role of yours.",
   },
   {
     id: 'iam-identity-center',
@@ -132,6 +132,12 @@ export const FLASHCARDS = [
     service: 'Amazon VPC',
     front: 'What is it for?',
     back: "A VPC is a logically isolated slice of network that you carve into subnets, route tables, and gateways, closely mirroring how you'd lay out a traditional data-center network, except it runs on AWS's shared, scalable infrastructure instead of hardware you own and rack yourself.",
+  },
+  {
+    id: 'vpc-flow-logs',
+    service: 'VPC Flow Logs',
+    front: 'What is it for?',
+    back: 'Flow Logs capture metadata about the IP traffic crossing the network interfaces in your VPC — source, destination, port, and whether it was accepted or rejected — without capturing the packet contents themselves. It answers connectivity and security questions like "why is this instance unreachable" or "what is this instance talking to," which is a different job from CloudTrail, which logs API calls rather than network traffic.',
   },
   {
     id: 'vpc-peering',
@@ -300,8 +306,8 @@ export const FLASHCARDS = [
   {
     id: 's3-glacier',
     service: 'Amazon S3 Glacier',
-    front: 'When would you use it over S3 Standard?',
-    back: "Glacier's storage classes are built for data you rarely expect to touch again — archives and long-term compliance retention — trading retrieval speed for a much lower storage price than the frequent-access S3 classes. Getting an object back can take anywhere from minutes to hours depending on the specific Glacier tier, so it doesn't suit data an application needs returned instantly.",
+    front: 'When would you use it over S3 Standard, and does retrieval always mean waiting?',
+    back: "Glacier's storage classes are built for data you rarely expect to touch again — archives and long-term compliance retention — trading storage price down in exchange for restrictions on how quickly (or cheaply) you get an object back. That tradeoff isn't uniform: Glacier Instant Retrieval still returns objects in milliseconds like S3 Standard, while Glacier Flexible Retrieval takes minutes to hours and Glacier Deep Archive, the cheapest tier, takes hours — so picking the right Glacier tier means matching how rarely the data is read to how tolerant the workload is of that wait.",
   },
   {
     id: 'ebs',
@@ -360,6 +366,12 @@ export const FLASHCARDS = [
     service: 'Amazon RDS / Aurora Read Replicas',
     front: 'What are they for?',
     back: "A read replica mirrors a database in a read-only, continuously updated copy, letting you offload query traffic and scale reads beyond what a single instance could handle for read-heavy workloads. An Aurora replica shares the same underlying storage volume as its primary, so its replication lag is typically much shorter than a standard RDS replica's.",
+  },
+  {
+    id: 'rds-multi-az',
+    service: 'Amazon RDS Multi-AZ',
+    front: 'How is Multi-AZ different from a read replica?',
+    back: "Multi-AZ is about availability, not read scaling: RDS provisions a standby copy of your database in a different Availability Zone and keeps it synchronously up to date, then fails over to it automatically if the primary has a problem. A single-instance Multi-AZ standby doesn't serve read traffic at all (only the newer Multi-AZ DB cluster option does), which is the opposite tradeoff from a read replica, whose whole purpose is serving reads.",
   },
   {
     id: 'aurora',

@@ -76,3 +76,13 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 .study-topic { margin-left: 1rem; padding-left: 1rem; border-left: 3px solid var(--color-border); margin-bottom: 1rem; }
 
 .study-topic h4 { margin-bottom: 0.25rem; }
+
+.quiz-option { display: block; margin: 0.5rem 0; }
+
+.quiz-progress { color: var(--color-muted); }
+
+.feedback-correct { color: var(--color-success); }
+
+.feedback-incorrect { color: var(--color-danger); }
+
+.quiz-score { font-size: 1.25rem; font-weight: 600; }

@@ -126,7 +126,10 @@ function finishExam(mount, exam, state) {
     correct: isCorrect(q, state.answers[i] ?? []),
   }));
   const correctCount = results.filter((r) => r.correct).length;
-  const score = estimateScaledScore(correctCount, exam.length);
+  const score = estimateScaledScore(correctCount, exam.length, {
+    minScore: EXAM_FORMAT.minScore,
+    maxScore: EXAM_FORMAT.maxScore,
+  });
   const passed = score >= EXAM_FORMAT.passingScore;
 
   const byDomain = DOMAINS.map((d) => {

@@ -5,6 +5,25 @@ import { createStore } from '../lib/storage.js';
 
 const store = createStore();
 
+// Tracks the single in-flight exam timer (if any) so that navigating away
+// from an in-progress mock exam — or starting a new one — can never leave a
+// previous countdown's setInterval running in the background. The router
+// (js/app.js) has no per-view teardown hook; it just swaps mount.innerHTML,
+// so this module has to detect "the user left" itself via `hashchange`.
+let activeTimerId = null;
+let activeHashchangeHandler = null;
+
+function stopActiveTimer() {
+  if (activeTimerId !== null) {
+    clearInterval(activeTimerId);
+    activeTimerId = null;
+  }
+  if (activeHashchangeHandler !== null) {
+    window.removeEventListener('hashchange', activeHashchangeHandler);
+    activeHashchangeHandler = null;
+  }
+}
+
 export function render(mount) {
   mount.innerHTML = `
     <h2>Mock Exam</h2>
@@ -15,6 +34,11 @@ export function render(mount) {
 }
 
 function startExam(mount) {
+  // Defensive: if some earlier exam's timer/listener is still alive for any
+  // reason, clear it before starting a new one so two intervals can never
+  // run concurrently.
+  stopActiveTimer();
+
   const exam = drawMockExam(QUESTIONS, DOMAINS);
   const state = {
     index: 0,
@@ -22,14 +46,24 @@ function startExam(mount) {
     secondsLeft: EXAM_FORMAT.durationMinutes * 60,
   };
 
+  // The mock exam view doesn't use hash params (it's always just `#/exam`),
+  // so any navigation away — to Home, Study Guide, back to Mock Exam, etc.
+  // — fires a `hashchange`. Use that as the "user left without finishing"
+  // signal and tear down the timer. `{ once: true }` means this self-removes
+  // the first time it fires, so it never leaks or double-fires.
+  const onHashChange = () => stopActiveTimer();
+  activeHashchangeHandler = onHashChange;
+  window.addEventListener('hashchange', onHashChange, { once: true });
+
   state.timerId = setInterval(() => {
     state.secondsLeft -= 1;
     updateTimerDisplay();
     if (state.secondsLeft <= 0) {
-      clearInterval(state.timerId);
+      stopActiveTimer();
       finishExam(mount, exam, state);
     }
   }, 1000);
+  activeTimerId = state.timerId;
 
   function updateTimerDisplay() {
     const el = document.getElementById('exam-timer');
@@ -70,7 +104,7 @@ function startExam(mount) {
         state.index += 1;
         renderQuestion();
       } else {
-        clearInterval(state.timerId);
+        stopActiveTimer();
         finishExam(mount, exam, state);
       }
     });

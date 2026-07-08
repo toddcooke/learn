@@ -26,6 +26,6 @@ Exam structure, domain weightings, and task statements come from AWS's official 
 
 ## Development
 
-- `node --test js/lib` — runs unit tests for the pure storage/scoring logic.
+- `node --test` — runs unit tests for the pure storage/scoring logic.
 - `node scripts/validate-content.mjs` — validates the shape of every `js/data/*.js` file.
 - `node scripts/fetch-doc.mjs <url>` — fetches and caches an AWS doc page for content research.

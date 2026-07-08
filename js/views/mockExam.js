@@ -158,6 +158,16 @@ function finishExam(mount, exam, state) {
         <p>${r.correct ? 'Correct' : 'Incorrect'} — ${r.question.explanation}</p>
       </article>
     `).join('')}
-    <p><a href="#/exam">Take another mock exam</a> · <a href="#/progress">View progress</a></p>
+    <p><a href="#/exam" id="exam-retake">Take another mock exam</a> · <a href="#/progress">View progress</a></p>
   `;
+  // The hash (#/exam) is already active on this results screen, so a click
+  // on "Take another mock exam" doesn't change the URL fragment and the
+  // router's `hashchange` listener never fires. Re-invoke this module's own
+  // entry point directly instead of relying on hash navigation, which shows
+  // the "Start Mock Exam" landing screen — matching what a real hash-triggered
+  // navigation to #/exam would do (render, not startExam).
+  document.getElementById('exam-retake').addEventListener('click', (e) => {
+    e.preventDefault();
+    render(mount);
+  });
 }

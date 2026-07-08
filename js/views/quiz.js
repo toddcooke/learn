@@ -93,8 +93,16 @@ function runQuiz(mount, domain, questions) {
     mount.innerHTML = `
       <h2>${domain.name} Quiz Results</h2>
       <p class="quiz-score">${state.correctCount} / ${questions.length} correct</p>
-      <p><a href="#/quiz/${domain.id}">Retake this quiz</a> · <a href="#/quiz">Other quizzes</a> · <a href="#/progress">View progress</a></p>
+      <p><a href="#/quiz/${domain.id}" id="quiz-retake">Retake this quiz</a> · <a href="#/quiz">Other quizzes</a> · <a href="#/progress">View progress</a></p>
     `;
+    // The hash (#/quiz/${domain.id}) is already active on this screen, so a
+    // click on "Retake this quiz" doesn't change the URL fragment and the
+    // router's `hashchange` listener never fires. Re-invoke the quiz runner
+    // directly instead of relying on hash navigation.
+    document.getElementById('quiz-retake').addEventListener('click', (e) => {
+      e.preventDefault();
+      runQuiz(mount, domain, questions);
+    });
   }
 
   renderQuestion();

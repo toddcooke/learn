@@ -70,3 +70,9 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 .domain-list { list-style: none; padding: 0; }
 
 .domain-list li { padding: 0.5rem 0; border-bottom: 1px solid var(--color-border); }
+
+.study-section { margin-bottom: 2rem; }
+
+.study-topic { margin-left: 1rem; padding-left: 1rem; border-left: 3px solid var(--color-border); margin-bottom: 1rem; }
+
+.study-topic h4 { margin-bottom: 0.25rem; }

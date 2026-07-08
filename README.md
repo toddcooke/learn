@@ -2,7 +2,7 @@
 
 An unofficial study site for the AWS Certified Solutions Architect – Associate (SAA-C03) exam. Not affiliated with or endorsed by AWS.
 
-Live at https://toddcooke.github.io/learn/aws/.
+Live at https://toddcooke.github.io/learn/aws/ (source repo also mirrored under toddcooke.github.io as a submodule).
 
 ## Running it
 

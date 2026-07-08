@@ -1,31 +1,13 @@
-# AWS SAA-C03 Exam Prep
+# learn
 
-An unofficial study site for the AWS Certified Solutions Architect – Associate (SAA-C03) exam. Not affiliated with or endorsed by AWS.
+Hub for Todd Cooke's learning modules, published at https://toddcooke.github.io/learn/.
 
-## Running it
+Each module lives in its own subfolder and publishes at `https://toddcooke.github.io/learn/<module>/`. Pushing to `main` deploys automatically via GitHub Actions (see `.github/workflows/pages.yml`).
 
-No install step. From this directory:
+## Modules
 
-```
-python3 -m http.server 8000
-```
+- [`aws/`](aws) — AWS Certified Solutions Architect – Associate (SAA-C03) exam prep, published at https://toddcooke.github.io/learn/aws/
 
-Then open http://localhost:8000/ in a browser. (A plain `file://` open won't work — browsers block ES module imports over `file://`.)
+## Adding a module
 
-## What's here
-
-- **Study guide** — organized by the exam's 4 official domains and their task statements.
-- **Domain quizzes** — 100+ practice questions with instant feedback and explanations.
-- **Flashcards** — a service-by-service cheat-sheet deck with known/unknown tracking.
-- **Mock exam** — a 65-question, 130-minute timed exam weighted by domain, like the real thing.
-- **Progress dashboard** — quiz and mock exam history, flashcard mastery, all stored locally in your browser (`localStorage`, nothing sent anywhere).
-
-## How the content was sourced
-
-Exam structure, domain weightings, and task statements come from AWS's official SAA-C03 exam guide (docs.aws.amazon.com), fetched 2026-07-07 — see [docs/superpowers/specs/2026-07-07-aws-saa-exam-prep-design.md](docs/superpowers/specs/2026-07-07-aws-saa-exam-prep-design.md) for details. Every quiz question was drafted from and checked against the relevant AWS service documentation before being added. Fetched doc pages are cached locally under `.cache/aws-docs/` (gitignored) so re-running the content pipeline doesn't re-hit AWS for pages already fetched.
-
-## Development
-
-- `node --test` — runs unit tests for the pure storage/scoring logic.
-- `node scripts/validate-content.mjs` — validates the shape of every `js/data/*.js` file.
-- `node scripts/fetch-doc.mjs <url>` — fetches and caches an AWS doc page for content research.
+Add a new top-level folder (e.g. `gcp/`) with its own `index.html` entry point — everything in this project uses relative paths, so a module works unmodified at whatever path it's nested under. Link to it from the root `index.html`.

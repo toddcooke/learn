@@ -104,3 +104,11 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 .flashcard-text { font-size: 1.1rem; }
 
 .flashcard-controls { display: flex; gap: 0.75rem; margin-top: 1rem; flex-wrap: wrap; }
+
+.exam-header { display: flex; justify-content: space-between; margin-bottom: 1rem; font-weight: 600; }
+
+.exam-timer { font-variant-numeric: tabular-nums; }
+
+.exam-nav { display: flex; gap: 0.75rem; margin-top: 1rem; }
+
+.review-item { border-left: 3px solid var(--color-border); padding-left: 1rem; margin-bottom: 1rem; }

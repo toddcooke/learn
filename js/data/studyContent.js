@@ -1,6 +1,7 @@
 // js/data/studyContent.js
-// Study notes for the Cluster Architecture, Installation and Configuration
-// domain (25% exam weight). Grounded in kubernetes.io and helm.sh
+// Study notes for the CKA exam domains, starting with Cluster Architecture,
+// Installation and Configuration (25% exam weight) and Services and
+// Networking (20% exam weight). Grounded in kubernetes.io and helm.sh
 // documentation fetched into .cache/aws-docs/ (see scripts/fetch-doc.mjs).
 // Written in the author's own words, not copied verbatim from the source docs.
 
@@ -110,6 +111,92 @@ export const STUDY_CONTENT = [
       {
         title: 'CustomResourceDefinitions and the operator pattern',
         body: "A CustomResourceDefinition lets a cluster admin register a brand-new kind of API object — complete with its own schema, its own API group, and normal kubectl support — without writing and running a separate API server; that's the simpler of Kubernetes' two extension paths, the other being a fully independent aggregated API server that takes more effort to build but allows deeper control over validation and storage. On its own, a custom resource is just structured data an administrator can create, read, and delete through the API. Pairing that custom resource with a custom controller that watches it and continuously drives the cluster toward whatever state it declares is what turns the pair into a genuine declarative API, and a CRD combined with a controller acting on it is exactly what the operator pattern describes. Operators typically encode the operational know-how for running a specific piece of software — backups, failover, version upgrades — as automation native to the cluster, turning what would otherwise be a manual runbook into editing a custom resource.",
+      },
+    ],
+  },
+  {
+    domain: 'services',
+    taskStatement: 'Pod connectivity and Network Policies',
+    topics: [
+      {
+        title: 'The Kubernetes networking model: every Pod gets a routable IP',
+        body: "Kubernetes assumes a flat network in which every Pod is reachable at its own IP address from every other Pod in the cluster, on every node, without any address translation getting in the way — the network plugin running on each node is what actually hands out and routes those addresses. This sidesteps the classic problem of coordinating which host port each process gets to avoid collisions when many applications share a handful of machines, since dynamic port negotiation between applications, load balancers, and the API server doesn't scale cleanly once dozens of teams are involved. Containers within one Pod already share a single network namespace and can reach each other over localhost, so the model really has three remaining connectivity concerns to solve: getting traffic from one Pod to another, routing Pod traffic through a Service, and letting traffic from outside the cluster reach a Service.",
+      },
+      {
+        title: 'How the network plugin allocates addresses for Pods, Services, and Nodes',
+        body: "Three different components are each responsible for handing out a different category of address in a cluster: the network plugin hands out Pod addresses, while the kube-apiserver allocates each Service's address out of the configured service IP range, and either the kubelet or, when the cluster integrates with a cloud provider, the cloud-controller-manager assigns addresses to Nodes. All of these have to draw from non-overlapping ranges, and every component has to agree on which IP families — IPv4 only, IPv6 only, or dual-stack — the cluster is actually using. Most container runtimes implement this addressing and routing behavior through a Container Network Interface plugin, and because so many CNI plugins exist, cluster operators can pick one that only handles basic interface setup or one that layers on more advanced features like running multiple plugins together or richer address-management schemes.",
+      },
+      {
+        title: 'Pod isolation: ingress and egress are independent, and off by default',
+        body: "A Pod's exposure to network traffic is governed by two separate notions of isolation, one for inbound (ingress) connections and one for outbound (egress) connections, and a Pod starts out non-isolated in both directions — meaning nothing restricts its traffic until some NetworkPolicy says otherwise. A Pod becomes isolated for a given direction as soon as any NetworkPolicy both selects that Pod and lists that direction among its policy types; once that happens, only the connections explicitly permitted by that policy's rules, plus reply traffic for connections already allowed, get through in that direction. Because these effects are purely additive across every applicable policy, a connection needs the union of all ingress rules touching the destination Pod, and separately the union of all egress rules touching the source Pod, to both agree the traffic should proceed.",
+      },
+      {
+        title: 'Targeting traffic with podSelector, namespaceSelector, and ipBlock',
+        body: "A NetworkPolicy's ingress sources or egress destinations are built out of up to three selector kinds: a podSelector matching Pods in the policy's own namespace, a namespaceSelector matching every Pod inside namespaces carrying certain labels, and an ipBlock naming external CIDR ranges, since Pod addresses themselves are too short-lived to be useful there. Combining a namespaceSelector and a podSelector inside one list entry narrows the match to Pods with both sets of labels at once, while listing them as two separate entries instead broadens the match to either condition — a YAML nesting detail worth checking with kubectl describe whenever a policy's actual effect is in doubt. Two exceptions apply no matter what a policy selects: a Pod can never be blocked from reaching itself, and traffic between a Pod and the node it happens to be running on is always permitted.",
+      },
+      {
+        title: 'Building default-deny and default-allow policies for a namespace',
+        body: "Because nothing is restricted anywhere a NetworkPolicy hasn't been applied, a common pattern is a namespace-wide baseline: a NetworkPolicy with an empty podSelector, matching every Pod in the namespace, paired with no ingress or egress entries creates a default-deny for that direction, while the same empty podSelector paired with a single all-matching rule creates an explicit default-allow that no narrower policy can override. A default-deny-egress policy is easy to get wrong in practice because it also blocks DNS lookups by default, so any namespace adopting one needs a companion rule that explicitly permits egress to the cluster's DNS service. Applying both an ingress and an egress default-deny policy together locks a namespace down in both directions at once, giving administrators a known baseline before layering on narrower allow rules for specific applications.",
+      },
+      {
+        title: 'What NetworkPolicy enforcement requires and does not cover',
+        body: "A NetworkPolicy object is inert on its own — it only takes effect once the cluster's network plugin actually implements NetworkPolicy support, so creating one against a plugin that lacks that support changes nothing. Where enforcement does apply, it is scoped to layer 3 and 4 traffic such as TCP, UDP, and optionally SCTP; behavior toward other protocols like ICMP is left undefined and varies by plugin. The API also has real gaps worth knowing when troubleshooting: it cannot target a Service by name, only Pods or namespaces by label, it has no explicit deny rule since the model is deny-by-default with only additive allows, it cannot apply automatically to every namespace cluster-wide, and it offers no built-in way to record which connections a policy blocked or accepted — those needs typically fall to a service mesh, a Layer 7 proxy, or OS-level tooling instead.",
+      },
+    ],
+  },
+  {
+    domain: 'services',
+    taskStatement: 'Service types and endpoints',
+    topics: [
+      {
+        title: 'Why Services exist: stable access to a shifting set of Pod IPs',
+        body: "Pods are deliberately disposable: a Deployment can replace them at any time, each replacement gets a brand-new address, and the set of currently healthy Pods backing an application can look completely different only moments later. That creates a real problem for anything depending on those Pods — a frontend has no reliable way to know which backend addresses are currently good without constantly re-discovering them. A Service closes that gap by giving a logical group of Pods, normally the ones matching a label selector, one stable point of contact that keeps working across every Pod replacement, so callers never need to track individual Pod addresses themselves.",
+      },
+      {
+        title: 'ClusterIP: the default type, plus the headless variant',
+        body: "ClusterIP is what a Service becomes if no type is specified at all: Kubernetes hands it a virtual address drawn from the cluster's reserved Service range, reachable only from inside the cluster, and every other Service type effectively layers on top of this one. Setting the clusterIP field to the literal value None instead turns a ClusterIP Service headless — no virtual address gets allocated, kube-proxy leaves it alone entirely, and DNS returns the real addresses of the individual backing Pods rather than one shared address, which suits workloads whose clients need to reach a specific Pod directly instead of being load-balanced across the group. A Service can also be created with a chosen address up front, provided it falls inside the configured Service range and isn't already claimed by another Service.",
+      },
+      {
+        title: "NodePort: reaching a Service through every Node's own address",
+        body: "Setting a Service's type to NodePort layers a cluster-wide static port on top of the ClusterIP behavior it already gets for free: the control plane picks a port from a configurable range, 30000 through 32767 by default, unless a specific one is requested, and every node in the cluster then listens on that exact port and forwards whatever arrives to a healthy endpoint for the Service. That means any node's address paired with the allocated port reaches the Service from outside the cluster, even a node that isn't currently running any of the backing Pods. To reduce the odds of two people colliding when manually picking a NodePort, the overall range is split into a smaller band reserved for manual assignment and a larger band that automatic allocation draws from first.",
+      },
+      {
+        title: 'LoadBalancer: handing external exposure to a cloud provider',
+        body: "A Service of type LoadBalancer asks whatever load-balancing integration the cluster has configured — typically a cloud provider's controller — to provision an external load balancer in front of the Service; because that provisioning happens asynchronously, the resulting external address only shows up in the Service's status once the balancer is actually ready. Under the hood, Kubernetes usually sets this up the same way it would a NodePort Service first, then configures the external balancer to forward onto that allocated node port, though a dedicated field can turn that node-port allocation off for balancer implementations that route straight to Pods instead. A Service can also name a non-default load-balancer class to hand its provisioning to an alternate implementation, useful when a cluster wants something other than whatever the cloud provider offers out of the box.",
+      },
+      {
+        title: 'EndpointSlices: how a Service knows which Pods are ready',
+        body: "Behind every selector-based Service, a controller continuously watches for matching Pods and keeps a set of EndpointSlice objects current to reflect them; each EndpointSlice covers a subset of a Service's backing addresses, and Kubernetes starts a new one automatically once the existing slices fill up, by default once each holds around a hundred endpoints. EndpointSlices superseded the older, singular Endpoints API, which had no way to represent dual-stack addressing and would silently truncate its list once a Service passed a thousand backing endpoints. A Service defined without a selector skips this automatic tracking entirely, which is exactly what lets it front an external database or a workload running outside the cluster — in that case, someone has to create matching EndpointSlice objects by hand, tagged with the Service's name, to tell Kubernetes where traffic should actually go.",
+      },
+    ],
+  },
+  {
+    domain: 'services',
+    taskStatement: 'Ingress, the Gateway API, and CoreDNS',
+    topics: [
+      {
+        title: 'The Ingress resource: host- and path-based routing rules',
+        body: "An Ingress is an API object that maps incoming HTTP and HTTPS requests to backend Services based on rules an administrator defines, matching on the request's host header and URL path; a rule with no host at all simply applies to any inbound request that doesn't match a more specific rule. Each path in a rule declares a path type — Exact for a case-sensitive full match, Prefix for an element-by-element prefix match, or ImplementationSpecific, whose matching behavior is left to the controller handling it — and when several paths in an Ingress could match the same request, the longest matching path wins, with an Exact match beating a Prefix match at equal length. Because Ingress only understands HTTP(S) semantics, any other protocol a workload needs exposed externally still has to go through a NodePort or LoadBalancer Service instead.",
+      },
+      {
+        title: 'Ingress controllers and IngressClass tie a rule set to an implementation',
+        body: "An Ingress resource by itself does nothing — some ingress controller has to be running in the cluster to actually watch for Ingress objects and program a load balancer or proxy to match, and a cluster can run more than one controller side by side as long as each Ingress states which one it wants. That linkage runs through IngressClass: each Ingress can reference an IngressClass object by name, which in turn names the controller responsible for it and can carry additional controller-specific settings; this replaced an older, informally defined annotation that served the same purpose before IngressClass existed. Marking one IngressClass as the cluster's default, through an annotation on that IngressClass, means any Ingress created without an explicit class reference automatically picks it up, though a cluster with more than one IngressClass marked default will instead have new, class-less Ingress creation blocked until the ambiguity is resolved.",
+      },
+      {
+        title: 'TLS termination at the Ingress and the limits of its load balancing',
+        body: "Securing an Ingress means pointing its TLS configuration at a Secret holding a certificate and private key pair; the Ingress terminates TLS right there, so everything beyond that point — the hop from Ingress to Service, and onward to the backing Pods — travels as plaintext, and because the resource only supports one TLS-secured port — 443 — multiple hostnames on one Ingress get multiplexed onto that single port using server name indication. Ingress controllers ship with their own baseline load-balancing behavior — algorithm choice, backend weighting, and so on — applied uniformly across every Ingress they manage, and Ingress itself has no field for more advanced needs like sticky sessions or dynamically adjusted weights; those have to come from the underlying Service's own load balancer or from controller-specific configuration instead. Because implementations vary quite a bit in how thoroughly they support TLS and these extra behaviors, checking a chosen controller's own documentation matters before relying on any of it.",
+      },
+      {
+        title: 'The Gateway API: role-oriented successor to Ingress',
+        body: "Gateway API is a separate, CRD-based family of resources that the Kubernetes project now recommends over Ingress for exposing network services, built around four stable kinds: GatewayClass names the controller implementation, a Gateway is a concrete instance of traffic-handling infrastructure — a cloud-provisioned load balancer or a proxy server living inside the cluster — that references a GatewayClass and defines listeners, and HTTPRoute or GRPCRoute objects then attach to a Gateway's listeners to describe how matching requests get forwarded to backend Services. Its design deliberately splits configuration along organizational lines — an infrastructure provider manages the GatewayClass, a cluster operator manages Gateways, and an application developer manages the routes attached to them — and a Gateway admits routes only from its own namespace unless its allowedRoutes configuration is explicitly opened up to others. Because Gateway API has no Ingress kind of its own, moving away from Ingress means a one-time conversion of existing rules into GatewayClass, Gateway, and route objects rather than a drop-in swap, though the payoff is native support for things like header-based matching and traffic-weight splitting that Ingress could only reach through vendor-specific annotations.",
+      },
+      {
+        title: "CoreDNS and the cluster's Service and Pod naming scheme",
+        body: "CoreDNS, or whatever cluster-aware DNS add-on is deployed, watches the API server for Services and Pods and keeps a matching set of DNS records current, so a Service named my-service in namespace my-ns becomes resolvable as my-service.my-ns from anywhere in the cluster, or as the bare name my-service from within that same namespace thanks to each Pod's DNS search list. An ordinary Service resolves to its cluster address, while a headless Service, or one backed by a named port, can also be queried for an SRV record to look up a specific port by name rather than a hard-coded number. Because an unqualified query gets expanded against that per-Pod search list before it's sent, a lookup for just a bare service name inside one namespace only succeeds if a matching Service exists in that same namespace — reaching a same-named Service in a different namespace requires spelling out the namespace explicitly in the query.",
+      },
+      {
+        title: 'Pod DNS policy: choosing where name resolution comes from',
+        body: "Every Pod carries a dnsPolicy field that decides where its resolver configuration comes from, and there's a naming gotcha built in: leaving the field unset does not select the policy literally called Default — that one instead inherits whatever resolver configuration the Pod's own node happens to use — but rather ClusterFirst, the policy that actually routes ordinary lookups through the cluster's own DNS. Under ClusterFirst, any query that doesn't match the cluster's own domain suffix gets forwarded upstream by the cluster DNS server, while ClusterFirstWithHostNet exists specifically for Pods that set hostNetwork to true, since without it such a Pod would silently fall back to Default-style resolution instead of using the cluster's DNS. Setting dnsPolicy to None hands full control to the Pod's own dnsConfig block, where custom nameservers, search domains, and resolver options can be listed explicitly — a Pod configured this way must supply at least one nameserver itself, since nothing is inherited automatically.",
       },
     ],
   },

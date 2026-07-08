@@ -21,7 +21,7 @@ The real CKA exam is 100% hands-on — you solve tasks in a live cluster via the
 ## What's here
 
 - **Study guide** — organized by the exam's 5 official curriculum domains.
-- **Domain quizzes** — 100+ practice questions with instant feedback and explanations.
+- **Domain quizzes** — 140 practice questions with instant feedback and explanations.
 - **Flashcards** — a cheat-sheet deck of core Kubernetes objects and concepts with known/unknown tracking.
 - **Mock exam** — a 60-question, 90-minute timed exam weighted by domain, scored against the real exam's 66% passing line.
 - **Progress dashboard** — quiz and mock exam history, flashcard mastery, all stored locally in your browser (`localStorage`, nothing sent anywhere).
@@ -34,6 +34,6 @@ Exam structure, domain weightings, and the curriculum come from the official CNC
 
 This project's application code (router, storage/scoring libraries, view components, content tooling) is shared architecture with [learn_aws](https://github.com/toddcooke/learn_aws) — only the content data files and the mock exam's disclaimer differ. See that project's README for more on the tooling itself.
 
-- `node --test js/lib` — runs unit tests for the pure storage/scoring logic.
+- `node --test "js/lib/*.test.mjs"` — runs unit tests for the pure storage/scoring logic. (Some Node versions, including v25.5.0, fail to resolve a bare directory argument to `--test` — use the explicit glob form shown here.)
 - `node scripts/validate-content.mjs` — validates the shape of every `js/data/*.js` file.
 - `node scripts/fetch-doc.mjs <url>` — fetches and caches a doc page for content research.

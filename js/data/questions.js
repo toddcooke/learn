@@ -1622,4 +1622,335 @@ export const QUESTIONS = [
     explanation:
       "Kinesis Data Streams documentation confirms multiple consumer applications can read the same stream independently and concurrently, and Glue documentation describes a visual job canvas that generates ETL code for common transformations automatically. Athena is serverless and needs no provisioned cluster, DataSync is a data-transfer service rather than a database of any kind, and the Glue Data Catalog stores metadata about a dataset's schema and location rather than the dataset's actual contents.",
   },
+
+  // =======================================================================
+  // Domain 4: Design Cost-Optimized Architectures (20% exam weight)
+  // Distributed across the domain's 4 task statements: 4.1 Design
+  // cost-optimized storage solutions (cost-001..005), 4.2 Design
+  // cost-optimized compute solutions (cost-006..010), 4.3 Design
+  // cost-optimized database solutions (cost-011..015), 4.4 Design
+  // cost-optimized network architectures (cost-016..020).
+  // =======================================================================
+
+  // ---------------------------------------------------------------------
+  // Task 4.1: Design cost-optimized storage solutions
+  // ---------------------------------------------------------------------
+  {
+    id: 'cost-001',
+    domain: 'cost',
+    questionType: 'multiple-choice',
+    question:
+      'A team keeps a second copy of some objects purely to support Cross-Region Replication testing, and that copy can be regenerated easily from the primary object if it is ever lost. Which S3 storage class minimizes the storage cost for this replica data?',
+    options: ['S3 One Zone-IA', 'S3 Standard', 'S3 Standard-IA', 'S3 Intelligent-Tiering'],
+    correctIndexes: [0],
+    explanation:
+      "S3 storage class documentation recommends S3 One Zone-IA specifically for data that can be re-created if its Availability Zone is lost, including replica copies used for Cross-Region Replication, because keeping the object in only one AZ makes it cheaper than Standard-IA. S3 Standard is priced for frequently accessed data rather than this rarely touched copy, Standard-IA costs more than One Zone-IA because it keeps a multi-AZ copy this scenario doesn't need, and Intelligent-Tiering adds a monitoring fee that isn't useful for a replica whose access pattern is already known to be rare.",
+  },
+  {
+    id: 'cost-002',
+    domain: 'cost',
+    questionType: 'multiple-choice',
+    question:
+      'A company must retain compliance recordings for seven years, expects to open them less than once a year, and wants the lowest possible per-gigabyte storage price even if restoring a file takes several hours. Which S3 storage class fits best?',
+    options: [
+      'S3 Glacier Instant Retrieval',
+      'S3 Glacier Deep Archive',
+      'S3 Standard-IA',
+      'S3 Glacier Flexible Retrieval',
+    ],
+    correctIndexes: [1],
+    explanation:
+      "Storage class documentation designs S3 Glacier Deep Archive around archives accessed less than once a year, its rarest access tier, with a retrieval time measured in hours; the classes built for rarer, slower access are the ones priced lowest. Glacier Instant Retrieval targets quarterly access with millisecond retrieval, a faster tier that costs more to support that speed, Standard-IA is meant for millisecond access to monthly-accessed data and sits well above any Glacier tier on price, and Glacier Flexible Retrieval is built around roughly annual access with minutes-to-hours retrieval, one step above Deep Archive.",
+  },
+  {
+    id: 'cost-003',
+    domain: 'cost',
+    questionType: 'multiple-choice',
+    question:
+      "An analytics team stores large sequential log files on an EBS volume that's read only a handful of times a month for batch analysis. Throughput matters far more than IOPS, and the team wants the lowest per-GB EBS price available. Which volume type fits?",
+    options: [
+      'gp3 General Purpose SSD',
+      'io2 Provisioned IOPS SSD',
+      'sc1 Cold HDD',
+      'st1 Throughput Optimized HDD',
+    ],
+    correctIndexes: [2],
+    explanation:
+      "Amazon EBS volume type documentation describes Cold HDD (sc1) as throughput-oriented storage for infrequently accessed data, called out specifically for scenarios where the lowest storage cost matters most. Throughput Optimized HDD (st1) is also throughput-oriented but is aimed at more frequently touched data such as active big-data or log-processing jobs, which puts it a tier above sc1's price. Both SSD types, gp3 and io2, are built around transactional IOPS-heavy workloads and cost more than either HDD option.",
+  },
+  {
+    id: 'cost-004',
+    domain: 'cost',
+    questionType: 'multiple-choice',
+    question:
+      "A team is choosing shared storage for a fleet of Linux instances whose total data volume swings unpredictably, and they don't want to provision or pay for capacity ahead of actual usage. Which storage service grows and shrinks automatically without any upfront sizing?",
+    options: [
+      'Amazon EBS',
+      'Amazon FSx for Windows File Server',
+      'S3 Glacier Flexible Retrieval',
+      'Amazon EFS',
+    ],
+    correctIndexes: [3],
+    explanation:
+      "Amazon EFS documentation describes it as serverless, fully elastic file storage that lets you share file data without provisioning or managing capacity, growing and shrinking automatically as files are added and removed. An EBS volume, by contrast, is a fixed size you provision and resize yourself, FSx for Windows File Server has you specify a storage capacity, SSD IOPS, and throughput amount at creation time, and S3 Glacier Flexible Retrieval is an archival tier rather than a live shared file system for a fleet of instances.",
+  },
+  {
+    id: 'cost-005',
+    domain: 'cost',
+    questionType: 'multiple-response',
+    question: 'Which TWO of the following statements about AWS storage cost mechanics are correct? (Select TWO.)',
+    options: [
+      'Transitioning an S3 object to a new storage class through a Lifecycle rule always incurs a per-gigabyte data retrieval fee',
+      'A Requester Pays S3 bucket shifts data transfer and request costs onto the requester while the bucket owner still pays for storage',
+      'An EC2 Auto Scaling group cannot mix On-Demand Instances with Reserved Instance or Savings Plans discounts',
+      'AWS Cost Explorer can display historical cost and usage data going back up to the last 13 months',
+      'AWS Budgets refreshes its cost and usage figures continuously, in real time, as each charge is incurred',
+    ],
+    correctIndexes: [1, 3],
+    explanation:
+      "S3 Requester Pays documentation confirms the bucket owner always covers storage while the requester covers the request and data transfer cost, and Cost Explorer documentation confirms it can show up to 13 months of historical data. Lifecycle documentation is explicit that transitions carry a per-request transition charge rather than a data retrieval fee, Auto Scaling documentation explains that a group can combine Reserved Instance and Savings Plans discounts with On-Demand Instances rather than being blocked from it, and Budgets documentation states figures are updated up to three times a day rather than continuously.",
+  },
+
+  // ---------------------------------------------------------------------
+  // Task 4.2: Design cost-optimized compute solutions
+  // ---------------------------------------------------------------------
+  {
+    id: 'cost-006',
+    domain: 'cost',
+    questionType: 'multiple-choice',
+    question:
+      'A company wants to commit to a steady hourly compute spend for one year to earn a discount, but its teams frequently change EC2 instance families, sizes, operating systems, and even shift workloads between Regions. Which purchasing option keeps the discount through all of that change?',
+    options: ['Compute Savings Plans', 'Standard Reserved Instances', 'Dedicated Hosts', 'Capacity Reservations'],
+    correctIndexes: [0],
+    explanation:
+      "Savings Plans documentation states that Compute Savings Plans apply regardless of instance family, instance size, operating system, tenancy, or Region, which matches a team that keeps changing those attributes. Reserved Instances instead lock in a discount tied to a specific instance configuration and Region, Dedicated Hosts are priced around a physical host for licensing and compliance needs rather than flexible usage commitments, and Capacity Reservations simply hold capacity in one Availability Zone without offering this kind of broad usage discount.",
+  },
+  {
+    id: 'cost-007',
+    domain: 'cost',
+    questionType: 'multiple-choice',
+    question:
+      'A rendering job can pause and resume freely, tolerates its instances being reclaimed on short notice, and needs to run at the lowest possible EC2 cost. Which purchasing option is built for this?',
+    options: ['On-Demand Instances', 'Spot Instances', 'Dedicated Instances', 'Reserved Instances'],
+    correctIndexes: [1],
+    explanation:
+      "EC2 purchasing documentation describes Spot Instances as unused capacity that can cut EC2 costs significantly, recommended when workloads are flexible about timing and can tolerate interruption. On-Demand simply bills by the second with no such discount, Dedicated Instances bill hourly for single-tenant hardware aimed at compliance needs rather than cost minimization, and Reserved Instances trade a term commitment for savings but don't offer Spot's deeper discount for interruptible work.",
+  },
+  {
+    id: 'cost-008',
+    domain: 'cost',
+    questionType: 'multiple-choice',
+    question:
+      'A team wants to run containerized workloads on AWS while avoiding any responsibility for provisioning EC2 instances, patching an operating system, or planning server capacity ahead of demand. Which capacity option for Amazon ECS matches this?',
+    options: [
+      'Amazon ECS on EC2 with manually managed instances',
+      'Amazon ECS Anywhere on on-premises servers',
+      'AWS Fargate',
+      'An Amazon EC2 Auto Scaling group fronted by a load balancer',
+    ],
+    correctIndexes: [2],
+    explanation:
+      "ECS documentation describes Fargate as a serverless compute option billed only for what you use, where there are no servers to manage, no capacity to plan, and no workload isolation to configure. Running ECS on manually managed EC2 instances or an Auto Scaling group both still leave instance provisioning and OS patching to the team, and ECS Anywhere registers external on-premises servers or VMs, which is the opposite of avoiding server management.",
+  },
+  {
+    id: 'cost-009',
+    domain: 'cost',
+    questionType: 'multiple-choice',
+    question:
+      "A backend must sustain several million raw TCP connections per second with minimal per-connection processing overhead, and it doesn't need any host- or path-based routing rules. Which load balancer type fits?",
+    options: [
+      'Application Load Balancer',
+      'Gateway Load Balancer',
+      'Classic Load Balancer',
+      'Network Load Balancer',
+    ],
+    correctIndexes: [3],
+    explanation:
+      "Network Load Balancer documentation describes it as operating at the fourth OSI layer and able to handle millions of requests per second with static IP addresses, which matches a connection-level workload with no routing-rule needs. An Application Load Balancer works at the application layer and evaluates listener rules for content-based routing this workload doesn't require, a Gateway Load Balancer is built to route traffic to a fleet of third-party virtual appliances rather than serve as a general application backend, and Classic Load Balancer is the older option that Elastic Load Balancing still lists but wasn't designed for this scale.",
+  },
+  {
+    id: 'cost-010',
+    domain: 'cost',
+    questionType: 'multiple-response',
+    question: 'Which TWO of the following statements about EC2 scaling and purchasing are correct? (Select TWO.)',
+    options: [
+      'A single Amazon EC2 Auto Scaling group can launch a mix of Spot and On-Demand Instances across multiple instance types',
+      'Spot Instances are guaranteed to run uninterrupted for the full duration originally requested',
+      'AWS Fargate requires the team to patch and maintain the operating system on the instances hosting its containers',
+      'Reserved Instances tie their discount to one fixed instance type and one Region, chosen for a 1- or 3-year commitment term',
+      'Amazon EC2 Auto Scaling charges an additional per-instance management fee on top of the underlying EC2 and EBS costs',
+    ],
+    correctIndexes: [0, 3],
+    explanation:
+      "Auto Scaling documentation confirms a single group can launch multiple instance types across both Spot and On-Demand purchase options, and EC2 purchasing documentation confirms Reserved Instance pricing is locked to one instance type and Region rather than floating across either. Spot Instances are explicitly reclaimable rather than guaranteed to finish their run, Fargate is serverless so the team never touches the underlying operating system, and Auto Scaling documentation states there are no additional fees beyond the resources actually used.",
+  },
+
+  // ---------------------------------------------------------------------
+  // Task 4.3: Design cost-optimized database solutions
+  // ---------------------------------------------------------------------
+  {
+    id: 'cost-011',
+    domain: 'cost',
+    questionType: 'multiple-choice',
+    question:
+      "A new application has highly unpredictable traffic that's often zero, and the team wants to avoid paying for throughput capacity while it's idle. Which DynamoDB capacity mode should they choose?",
+    options: [
+      'On-demand capacity mode',
+      'Provisioned capacity mode with auto scaling enabled',
+      'Provisioned capacity mode with a fixed high throughput ceiling',
+      'Fixed-rate capacity mode',
+    ],
+    correctIndexes: [0],
+    explanation:
+      "DynamoDB documentation describes on-demand capacity mode as pay-as-you-go pricing that scales down to zero, so there's no charge for throughput during idle periods. Both provisioned options, whether or not auto scaling is layered on, still involve a provisioned throughput baseline that gets billed, and \"fixed-rate capacity mode\" isn't one of DynamoDB's two documented capacity modes at all.",
+  },
+  {
+    id: 'cost-012',
+    domain: 'cost',
+    questionType: 'multiple-choice',
+    question:
+      'An application frequently opens many short-lived database connections, forcing the team to run an oversized DB instance mainly to absorb the CPU and memory overhead of constantly establishing new connections. What addresses this without resizing the instance?',
+    options: [
+      'Adding a read replica',
+      'Amazon RDS Proxy',
+      'Enabling a Multi-AZ standby',
+      'Increasing the provisioned IOPS on the DB storage',
+    ],
+    correctIndexes: [1],
+    explanation:
+      "RDS Proxy documentation explains that it pools and reuses database connections, sidestepping the processing cost that comes with repeatedly setting up a fresh connection. A read replica scales read throughput rather than connection handling, a Multi-AZ standby exists for failover rather than pooling connections, and provisioned IOPS improves storage performance, not the overhead of connection churn.",
+  },
+  {
+    id: 'cost-013',
+    domain: 'cost',
+    questionType: 'multiple-choice',
+    question:
+      "What's true about the cost of running an Amazon RDS read replica in the same AWS Region as its source DB instance?",
+    options: [
+      "Both the replica's DB instance cost and its replication data transfer are entirely free of charge, with no billing at all",
+      'The replica is billed at half the standard rate for its DB instance class because it only serves reads',
+      'The replica is billed at the standard DB instance rate, with no separate charge for keeping it in sync with the source',
+      "There's no cost for the replica instance, but the replication data transfer is billed at standard cross-Region rates",
+    ],
+    correctIndexes: [2],
+    explanation:
+      "Read replica documentation states a replica's instance cost matches the ordinary price for whatever DB instance class it runs, while the data transfer that keeps a same-Region replica in sync carries no separate charge. That rules out the option claiming the replica instance itself is free, and there's no documented half-price discount for read-only replicas; the free part is specifically the same-Region replication traffic, not a cross-Region rate.",
+  },
+  {
+    id: 'cost-014',
+    domain: 'cost',
+    questionType: 'multiple-choice',
+    question:
+      "A team wants to add a managed in-memory cache in front of their database without choosing a node type, sizing a cluster, or planning capacity ahead of time. Which ElastiCache deployment model fits?",
+    options: [
+      'A node-based cluster with cluster mode enabled',
+      'A node-based cluster with cluster mode disabled',
+      'Amazon RDS Performance Insights',
+      'ElastiCache Serverless',
+    ],
+    correctIndexes: [3],
+    explanation:
+      "ElastiCache documentation describes Serverless as letting you stand up a cache in under a minute without ever having to size a node, configure a cluster, or plan capacity yourself. Both node-based cluster options explicitly require choosing a node type, node count, and placement across Availability Zones, and RDS Performance Insights is a database monitoring feature rather than a caching layer at all.",
+  },
+  {
+    id: 'cost-015',
+    domain: 'cost',
+    questionType: 'multiple-response',
+    question:
+      'Which TWO of the following statements about database backup, replication, and capacity behavior are correct? (Select TWO.)',
+    options: [
+      'Amazon RDS automatically creates or removes read replicas as read traffic rises and falls',
+      'An Amazon RDS Proxy can be attached to a read replica in place of the writer DB instance to pool its connections',
+      'DynamoDB continuous backups support restoring a table to any second within the preceding 35 days',
+      'DynamoDB on-demand capacity mode requires read and write capacity units to be provisioned in advance',
+      "Amazon RDS does not bill for the data transfer used to keep a same-Region read replica synced with its source",
+    ],
+    correctIndexes: [2, 4],
+    explanation:
+      "DynamoDB documentation confirms point-in-time recovery can restore a table to any second within the preceding 35 days, and read replica documentation confirms same-Region replication data transfer isn't charged. RDS documentation is explicit that it doesn't support autoscaling of read replicas, RDS Proxy documentation states a proxy can only be associated with the writer instance rather than a read replica, and on-demand capacity mode is defined by not needing capacity units provisioned in advance, which is what the provisioned mode requires instead.",
+  },
+
+  // ---------------------------------------------------------------------
+  // Task 4.4: Design cost-optimized network architectures
+  // ---------------------------------------------------------------------
+  {
+    id: 'cost-016',
+    domain: 'cost',
+    questionType: 'multiple-choice',
+    question:
+      'Instances in a private subnet send a large volume of traffic to Amazon S3, currently routed through a NAT gateway that bills hourly plus per gigabyte processed. What change removes that data-processing cost for the S3 traffic specifically?',
+    options: [
+      'Create a gateway endpoint for S3 and route that traffic to it',
+      'Replace the managed NAT gateway with a self-managed NAT instance running on EC2',
+      'Add a second NAT gateway in the same Availability Zone as the first',
+      "Attach an internet gateway to the VPC without changing the private subnet's route table",
+    ],
+    correctIndexes: [0],
+    explanation:
+      "Gateway endpoint documentation states this endpoint type carries no extra fee of its own, and NAT gateway pricing guidance specifically recommends creating a gateway or interface endpoint when most NAT traffic is headed to a service that supports one. A self-managed NAT instance still bills for the underlying EC2 usage and data flowing through it, a second NAT gateway in the same zone only adds another hourly charge, and a private subnet doesn't get a usable route to an internet gateway just by attaching one.",
+  },
+  {
+    id: 'cost-017',
+    domain: 'cost',
+    questionType: 'multiple-choice',
+    question:
+      'For a VPC peering connection between two VPCs owned by different AWS accounts, which category of traffic crosses at no data transfer charge?',
+    options: [
+      'Traffic is billed per connection-hour rather than by data volume',
+      'Traffic that stays within a single Availability Zone',
+      'Traffic that crosses AWS Regions',
+      'All traffic over the peering connection, regardless of Availability Zone or Region',
+    ],
+    correctIndexes: [1],
+    explanation:
+      "VPC peering pricing documentation states that data transfer staying within a single Availability Zone is free even across different accounts, while traffic that crosses Availability Zones or Regions is charged. There's no documented per-connection-hour fee for peering at all, and the free treatment doesn't extend to every byte on the connection regardless of where it travels.",
+  },
+  {
+    id: 'cost-018',
+    domain: 'cost',
+    questionType: 'multiple-choice',
+    question:
+      'A company is connecting 15 VPCs so every VPC can reach every other one, and wants to avoid managing a separate peering connection for each pair. Cost-wise, what does adopting AWS Transit Gateway introduce instead?',
+    options: [
+      'No new charges, since Transit Gateway is included at no cost with any VPC',
+      'A one-time setup fee with no ongoing hourly or data charges afterward',
+      'An hourly charge for each attachment plus a charge for the data it processes',
+      'A charge only if more than one AWS Region is involved',
+    ],
+    correctIndexes: [2],
+    explanation:
+      "Transit Gateway pricing documentation states that you're charged hourly for each attachment plus a charge for the traffic it processes, which replaces the operational burden of a full mesh of peering connections with these two ongoing charges. There's no free tier for Transit Gateway, no one-time-only fee structure, and the hourly and data-processing charges apply whether one Region or several are involved.",
+  },
+  {
+    id: 'cost-019',
+    domain: 'cost',
+    questionType: 'multiple-choice',
+    question:
+      'A VPC has private subnets spread across three Availability Zones, all routing outbound traffic through a single NAT gateway placed in just one of those zones. What cost does this shared-NAT design create that placing a NAT gateway in each zone would avoid?',
+    options: [
+      "An hourly charge for the NAT gateway itself, which per-AZ NAT gateways would eliminate entirely",
+      'A charge for every Elastic IP address, which per-AZ NAT gateways would avoid needing',
+      'A per-request charge for every S3 request that happens to pass through the NAT gateway',
+      'Cross-AZ data transfer charges for resources in the other zones reaching that single gateway',
+    ],
+    correctIndexes: [3],
+    explanation:
+      "NAT gateway pricing guidance recommends adding one gateway per zone wherever that zone hosts resources, precisely so traffic doesn't have to hop between zones to reach a shared gateway. Every NAT gateway, shared or per-AZ, still carries its own hourly charge and still needs an Elastic IP, so per-AZ placement doesn't remove those costs, and a per-request S3 charge is a detail of S3 pricing rather than something tied to the NAT gateway's design.",
+  },
+  {
+    id: 'cost-020',
+    domain: 'cost',
+    questionType: 'multiple-response',
+    question: 'Which TWO of the following statements about network costs are correct? (Select TWO.)',
+    options: [
+      'Data transfer over a VPC peering connection is billed per connection-hour rather than by data volume',
+      'AWS Global Accelerator adds a fixed hourly accelerator charge plus a data-transfer premium on top of standard rates',
+      'A gateway VPC endpoint for DynamoDB bills its own hourly fee on top of what standard data transfer already costs',
+      'NAT gateways bill only for the hours they are provisioned, with no charge based on the volume of data processed',
+      'AWS Direct Connect bills separately for port-hours and for outbound data transfer',
+    ],
+    correctIndexes: [1, 4],
+    explanation:
+      "Global Accelerator pricing documentation confirms a fixed hourly fee per accelerator plus an incremental fee layered onto ordinary data transfer pricing, and Direct Connect pricing documentation confirms its two billing elements are port hours and outbound data transfer. VPC peering has no per-connection-hour fee, gateway endpoints carry no additional charge at all, and NAT gateway pricing explicitly bills both for the hours provisioned and for every gigabyte processed.",
+  },
 ];

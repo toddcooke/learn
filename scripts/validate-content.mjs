@@ -23,8 +23,6 @@ async function validateExamInfo() {
     check(typeof d.name === 'string' && d.name.length > 0, `domain missing name: ${JSON.stringify(d)}`);
     check(typeof d.weight === 'number' && d.weight > 0, `domain missing weight: ${JSON.stringify(d)}`);
   }
-  check(EXAM_FORMAT.totalQuestions === EXAM_FORMAT.scoredQuestions + EXAM_FORMAT.unscoredQuestions,
-    'EXAM_FORMAT.totalQuestions must equal scoredQuestions + unscoredQuestions');
   return DOMAINS;
 }
 

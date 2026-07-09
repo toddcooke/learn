@@ -149,7 +149,7 @@ function finishExam(mount, exam, state) {
   mount.innerHTML = `
     <h2>Mock Exam Results</h2>
     <p class="quiz-score">Estimated scaled score: ${score} / ${EXAM_FORMAT.maxScore} — ${passed ? 'PASS' : 'Below passing score'}</p>
-    <p class="exam-note">This is an estimate based on percent correct; AWS's real scaling formula is not public. Passing score is ${EXAM_FORMAT.passingScore}.</p>
+    <p class="exam-note">This is an estimate based on percent correct against a simplified 0–100 scale; the real CKA exam is pass/fail on hands-on tasks, not scored this way. Passing score is ${EXAM_FORMAT.passingScore}.</p>
     <p>${correctCount} / ${exam.length} correct</p>
     <h3>By Domain</h3>
     <ul>

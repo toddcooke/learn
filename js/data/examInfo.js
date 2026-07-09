@@ -8,8 +8,6 @@ export const DOMAINS = [
 
 export const EXAM_FORMAT = {
   totalQuestions: 60,
-  scoredQuestions: 60,
-  unscoredQuestions: 0,
   durationMinutes: 90,
   passingScore: 66,
   minScore: 0,

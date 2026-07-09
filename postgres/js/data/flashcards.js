@@ -1,0 +1,438 @@
+// Flashcard deck covering core PostgreSQL objects and concepts referenced
+// across the study content and quiz questions. The field is still named
+// `service` for schema/validator compatibility with the copied
+// validate-content.mjs, even though these are PostgreSQL objects and
+// concepts rather than AWS services.
+export const FLASHCARDS = [
+  // --- Architecture & Data Types ---
+  {
+    id: 'toast',
+    service: 'TOAST',
+    front: 'What problem does TOAST solve, and how?',
+    back: "PostgreSQL's fixed 8kB page size can't hold a very large field value directly, so any row wider than about 2kB gets its big attributes compressed and, if still too large, chopped into chunks stored in a separate TOAST table linked back to the row. This keeps the main table compact so more of it fits in the buffer cache, and the out-of-line data is only fetched when a query actually needs that column.",
+  },
+  {
+    id: 'jsonb',
+    service: 'JSONB',
+    front: 'How does jsonb differ from json?',
+    back: 'jsonb parses the input once and stores it in a decomposed binary layout, so later processing skips reparsing and runs noticeably faster, and it can be indexed (e.g. with GIN). The tradeoff is a bit more overhead on insert, and it discards whitespace, key order, and duplicate object keys, keeping only the last value for a repeated key.',
+  },
+  {
+    id: 'json',
+    service: 'JSON',
+    front: 'What does the json type preserve that jsonb does not?',
+    back: "json stores the input text byte-for-byte, so whitespace, the original ordering of object keys, and any duplicate keys are all kept exactly as entered. Every processing function has to reparse that text on each call, which is slower than jsonb, and json values can't be indexed with a GIN operator class the way jsonb can.",
+  },
+  {
+    id: 'uuid',
+    service: 'UUID',
+    front: 'What is a UUID, and which generation algorithms does PostgreSQL support natively?',
+    back: 'A 128-bit identifier generated so that the odds of any two systems independently producing the same value are vanishingly small, which makes UUIDs a better fit than sequence-based keys for identifiers assigned across multiple distributed nodes. PostgreSQL natively generates UUIDv4 (fully random) and UUIDv7 (embeds a timestamp, so values sort roughly by creation order) values.',
+  },
+  {
+    id: 'array-type',
+    service: 'Array',
+    front: 'How are PostgreSQL arrays indexed by default?',
+    back: 'Array subscripts start at 1, not 0 — an n-element array runs from array[1] through array[n]. A column can hold arrays of almost any base or composite type, and an explicit lower bound other than 1 can be set at assignment time if needed.',
+  },
+  {
+    id: 'range-type',
+    service: 'Range Type',
+    front: 'What do the bracket and parenthesis characters mean in a range literal like [4,8) or (3,9)?',
+    back: "Square brackets mark an inclusive bound (the endpoint itself is part of the range) and parentheses mark an exclusive bound (the endpoint is excluded). A range constructor's two-argument form defaults to inclusive-lower/exclusive-upper, and a missing bound on either side is treated as unbounded in that direction.",
+  },
+  {
+    id: 'null-three-valued-logic',
+    service: 'NULL',
+    front: 'Why does WHERE x <> NULL never return any rows?',
+    back: "PostgreSQL's boolean logic is three-valued — true, false, or unknown — and any comparison against NULL evaluates to unknown rather than true or false, so a WHERE clause built from it filters the row out just like a false result would. Testing for NULL requires IS NULL / IS NOT NULL (or IS DISTINCT FROM) instead of an equality or inequality operator.",
+  },
+  {
+    id: 'numeric-type',
+    service: 'NUMERIC',
+    front: 'What makes numeric different from float8 for storing money or exact quantities?',
+    back: "numeric stores exact, arbitrary-precision decimal values — it can hold up to 131072 digits to the left of the decimal separator and as many as 16383 digits to the right of it — with no binary-rounding error, whereas floating-point types trade exactness for speed and can't represent every decimal fraction precisely. The cost is that numeric arithmetic is slower than native floating-point math.",
+  },
+  {
+    id: 'timestamptz',
+    service: 'TIMESTAMPTZ',
+    front: 'How does PostgreSQL actually store a timestamptz value?',
+    back: "On input, any stated or assumed time zone is used to convert the value to UTC, and only that UTC instant is stored internally — the original zone is not retained. When the value is read back out, the server converts it to whatever zone the session's TimeZone setting specifies before displaying it, so the same stored instant can appear differently to different sessions.",
+  },
+  {
+    id: 'shared-buffers',
+    service: 'shared_buffers',
+    front: 'What does the shared_buffers setting control, and what is a reasonable starting value?',
+    back: "It sizes PostgreSQL's own shared-memory cache of table and index pages, separate from the operating system's page cache. A commonly recommended starting point on a dedicated server is around 25% of system RAM, since relying purely on the OS cache plus a much larger shared_buffers rarely helps beyond roughly 40% of RAM.",
+  },
+  {
+    id: 'wal',
+    service: 'Write-Ahead Log (WAL)',
+    front: 'Why does WAL let PostgreSQL skip flushing every changed data page on commit?',
+    back: 'The rule is that a change to a data file must never hit disk before the WAL record describing it has been flushed, so after a crash any not-yet-applied change can be replayed (redone) from the log. That means only the WAL — written sequentially and therefore cheap to sync — needs to be flushed at commit time, not the scattered data pages a transaction may have touched.',
+  },
+
+  // --- Querying & SQL ---
+  {
+    id: 'cte',
+    service: 'CTE (WITH query)',
+    front: 'What does a WITH clause (CTE) let you do that a subquery in FROM does not as cleanly?',
+    back: 'It names an auxiliary query so it can be referenced later in the same statement, including multiple times, which makes multi-step queries easier to read and lets a computed result be reused without repeating the SQL. Each CTE without RECURSIVE is evaluated as an independent, self-contained step.',
+  },
+  {
+    id: 'recursive-cte',
+    service: 'Recursive CTE',
+    front: 'How does WITH RECURSIVE evaluate a query?',
+    back: 'It runs the non-recursive term first to seed a working table, then repeatedly re-runs the recursive term against only the current contents of that working table, feeding each round of new rows into the result until a round produces nothing more. This iterative process, not true recursion, is what makes it useful for walking hierarchical data like org charts or bill-of-materials trees.',
+  },
+  {
+    id: 'window-function',
+    service: 'Window Function',
+    front: 'What distinguishes a window function call from a plain aggregate?',
+    back: 'Adding an OVER clause to a function tells PostgreSQL to compute it across a defined window of related rows — optionally split into PARTITION BY groups and ordered within each — while still returning one output row per input row, instead of collapsing the group into a single row the way GROUP BY does. An ordinary aggregate can even be reused as a window function this way.',
+  },
+  {
+    id: 'join-types',
+    service: 'JOIN',
+    front: 'What is the key behavioral difference between INNER JOIN and the outer join variants (LEFT/RIGHT/FULL)?',
+    back: "INNER JOIN keeps only rows that find a match on both sides of the join condition. LEFT JOIN keeps every row from the left table regardless of a match, filling the right side's columns with NULL when there isn't one; RIGHT JOIN does the mirror image for the right table; FULL JOIN keeps unmatched rows from both sides at once.",
+  },
+  {
+    id: 'subquery',
+    service: 'Subquery',
+    front: 'How does EXISTS(subquery) decide whether it is true?',
+    back: 'It only checks whether the subquery returns at least one row — the actual column values in that row are irrelevant, so the subquery is commonly written as EXISTS(SELECT 1 WHERE ...). PostgreSQL can stop evaluating the subquery as soon as one row is found, and a correlated subquery may reference columns from the enclosing query as though they were constants.',
+  },
+  {
+    id: 'on-conflict',
+    service: 'ON CONFLICT (Upsert)',
+    front: 'What does INSERT ... ON CONFLICT DO UPDATE actually do?',
+    back: "It attempts a normal INSERT, and if that row would violate a unique or exclusion constraint named (or inferred) as the conflict target, it instead runs the given UPDATE against the existing conflicting row rather than raising an error — the classic 'upsert' pattern. ON CONFLICT DO NOTHING is the simpler variant that just silently skips inserting that row instead of updating it.",
+  },
+  {
+    id: 'full-text-search',
+    service: 'Full-Text Search',
+    front: 'What are tsvector and tsquery for, and how are they compared?',
+    back: 'to_tsvector reduces a document\'s text to a sorted list of normalized lexemes (case-folded, suffix-stripped, stop words removed) for efficient searching, and to_tsquery normalizes search terms the same way, optionally combined with AND/OR/NOT/FOLLOWED-BY operators. The @@ match operator returns true when a tsvector satisfies a tsquery, and this comparison can be sped up with a GIN or GiST index.',
+  },
+  {
+    id: 'aggregate-function',
+    service: 'Aggregate Function',
+    front: 'What happens to an aggregate call like COUNT(*) or AVG(x) when there is no GROUP BY?',
+    back: 'Without GROUP BY, PostgreSQL treats the entire result set of the query as one group, so the aggregate collapses all matching rows down into a single output row. Add a GROUP BY clause and the same aggregate is instead computed once per distinct group of values.',
+  },
+  {
+    id: 'group-by-having',
+    service: 'GROUP BY / HAVING',
+    front: 'How does HAVING differ from WHERE in a grouped query?',
+    back: "WHERE filters individual rows before they're grouped, so it can't reference an aggregate computed over the group; HAVING runs after GROUP BY has formed the groups and is evaluated once per group, which is why it's the clause used for conditions like HAVING COUNT(*) > 5 or HAVING SUM(amount) > 1000.",
+  },
+
+  // --- Indexing & Performance ---
+  {
+    id: 'btree-index',
+    service: 'B-tree Index',
+    front: 'What kinds of queries can a B-tree index actually accelerate?',
+    back: "Equality and ordered-range comparisons (<, <=, =, >=, >), plus BETWEEN, IN, IS NULL/IS NOT NULL, and left-anchored LIKE patterns such as 'foo%'. It's also PostgreSQL's default index type — CREATE INDEX builds a B-tree unless another type is named — and because entries stay sorted, it can also serve queries that just need data returned in sorted order.",
+  },
+  {
+    id: 'hash-index',
+    service: 'Hash Index',
+    front: 'Why is a hash index more narrowly useful than a B-tree?',
+    back: 'It stores only a 32-bit hash of the indexed value, so it can accelerate a plain equality comparison but has no notion of ordering and therefore cannot help with range queries, sorting, or pattern matching the way a B-tree can.',
+  },
+  {
+    id: 'gin-index',
+    service: 'GIN Index',
+    front: 'What kind of data is a GIN index built for?',
+    back: "GIN — a Generalized Inverted Index — stores one entry per component value found inside a composite column, such as each element of an array or each lexeme of a tsvector, so it can quickly answer 'does this row contain X' style queries. That inverted-index structure is exactly what makes it a good fit for jsonb containment checks and full-text search operators.",
+  },
+  {
+    id: 'gist-index',
+    service: 'GiST Index',
+    front: 'What makes GiST different from a single fixed index algorithm like B-tree?',
+    back: 'GiST (Generalized Search Tree) is an extensible framework that can host many different indexing strategies rather than one fixed algorithm, which is why it can back geometric containment/overlap queries, range-type queries, and nearest-neighbor searches, all through different operator classes plugged into the same tree structure.',
+  },
+  {
+    id: 'brin-index',
+    service: 'BRIN Index',
+    front: 'When does a BRIN index work well, and why is it so much smaller than a B-tree?',
+    back: 'BRIN (Block Range INdex) stores a compact summary — for a linearly ordered type, just the min and max — for each range of physically consecutive table pages, rather than one entry per row. That makes it tiny and cheap to maintain, but it only pays off when a column\'s values correlate with the physical row order, such as a naturally-inserted timestamp column.',
+  },
+  {
+    id: 'partial-index',
+    service: 'Partial Index',
+    front: 'What problem does a partial index (an index built with a WHERE predicate) solve?',
+    back: "It indexes only the subset of rows that satisfy its predicate, so common values a query wouldn't use the index for anyway are simply left out, shrinking the index and speeding up both the index scans that do use it and the writes that would otherwise keep unnecessary entries updated.",
+  },
+  {
+    id: 'expression-index',
+    service: 'Expression Index',
+    front: 'Why would you index a function or expression instead of a plain column?',
+    back: 'An expression index computes and stores the result of a function or expression per row (e.g. lower(email)) so a query filtering on that computed value can be answered as fast as any equality lookup on a plain column, without recomputing the expression at search time. The cost lands on writes instead, since the expression must be recalculated on every insert and non-HOT update.',
+  },
+  {
+    id: 'explain',
+    service: 'EXPLAIN',
+    front: 'What does plain EXPLAIN (without ANALYZE) show, and does it run the query?',
+    back: 'It shows the execution plan the planner would use — the chosen scan and join methods, join order, and estimated cost and row counts for each step — without actually running the statement at all, so it has zero side effects even for an INSERT, UPDATE, or DELETE.',
+  },
+  {
+    id: 'explain-analyze',
+    service: 'EXPLAIN ANALYZE',
+    front: 'What is the catch with running EXPLAIN ANALYZE on a data-modifying statement?',
+    back: 'Adding ANALYZE makes EXPLAIN genuinely execute the statement so it can report real elapsed time and real row counts next to the planner\'s estimates — EXPLAIN only ever discards the result rows a SELECT would have returned, it never undoes an underlying write. To inspect an INSERT/UPDATE/DELETE\'s plan without keeping its effects, wrap it in BEGIN; ... ; ROLLBACK;.',
+  },
+  {
+    id: 'query-planner',
+    service: 'Query Planner',
+    front: 'What does the query planner rely on pg_statistic / pg_stats for?',
+    back: 'It uses per-column statistics — most-common values, a histogram of the value distribution, and how many distinct values exist — to estimate how selective a WHERE condition is and therefore how many rows a plan step will produce, which drives its choice between scan methods and join strategies. Those statistics are refreshed by ANALYZE (run manually or by autovacuum), so a table that changed heavily since its last ANALYZE can mislead the planner.',
+  },
+  {
+    id: 'planner-cost-constants',
+    service: 'seq_page_cost / random_page_cost',
+    front: 'What do seq_page_cost and random_page_cost represent, and what are their defaults?',
+    back: "They're the planner's relative cost estimates for fetching one disk page as part of a sequential scan versus a non-sequential (random) fetch, defaulting to 1.0 and 4.0 respectively. Lowering random_page_cost relative to seq_page_cost — appropriate when the working set fits mostly in cache — makes the planner favor index scans; raising it makes index scans look relatively more expensive.",
+  },
+
+  // --- Transactions & Concurrency ---
+  {
+    id: 'mvcc',
+    service: 'MVCC',
+    front: 'What problem does Multiversion Concurrency Control solve, and how?',
+    back: "Instead of readers and writers locking each other out, MVCC hands each statement its own fixed view of the data — frozen at roughly the moment that statement began — so concurrent updates elsewhere can never make it see a half-finished change. Because a read never needs a lock that a write would conflict with, queries and updates simply proceed independently of one another.",
+  },
+  {
+    id: 'isolation-level',
+    service: 'Isolation Level',
+    front: 'How many distinct isolation levels does PostgreSQL actually implement, versus how many the SQL standard defines?',
+    back: 'The SQL standard defines four (Read Uncommitted, Read Committed, Repeatable Read, Serializable), but PostgreSQL implements only three distinct behaviors internally — a request for Read Uncommitted is silently treated the same as Read Committed, since that is the only sensible mapping onto PostgreSQL\'s MVCC design.',
+  },
+  {
+    id: 'read-committed',
+    service: 'Read Committed',
+    front: "What does a SELECT see under PostgreSQL's default Read Committed isolation level?",
+    back: 'Each individual statement — not the whole transaction — gets a fresh snapshot taken as of the moment that statement starts, so it sees anything committed before that instant, including changes other transactions committed in between two statements of the same transaction. This is PostgreSQL\'s default isolation level.',
+  },
+  {
+    id: 'repeatable-read',
+    service: 'Repeatable Read',
+    front: 'What guarantee does Repeatable Read add on top of Read Committed?',
+    back: 'The snapshot is taken once, at the start of the transaction, and held for every statement in it, so the same query run twice in that transaction sees an identical view of the data regardless of what other transactions commit in the meantime. PostgreSQL implements this as Snapshot Isolation, and an update that would conflict with a since-changed row raises a serialization error instead of silently overwriting it.',
+  },
+  {
+    id: 'serializable',
+    service: 'Serializable',
+    front: "How does PostgreSQL's Serializable isolation level go beyond Repeatable Read?",
+    back: 'It behaves exactly like Repeatable Read but additionally watches for patterns of read/write dependencies across concurrent transactions that could produce a result inconsistent with any possible one-at-a-time (serial) execution order, and aborts one of the involved transactions with a serialization failure when it detects one. This is PostgreSQL\'s Serializable Snapshot Isolation (SSI).',
+  },
+  {
+    id: 'row-lock',
+    service: 'Row Lock',
+    front: 'What do row-level lock modes like FOR UPDATE and FOR SHARE actually block?',
+    back: 'They block other transactions from acquiring a conflicting lock, updating, or deleting that same row, but they never block plain reads, since row-level locking only ever affects writers and other lockers of the same row. FOR UPDATE is the strongest of the four row-lock modes; each step down toward the weakest, FOR KEY SHARE, conflicts with fewer other lock holders.',
+  },
+  {
+    id: 'table-lock',
+    service: 'Table Lock',
+    front: 'Why can an ACCESS EXCLUSIVE table lock block a plain SELECT when weaker table locks cannot?',
+    back: "PostgreSQL's table-level lock modes form a conflict matrix, and ACCESS EXCLUSIVE is the only one that conflicts even with ACCESS SHARE — the lock an ordinary read acquires — so it's the only table lock strong enough to block a plain SELECT. Most DML commands only take the much weaker ROW EXCLUSIVE lock, which does not conflict with reads at all.",
+  },
+  {
+    id: 'advisory-lock',
+    service: 'Advisory Lock',
+    front: 'What makes an advisory lock "advisory", and what are the two ways to hold one?',
+    back: 'It has an application-defined meaning that PostgreSQL itself never enforces — cooperating sessions simply agree to check it. A session-level advisory lock persists until the process unlocks it on purpose or its session closes, and rolling back the transaction that acquired it does not release it; a transaction-level one instead drops away automatically the moment its own transaction ends, with no explicit unlock call needed, which is usually more convenient for short-lived use.',
+  },
+  {
+    id: 'deadlock',
+    service: 'Deadlock',
+    front: 'How does PostgreSQL respond when it detects a deadlock?',
+    back: 'It automatically detects the cycle — for example, transaction A holding a lock transaction B wants while B holds a lock A wants — and resolves it by aborting one of the involved transactions so the other(s) can proceed; which one gets aborted is not something you should rely on. Deadlocks can arise purely from row-level locks, without any explicit LOCK statement.',
+  },
+  {
+    id: 'serialization-failure',
+    service: 'Serialization Failure (SSI)',
+    front: 'What SQLSTATE code identifies a serialization failure, and what should an application do about it?',
+    back: 'Serialization failures under Repeatable Read or Serializable isolation always carry SQLSTATE 40001, and the documented response is to retry the entire transaction, including whatever application logic decided which SQL to run, since PostgreSQL has no way to safely automate that retry itself.',
+  },
+  {
+    id: 'snapshot',
+    service: 'Snapshot',
+    front: 'What is a "snapshot" in PostgreSQL\'s MVCC model?',
+    back: 'A snapshot is the set of transactions considered already-committed (and therefore visible) as of a particular moment, which is what lets a query see a consistent view of the database as it looked then, regardless of what concurrent transactions are doing to the underlying rows right now. Read Committed takes a new snapshot per statement; Repeatable Read and Serializable take one snapshot for the whole transaction.',
+  },
+
+  // --- Administration & Maintenance ---
+  {
+    id: 'role',
+    service: 'Role',
+    front: 'What is a PostgreSQL role, and how does it relate to a "user"?',
+    back: 'A role is the single underlying primitive for both users and groups: it can own objects, hold privileges, and optionally have LOGIN rights that let it connect as a client. A "user" is simply a role created with login capability, and roles can be granted membership in other roles to build group-style permission structures.',
+  },
+  {
+    id: 'schema',
+    service: 'Schema',
+    front: 'What is a schema, and what does search_path control?',
+    back: 'A schema is a named namespace inside a database that holds tables, views, functions, and other objects, letting two same-named tables coexist in one database as long as they live in different schemas; every database starts with a default public schema. search_path lists the schemas checked, in order, for an unqualified object name, and the first schema in it that exists is also where new unqualified objects get created.',
+  },
+  {
+    id: 'vacuum',
+    service: 'VACUUM',
+    front: 'Why does PostgreSQL need VACUUM at all, given MVCC?',
+    back: "An UPDATE or DELETE never removes the old row version immediately — MVCC requires keeping it as long as some other transaction's snapshot might still need to see it — so dead row versions pile up over time. VACUUM scans a table, removes dead row versions no longer visible to anyone, and marks that space available for reuse by future rows, without shrinking the file on disk.",
+  },
+  {
+    id: 'vacuum-full',
+    service: 'VACUUM FULL',
+    front: 'How does VACUUM FULL differ from plain VACUUM in what it does and what it costs?',
+    back: 'Rather than just marking dead space reusable in place, VACUUM FULL writes an entirely new copy of the table with no wasted space and swaps it in, which actually shrinks the file and returns space to the operating system — but it requires an ACCESS EXCLUSIVE lock for the whole operation, blocking all other access to the table, and needs roughly double the disk space while it runs. Autovacuum never issues VACUUM FULL on its own.',
+  },
+  {
+    id: 'autovacuum',
+    service: 'Autovacuum',
+    front: 'What triggers the autovacuum daemon to vacuum a particular table?',
+    back: "It compares the number of rows changed since the table's last vacuum against a threshold computed from autovacuum_vacuum_threshold plus a scale factor (a percentage of the table's row count, 20% by default), and once that many rows have been updated or deleted it schedules a vacuum for that table, reacting dynamically to actual update activity instead of running on a fixed calendar schedule.",
+  },
+  {
+    id: 'pg-dump',
+    service: 'pg_dump / pg_dumpall',
+    front: 'What is the difference between pg_dump and pg_dumpall?',
+    back: 'pg_dump backs up a single database\'s contents, either as a plain SQL script or as one of the archive formats (custom/directory) that pair with pg_restore for selective, parallel restores. pg_dumpall instead calls pg_dump for every database in the cluster and adds the cluster-wide global objects — roles, tablespaces, and parameter-level privilege grants — that pg_dump alone never captures, but it only produces a plain-text script.',
+  },
+  {
+    id: 'pg-restore',
+    service: 'pg_restore',
+    front: 'What can pg_restore do that simply piping a plain-text pg_dump script into psql cannot?',
+    back: "Because pg_restore reads one of pg_dump's archive formats (custom or directory) rather than a flat SQL script, it can selectively restore just some objects, reorder what gets restored, and, for the directory format specifically, run the restore in parallel across multiple jobs (-j), none of which is possible once a dump has been reduced to a plain-text script.",
+  },
+  {
+    id: 'wal-archiving',
+    service: 'WAL Archiving',
+    front: 'What does enabling WAL archiving actually do, mechanically?',
+    back: 'With wal_level set to at least replica, archive_mode on, and an archive_command configured, PostgreSQL invokes that command on each completed WAL segment file so a copy is saved somewhere durable — the basis for point-in-time recovery, since replaying archived WAL past a base backup can restore the database to any moment covered by the archive.',
+  },
+  {
+    id: 'pg-basebackup',
+    service: 'pg_basebackup',
+    front: 'What does pg_basebackup produce, and what is it used for?',
+    back: 'It takes a full (or, for supported versions, block-level incremental) physical copy of a running cluster\'s data files without interrupting other clients, usable either as the starting point for point-in-time recovery or to seed a new streaming-replication standby. It can even take that backup from an already-running standby server rather than only from the primary.',
+  },
+  {
+    id: 'extension',
+    service: 'Extension',
+    front: 'What problem does packaging database objects as an extension solve?',
+    back: 'An extension bundles a related set of SQL objects — functions, types, operators, index operator classes — behind a single CREATE EXTENSION / DROP EXTENSION pair, driven by a control file and one or more SQL script files, so the database understands they belong together. pg_dump then just records the CREATE EXTENSION command instead of dumping every member object individually, which greatly simplifies upgrading to a newer extension version.',
+  },
+  {
+    id: 'declarative-partitioning',
+    service: 'Declarative Partitioning',
+    front: 'What are the three built-in partitioning strategies for a declaratively partitioned table?',
+    back: "Range partitioning assigns non-overlapping value ranges (inclusive lower bound, exclusive upper bound) to each partition; list partitioning assigns an explicit list of key values to each partition; hash partitioning assigns rows by the remainder of the partition key's hash value modulo a chosen modulus. The partitioned table itself holds no data — all storage belongs to its child partitions, and PostgreSQL automatically routes each inserted row to the matching one.",
+  },
+  {
+    id: 'tablespace',
+    service: 'Tablespace',
+    front: 'What is a tablespace, and why might an administrator create more than one?',
+    back: 'A tablespace maps a name to a physical directory on disk, and CREATE TABLE ... TABLESPACE (or the default_tablespace setting) controls which one a table, index, or database\'s files live in. A common reason to use several is to put heavily-used objects on faster storage while less performance-critical or rarely-touched data sits on cheaper, slower disks.',
+  },
+  {
+    id: 'grant-revoke',
+    service: 'GRANT / REVOKE',
+    front: 'What do GRANT and REVOKE control?',
+    back: 'GRANT hands a role a specific privilege — such as SELECT, INSERT, UPDATE, DELETE, or EXECUTE — on a database object, optionally WITH GRANT OPTION so that role can in turn grant it to others; REVOKE removes a previously granted privilege. Object owners and superusers can grant and revoke privileges on the objects they control.',
+  },
+  {
+    id: 'predefined-role',
+    service: 'Predefined Role',
+    front: 'What do PostgreSQL\'s built-in predefined roles like pg_read_all_data and pg_monitor let an administrator do?',
+    back: 'They are ready-made roles that bundle together a set of narrowly-scoped privileges — pg_read_all_data grants SELECT on every table/view/sequence plus USAGE on every schema, pg_monitor bundles read access to settings and statistics views — so an administrator can grant one predefined role instead of hand-assembling broad access from many individual GRANT statements, without ever handing out full superuser rights.',
+  },
+  {
+    id: 'sequence',
+    service: 'Sequence',
+    front: 'What does CREATE SEQUENCE create, and how do nextval/currval/setval interact with it?',
+    back: 'It creates a standalone number generator object, independent of any particular table column, though OWNED BY can tie its lifetime to one so dropping that column drops the sequence too. nextval() advances the sequence and returns the new value, currval() returns the value most recently obtained by the current session, and setval() explicitly resets the counter.',
+  },
+  {
+    id: 'trigger',
+    service: 'Trigger',
+    front: 'What do the BEFORE / AFTER / INSTEAD OF timing options and FOR EACH ROW / FOR EACH STATEMENT options control on a trigger?',
+    back: 'BEFORE fires before the row change is applied and can modify or cancel it; AFTER fires once the change (and any constraint checks) has completed, when every effect is already visible; INSTEAD OF replaces the operation entirely and is how views become writable. FOR EACH ROW runs the trigger function once per affected row, while FOR EACH STATEMENT runs it exactly once per statement regardless of how many rows were touched.',
+  },
+  {
+    id: 'view',
+    service: 'View',
+    front: 'Is a view\'s data physically stored anywhere?',
+    back: "No — CREATE VIEW just saves the query definition, and PostgreSQL re-runs that underlying query every time the view is referenced, so it always reflects the current data in the base tables. A sufficiently simple view (a single base relation in its FROM list, among other conditions) is even automatically updatable: INSERT/UPDATE/DELETE against it get translated into the equivalent statement on the underlying table.",
+  },
+  {
+    id: 'materialized-view',
+    service: 'Materialized View',
+    front: 'How does a materialized view differ from a regular view, and how do you keep it current?',
+    back: "Unlike a regular view, a materialized view actually persists its query's result set to disk the way a table does, so reading from it can be much faster than re-running the underlying query — but that means the data can go stale. Running REFRESH MATERIALIZED VIEW re-executes the stored query and replaces the persisted contents; nothing refreshes it automatically.",
+  },
+
+  // --- Replication & High Availability ---
+  {
+    id: 'streaming-replication',
+    service: 'Streaming Replication',
+    front: 'What is streaming replication, at a mechanical level?',
+    back: "A standby's WAL receiver process connects to the primary and continuously streams newly-generated WAL records over the network as they're produced, replaying them to stay caught up, rather than waiting for whole WAL segment files to be archived and shipped. That is what makes streaming replication capable of much lower replica lag than file-based log shipping.",
+  },
+  {
+    id: 'logical-replication',
+    service: 'Logical Replication',
+    front: "How does logical replication differ from PostgreSQL's physical (streaming) replication?",
+    back: "Physical replication ships exact block-level byte changes and requires the standby to be a full byte-identical copy of the whole cluster; logical replication instead replicates data changes at the level of individual rows, identified by something like a primary key, using a publish/subscribe model. That row-level granularity is what lets logical replication selectively replicate just some tables or replicate between different major PostgreSQL versions.",
+  },
+  {
+    id: 'publication',
+    service: 'Publication',
+    front: 'What is a publication, and where does it live?',
+    back: 'A publication, created with CREATE PUBLICATION on the source (publisher) node, defines a set of changes — from one table, several tables, or a whole database — that subscribers can subscribe to. It exists inside exactly one database, and a single publisher can define multiple publications for different subsets of its data.',
+  },
+  {
+    id: 'subscription',
+    service: 'Subscription',
+    front: 'What does a subscription do, and how is it linked to a publication?',
+    back: 'Created on the receiving (subscriber) side with CREATE SUBSCRIPTION, a subscription stores the connection details for the publisher database plus the list of publications it wants to receive changes from, and it pulls those changes continuously through a dedicated replication slot on the publisher.',
+  },
+  {
+    id: 'replication-slot',
+    service: 'Replication Slot',
+    front: 'What problem does a replication slot solve for a standby or logical subscriber?',
+    back: 'A replication slot tells the sending server to retain WAL (and, for logical slots, the catalog state needed for decoding) for exactly as long as that particular consumer still needs it, even across a disconnect, preventing WAL from being recycled before a lagging standby or subscriber has consumed it. The tradeoff is that a slot whose consumer stops connecting can make WAL, or table bloat, accumulate indefinitely on the sender.',
+  },
+  {
+    id: 'standby-modes',
+    service: 'Hot Standby / Warm Standby',
+    front: 'What is the difference between a warm standby and a hot standby?',
+    back: "Both continuously replay incoming WAL to stay nearly caught up with the primary, which is what makes either a fast failover target — that continuous replay is the 'warm' part. A hot standby goes further by also accepting client connections and serving read-only queries while it keeps replaying, something a purely warm standby does not do.",
+  },
+  {
+    id: 'failover',
+    service: 'Failover',
+    front: 'What is failover, and what does PostgreSQL itself provide versus what you have to supply?',
+    back: 'Failover is promoting a standby to take over as the new primary after the original primary fails. PostgreSQL provides the promotion mechanism itself (pg_ctl promote or pg_promote()), but it does not provide the failure-detection or automatic-triggering layer — identifying that the primary is actually down and deciding to initiate failover is left to external tooling.',
+  },
+  {
+    id: 'pg-promote',
+    service: 'pg_promote',
+    front: 'What does calling pg_promote() do?',
+    back: "It's the SQL-callable way to trigger failover on a standby: by default it waits (up to wait_seconds, 60 by default) until promotion to primary completes and returns whether it succeeded, or with wait set to false it just signals the postmaster and returns immediately without waiting to confirm. It is restricted to superusers unless EXECUTE is explicitly granted to another role.",
+  },
+  {
+    id: 'connection-pooling',
+    service: 'Connection Pooling (PgBouncer)',
+    front: 'Why use a connection pooler like PgBouncer instead of connecting application processes to PostgreSQL directly?',
+    back: 'Each PostgreSQL backend process is relatively expensive to spawn and hold open, so a pooler like PgBouncer maintains a small set of real server connections and hands them out to many client connections as needed. Its pool_mode controls how eagerly a server connection is returned to the pool: session mode holds it for the whole client session, transaction mode returns it as soon as each transaction finishes, and statement mode returns it after every single query.',
+  },
+  {
+    id: 'synchronous-replication',
+    service: 'Synchronous Replication',
+    front: 'What does synchronous replication guarantee that plain (asynchronous) streaming replication does not?',
+    back: "With synchronous_standby_names configured, a transaction's commit does not return to the client until the required number of listed standby servers have confirmed they've received (and, depending on synchronous_commit, written or applied) its WAL, so data can only be lost if the primary and every synchronous standby fail at the same moment. That extra durability comes at the cost of added commit latency, at minimum the round-trip time to the standby.",
+  },
+];

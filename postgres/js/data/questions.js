@@ -765,7 +765,7 @@ export const QUESTIONS = [
       'For each distinct key found across the indexed items, it keeps one (key, posting-list) entry whose posting list records every row ID containing that key.',
     ],
     correctIndexes: [3],
-    explanation: "GIN is an inverted index: it stores one entry per distinct key extracted from the indexed items, with each entry's posting list recording every row containing that key, so a key shared by many rows is stored compactly rather than duplicated per row; option 3 describes BRIN's block-range summaries and option 4 describes an equality-only hash-style structure, neither of which matches GIN.",
+    explanation: "GIN is an inverted index: it stores one entry per distinct key extracted from the indexed items, with each entry's posting list recording every row containing that key, so a key shared by many rows is stored compactly rather than duplicated per row; the option describing a single per-block-range summary bitmap describes BRIN's block-range summaries, and the option describing a hash of the whole value that can only test for exact identity describes an equality-only hash-style structure, neither of which matches GIN.",
   },
   {
     id: 'indexing-005',
@@ -880,7 +880,7 @@ export const QUESTIONS = [
       'A column can be limited to holding just one null value by making a unique index partial, restricted with an IS NULL condition in its predicate.',
     ],
     correctIndexes: [0, 2, 4],
-    explanation: 'The documentation confirms a UNIQUE index on lower(col1) blocks case-only duplicates, that partial-index predicates may only involve columns of the indexed table, and that restricting a unique partial index to an IS NULL condition can cap a column at a single null value — but it explicitly says expression values are not recomputed during an indexed search (so option 3 is false) and that PostgreSQL "supports partial indexes with arbitrary predicates" rather than equality only (so option 5 is false).',
+    explanation: 'The documentation confirms a UNIQUE index on lower(col1) blocks case-only duplicates, that partial-index predicates may only involve columns of the indexed table, and that restricting a unique partial index to an IS NULL condition can cap a column at a single null value — but it explicitly says expression values are not recomputed during an indexed search, which is why the option claiming expression indexes must recompute the expression for every candidate row and therefore never save CPU time is false, and it says PostgreSQL "supports partial indexes with arbitrary predicates" rather than equality only, which is why the option claiming a partial-index predicate must be a simple equality test is also false.',
   },
 
   // --- EXPLAIN and the cost model (indexing-013..018) ---

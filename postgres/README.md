@@ -21,7 +21,7 @@ There is no single, universally recognized PostgreSQL certification the way ther
 ## What's here
 
 - **Study guide** — organized by 6 domains: Architecture & Data Types, Querying & SQL, Indexing & Performance, Transactions & Concurrency (MVCC), Administration & Maintenance, and Replication & High Availability.
-- **Domain quizzes** — 100 practice questions with instant feedback and explanations.
+- **Domain quizzes** — 132 practice questions with instant feedback and explanations.
 - **Flashcards** — a cheat-sheet deck of core PostgreSQL objects and concepts with known/unknown tracking.
 - **Practice exam** — a 50-question, 75-minute timed self-test weighted by domain, scored on a 0-100 scale against an informal 70-point passing line.
 - **Progress dashboard** — quiz and practice exam history, flashcard mastery, all stored locally in your browser (`localStorage`, nothing sent anywhere).

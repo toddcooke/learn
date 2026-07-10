@@ -316,12 +316,12 @@ export const QUESTIONS = [
     options: [
       'Fiber-optic cable carries data as pulses of light rather than electrical voltage, and is less susceptible to electromagnetic interference than copper cabling',
       'Wi-Fi 6 (802.11ax) is backward-compatible with older Wi-Fi standards, according to Cisco',
-      "CSMA/CD's definition, per Cisco, covers not just collision handling but also endpoint addressing, transmission speeds, and the media in use",
+      'Per Cisco, CSMA/CD itself is the contention method: it senses whether the channel is idle before transmitting and detects any resulting collision',
       'The earliest experimental Ethernet system, built at Xerox PARC, ran over fiber-optic cable rather than coaxial cable',
       'Wi-Fi is standardized under IEEE 802.11, the very same standard number that also defines wired Ethernet',
     ],
     correctIndexes: [0, 1, 2],
-    explanation: "Fiber's use of light rather than electricity (and its resulting immunity to electromagnetic interference), Wi-Fi 6's backward compatibility with older standards, and CSMA/CD covering addressing and speed alongside collision handling are all accurate per Cisco's descriptions. Cisco actually credits the original Xerox PARC Ethernet prototype with running over inexpensive coaxial cable, not fiber, and Wi-Fi (802.11) and wired Ethernet (802.3) are two distinct IEEE 802 standards, not the same one.",
+    explanation: "Fiber's use of light rather than electricity (and its resulting immunity to electromagnetic interference), Wi-Fi 6's backward compatibility with older standards, and CSMA/CD's role as the contention method that checks for an idle channel before transmitting and then watches for collisions are all accurate per Cisco's descriptions. Cisco actually credits the original Xerox PARC Ethernet prototype with running over inexpensive coaxial cable, not fiber, and Wi-Fi (802.11) and wired Ethernet (802.3) are two distinct IEEE 802 standards, not the same one. (Endpoint addressing, transmission speeds, and media type are properties of the broader Ethernet/802.3 standard that CSMA/CD operates within, not of the CSMA/CD access method itself.)",
   },
 
   // --- Sub-theme: Cloud Concepts & Evolving Network Architectures (concepts-023..028) ---

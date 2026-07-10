@@ -24,6 +24,21 @@ unmodified at whatever path it's nested under. Link to it from
 `/learn/` landing page itself; this repo only supplies the module content
 under it).
 
+## Anki export
+
+Each module's flashcard deck can be exported to a plain-text file Anki
+imports directly (File > Import):
+
+```
+node scripts/export-anki.mjs [module...]
+```
+
+With no arguments, exports all four modules to `anki/<module>.txt`
+(gitignored — regenerate anytime with the command above). Pass one or
+more module names (`aws`, `kubernetes`, `postgres`, `sre`) to export only
+those. Each file only needs the deck picked/created once in Anki's own
+Import dialog — the script doesn't assume a deck name.
+
 ## Deployment
 
 This whole repo is referenced as a single git submodule in

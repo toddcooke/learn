@@ -18,6 +18,12 @@
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "8002", "--directory", "postgres"],
       "port": 8002
+    },
+    {
+      "name": "sre-site",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8003", "--directory", "sre"],
+      "port": 8003
     }
   ]
 }

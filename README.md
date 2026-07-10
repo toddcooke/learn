@@ -9,6 +9,7 @@ subdirectory here and publishes at `https://toddcooke.github.io/learn/<module>/`
 - [`aws/`](aws) — AWS Certified Solutions Architect – Associate (SAA-C03) exam prep, published at https://toddcooke.github.io/learn/aws/
 - [`kubernetes/`](kubernetes) — Certified Kubernetes Administrator (CKA) exam prep, published at https://toddcooke.github.io/learn/kubernetes/
 - [`postgres/`](postgres) — general PostgreSQL mastery (not tied to a certification), published at https://toddcooke.github.io/learn/postgres/
+- [`sre/`](sre) — general Site Reliability Engineering mastery (not tied to a certification), published at https://toddcooke.github.io/learn/sre/
 
 Each module is self-contained: its own `index.html`, `js/`, `css/`,
 `scripts/`, and `docs/superpowers/` spec+plan. None of them use a build

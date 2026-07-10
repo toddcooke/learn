@@ -24,6 +24,12 @@
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "8003", "--directory", "sre"],
       "port": 8003
+    },
+    {
+      "name": "networking-site",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8004", "--directory", "networking"],
+      "port": 8004
     }
   ]
 }

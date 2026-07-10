@@ -1,0 +1,123 @@
+// js/data/studyContent.js
+export const STUDY_CONTENT = [
+  {
+    domain: 'concepts',
+    taskStatement: 'Foundations: OSI Model & Network Appliances',
+    topics: [
+      {
+        title: 'The OSI Seven-Layer Model',
+        body: 'The OSI (Open Systems Interconnection) model breaks network communication into seven layers: Layer 1 Physical handles cabling, connectors, and raw bit transmission; Layer 2 Data Link handles framing and addressing (MAC addresses) on a shared medium; Layer 3 Network handles logical addressing and routing between different networks; Layer 4 Transport handles segmentation and end-to-end delivery; and the top three layers (5 Session, 6 Presentation, 7 Application) manage dialogue control, data formatting, and the interface that applications actually use to request network services. The real internet runs on the simpler four-layer TCP/IP model rather than OSI itself, but OSI stays the standard shorthand for describing where a device or protocol operates — a switch is called a "Layer 2 device," a router a "Layer 3 device," and so on. There is no free official text of the OSI standard (it is ISO/IEC 7498-1, a paywalled document), so this summary follows the layer breakdown as commonly taught in networking curricula such as Cisco Networking Academy\'s.',
+      },
+      {
+        title: 'Routers and Switches',
+        body: "A router forwards traffic between separate networks by reading each packet's destination IP address and choosing the best path toward it, which makes it a Layer 3 device. A switch instead forwards frames within a single network segment based on the destination MAC address carried in the Ethernet frame, making it a Layer 2 device. Small-business and home routers frequently combine routing, switching, wireless access, and even basic firewall/content-filtering in one box, while larger networks split the work across dedicated core routers (backbone-level, carrier/cloud-provider grade), edge routers (the outermost gateway to external networks like the internet), and distribution routers (handing traffic off to end users).",
+      },
+      {
+        title: 'Firewalls, IDS & IPS',
+        body: 'A firewall inspects traffic entering and leaving a network and allows or blocks it against a defined rule set. The simplest kind, a packet-filtering firewall, only checks IP addresses, ports, and protocol type; a stateful inspection firewall goes further by tracking the state of each connection over its whole lifetime; and a next-generation firewall (NGFW) adds deep packet inspection, application-level awareness, and built-in intrusion prevention on top of that. The key distinction between an IDS (intrusion detection system) and an IPS (intrusion prevention system) is where each sits and what it is allowed to do: an IDS is typically fed a copy of traffic (for example off a mirrored switch port) and can only analyze it and raise an alert, while an IPS sits directly inline in the live traffic path and can actively drop or block malicious packets in real time — which is exactly why an NGFW, already inline by design, is a natural place to build IPS functionality in.',
+      },
+      {
+        title: 'Load Balancers, Proxies & CDNs',
+        body: "A load balancer spreads incoming client requests across a pool of backend servers so that no single server is overwhelmed, improving both performance and availability. A proxy sits between internal clients and the outside network and makes requests on the clients' behalf, so external systems never connect directly to internal hosts; a web application firewall works on a similar principle, intercepting and inspecting traffic before it reaches an internal web application rather than simply filtering packets. A content delivery network (CDN) applies a related idea geographically: it caches content on servers spread out near end users, so requests are answered from a nearby location instead of one distant origin server, cutting down latency.",
+      },
+      {
+        title: 'Storage & Wireless Infrastructure: NAS/SAN and APs/Controllers',
+        body: "Network-attached storage (NAS) is a dedicated file-level storage device that sits on the network and is reached over standard file-sharing protocols — the same idea behind the file-sharing feature built into many small-business routers when a hard drive is plugged in. A storage area network (SAN) is a separate, dedicated high-speed network that instead presents storage to servers as raw block-level devices, used when NAS's shared, file-level approach isn't fast or granular enough. On the wireless side, a wireless access point (AP) is what actually lets wireless clients join the network, effectively stretching the bandwidth coming from a router across a wider area; in larger deployments, a wireless LAN controller centrally manages many APs at once so configuration and security policy stay consistent instead of being set on each AP individually.",
+      },
+      {
+        title: 'VPN/IPSec, QoS/DSCP, and TTL',
+        body: 'A virtual private network (VPN) builds an encrypted logical tunnel across an untrusted network, most commonly the public internet, so traffic between two sites (or between a remote user and a private network) is protected as though it were on a private line; IPSec is the standard protocol suite that authenticates and encrypts that tunnel at the IP layer. Quality of Service (QoS) lets network devices prioritize some traffic ahead of other traffic — voice and video are far more sensitive to delay than a bulk file transfer — and DSCP (Differentiated Services Code Point) is the field in the IP header used to mark a packet with the priority class it should receive along the way. Time to Live (TTL) is not actually a timer despite its name: per RFC 791, TTL is a hop-count field that every router along a packet\'s path must decrement by at least one, and the packet is discarded once TTL reaches zero — a hard guarantee that a datagram cannot loop through the network forever, regardless of how much wall-clock time has actually passed.',
+      },
+    ],
+  },
+  {
+    domain: 'concepts',
+    taskStatement: 'Protocols, Ports & Traffic Types',
+    topics: [
+      {
+        title: 'File Transfer (FTP), Secure Remote Access (SSH), SMB & RDP',
+        body: "FTP (File Transfer Protocol), defined in RFC 959, is unusual because it uses two separate connections instead of one: a control connection (TCP port 21) that carries commands and status responses, and a distinct data connection (TCP port 20) that actually moves the file bytes. SSH (Secure Shell) instead uses a single encrypted connection on TCP port 22 to give an administrator a secure remote command-line session, or secure file transfer through SFTP/SCP layered on top of it, and it is the modern replacement for older, unencrypted remote-access tools like Telnet. SMB (Server Message Block) and RDP (Remote Desktop Protocol) round out this group as standard networking vocabulary rather than IETF-standardized protocols — both are Microsoft-proprietary, with no RFC defining them. SMB is a file- and printer-sharing protocol used heavily on Windows networks, running over TCP port 445; RDP instead carries an entire remote graphical desktop session (not just a command line or a file listing) over TCP port 3389, letting a user interact with a remote Windows machine as if sitting in front of it.",
+      },
+      {
+        title: 'Name Resolution (DNS) and Address Assignment (DHCP)',
+        body: 'DNS (Domain Name System), defined in RFC 1035, resolves the human-readable domain names people type into IP addresses (and other resource records) so a name can be used instead of memorizing a numeric address; it listens on port 53 over UDP for typical lookups and TCP for larger transfers. DHCP (Dynamic Host Configuration Protocol), defined in RFC 2131, automatically hands a joining host an IP address, subnet mask, default gateway, and other settings from a DHCP server, building on the older BOOTP protocol; a DHCP server listens on UDP port 67 while clients receive their offers on UDP port 68.',
+      },
+      {
+        title: 'Web Protocols: HTTP and HTTPS/TLS',
+        body: 'HTTP (Hypertext Transfer Protocol), specified for the modern web in RFC 9110, is a stateless request/response protocol — the server itself keeps no memory of a prior request, which is why applications add cookies or sessions on top of it — and it traditionally runs in plaintext over TCP port 80. HTTPS wraps that same HTTP exchange inside a TLS (Transport Layer Security) session, which authenticates the server (and optionally the client) and encrypts everything sent afterward; it runs over TCP port 443 and is now the baseline expectation for any web traffic that carries sensitive data.',
+      },
+      {
+        title: 'Directory, Management & Signaling Protocols',
+        body: 'SNMP (Simple Network Management Protocol) lets a central management station poll network devices for status information over UDP port 161, while devices push unsolicited alerts, called traps, back to the manager on UDP port 162. LDAP (Lightweight Directory Access Protocol) queries and updates a centralized directory service — user accounts, group membership, and similar records — over TCP port 389. SIP (Session Initiation Protocol) sets up, modifies, and tears down real-time voice and video calls, signaling in plaintext over port 5060 or, when the signaling channel itself needs TLS encryption, over port 5061.',
+      },
+      {
+        title: 'IP-Layer Protocol Types: ICMP, TCP, UDP, GRE & IPSec',
+        body: "ICMP (Internet Control Message Protocol), defined in RFC 792, doesn't carry application data at all — it's the mechanism IP itself uses to report errors and diagnostic conditions back toward a sender, and it's what utilities like ping and traceroute are built on. TCP (Transmission Control Protocol), defined in RFC 9293, provides a reliable, ordered, connection-oriented byte-stream service on top of IP using sequence numbers and acknowledgments to guarantee delivery, while UDP (User Datagram Protocol), defined in RFC 768, is the connectionless counterpart: a minimal, best-effort datagram service with no delivery guarantee but far less overhead, used wherever speed matters more than reliability. GRE (Generic Routing Encapsulation) and IPSec both wrap one IP packet inside another to build a tunnel between two endpoints; GRE alone only encapsulates traffic, with no encryption, while IPSec adds authentication and encryption on top of that same tunneling idea.",
+      },
+      {
+        title: 'Traffic Types: Unicast, Broadcast, Multicast & Anycast',
+        body: 'Unicast is ordinary one-to-one delivery: a single sender addressing one specific destination. Broadcast, covered for IP networks in RFC 919, is one-to-all — a datagram sent to a network\'s broadcast address is delivered to every host on that local segment. Multicast, defined in RFC 1112, is one-to-many: a datagram addressed to a multicast group is delivered to every host that has joined that group, without the sender needing to know who or how many members exist. Anycast, defined for IPv6 in RFC 4291, is easy to confuse with multicast but works differently: an anycast address is likewise shared across multiple interfaces, but a packet sent to it is delivered to only one of them — whichever routing considers "nearest" — making anycast a one-to-nearest pattern rather than multicast\'s one-to-every-member pattern.',
+      },
+    ],
+  },
+  {
+    domain: 'concepts',
+    taskStatement: 'Transmission Media, Topologies & IPv4 Addressing',
+    topics: [
+      {
+        title: 'Wired Transmission Media: Ethernet, Fiber & Coax',
+        body: "Ethernet, standardized as IEEE 802.3, is the dominant wired LAN/WAN technology. It originally relied on CSMA/CD (Carrier Sense Multiple Access with Collision Detection), a \"listen before you talk\" scheme that let devices sharing one cable avoid stepping on each other's transmissions, and it has scaled from an original prototype speed under 3 Mbps to hundreds of gigabits per second today. Ethernet runs over several physical media: twisted-pair copper cabling (ordinary RJ-45 patch cable), coaxial cable (used in Ethernet's earliest implementations and still common on cable-broadband links), and fiber-optic cable, which carries data as light pulses rather than electrical voltage, supporting longer distances, higher bandwidth, and much less susceptibility to electromagnetic interference than copper.",
+      },
+      {
+        title: 'Wireless Transmission Media: Wi-Fi, Cellular & Satellite',
+        body: "Wi-Fi, standardized under IEEE 802.11, governs how wireless routers and access points communicate with client devices, and it keeps evolving through generations such as Wi-Fi 6 (802.11ax) that push higher throughput and better performance when many devices share one access point at once. Cellular networks (4G/5G) provide wide-area wireless connectivity through carrier towers rather than a local access point, useful anywhere wired or Wi-Fi infrastructure isn't practical. Satellite links have no citable RFC or vendor standard the way wired and Wi-Fi protocols do, but as standard networking vocabulary: satellites fall into three orbit classes — geostationary (GEO), medium Earth orbit (MEO), and low Earth orbit (LEO) — and GEO satellites, because they sit roughly 35,786 km above the equator to stay fixed over one point on Earth, introduce noticeably higher latency than terrestrial links, commonly cited around 500-600ms round-trip.",
+      },
+      {
+        title: 'Network Topologies: Mesh, Star & Layered Designs',
+        body: 'A mesh topology links each node directly to many (or all) of its peers, so there are multiple paths between any two points and no single link failure isolates part of the network — the tradeoff is a lot more cabling and connections as the network grows. A star (hub-and-spoke) topology instead connects every node to one central device, which is cheaper to cable and simpler to manage, but turns that central device into a single point of failure. Enterprise campus networks commonly use a three-tier layered design: an access layer where end devices physically connect, a distribution layer that aggregates access-layer traffic and enforces policy at the boundary between access and core, and a core layer that acts as the network\'s high-speed backbone. In smaller networks, the distribution and core functions are often merged into one "collapsed core" layer to save cost and complexity.',
+      },
+      {
+        title: 'Spine-Leaf Architecture & Traffic Flow Directions',
+        body: "Spine-leaf is a two-layer data center design where every leaf switch (the switches that connect directly to servers) has a link to every spine switch, and the spine switches interconnect all the leaves in a full-mesh pattern; this gives any leaf-to-leaf path the same predictable number of hops and has largely replaced the traditional three-tier design inside modern data centers. This shift also changed how engineers describe traffic direction: north-south traffic flows between the data center and the outside world (clients, WAN, internet), while east-west traffic flows laterally between servers inside the data center itself. That distinction matters because modern application architectures, like microservices that constantly call each other, generate far more east-west traffic than the old client/server model did — exactly the pattern spine-leaf was built to handle efficiently.",
+      },
+      {
+        title: 'IPv4 Addressing: Public, Private & APIPA',
+        body: "Public IPv4 addresses are globally unique and routable across the internet, while private IPv4 addresses are only meant to be used and routed inside an internal network. RFC 1918 reserves three ranges for private use: 10.0.0.0/8, 172.16.0.0/12, and 192.168.0.0/16, none of which are supposed to appear on the public internet without translation, such as NAT. APIPA (Automatic Private IP Addressing), standardized as IPv4 Link-Local addressing in RFC 3927, draws from an entirely separate range, 169.254.0.0/16; a host self-assigns an address from this block only when it can't reach a DHCP server, so an interface showing a 169.254.x.x address is a symptom of a failed DHCP request rather than a deliberately configured network — the opposite intent of RFC 1918 private addressing, which a network engineer chooses on purpose.",
+      },
+      {
+        title: 'Subnetting, VLSM, CIDR & Historical Address Classes',
+        body: 'Subnetting divides a larger IP network into smaller sub-networks by borrowing bits from the host portion of an address to extend the network portion, shrinking broadcast domains and letting address space match actual network topology. VLSM (Variable Length Subnet Masking) extends that idea further by allowing different subnets within the same network to use different mask lengths, so a point-to-point link that only needs 2 usable addresses doesn\'t have to consume the same size block as a subnet with 200 hosts. CIDR (Classless Inter-Domain Routing), defined in RFC 4632, formalized this classless approach along with the "slash" notation still used today (e.g., /24), replacing the older, rigid system of address classes that assigned every network a fixed-size default mask. That historical class system — Class A (roughly 1-126), Class B (128-191), and Class C (192-223) — still shows up as exam vocabulary even though real-world routing has not depended on it since CIDR was adopted.',
+      },
+    ],
+  },
+  {
+    domain: 'concepts',
+    taskStatement: 'Cloud Concepts & Evolving Network Architectures',
+    topics: [
+      {
+        title: 'Network Functions Virtualization (NFV) & Software-Defined Networking (SDN)',
+        body: 'NFV replaces purpose-built network appliances — physical routers, firewalls, load balancers — with software instances running as virtual machines or containers on standard servers, cutting hardware costs and letting a network add or reconfigure functions without shipping new boxes; it is the same idea behind the virtual router and virtual firewall appliance types vendors already sell for private or public cloud deployment. SDN takes a related but distinct approach: it separates the network\'s control plane (the logic deciding how traffic should be forwarded) from the data plane (the hardware actually forwarding packets), centralizing that decision-making in a software controller so the whole network can be programmed and managed from one place instead of configured device by device.',
+      },
+      {
+        title: 'Cloud Concepts: Service Models, Deployment Models, Elasticity & Multitenancy (NIST SP 800-145)',
+        body: "NIST SP 800-145 formally defines cloud computing as a way for a consumer to reach a shared, elastic pool of computing resources — things like networks, servers, storage, applications, and services — over the network on demand, with the provider standing the resources up and tearing them back down again with very little manual effort on either side. That definition rests on five essential characteristics: on-demand self-service, broad network access, resource pooling, rapid elasticity, and measured service. It defines three service models — Infrastructure as a Service (IaaS), Platform as a Service (PaaS), and Software as a Service (SaaS) — moving from raw rented compute/storage/network, up through a managed platform to deploy code onto, up through a complete hosted application, plus four deployment models (private, public, community, and hybrid cloud) describing who owns and who is allowed to use a given cloud environment. Resource pooling and rapid elasticity matter most for networking specifically: multiple tenants share the same underlying physical infrastructure while virtualization keeps each tenant's resources logically separated, and capacity scales up or down automatically to track demand. A Virtual Private Cloud (VPC) is the vendor-specific implementation of that isolation (AWS, Azure, and GCP each offer one) — a logically separated slice of a provider's network that a customer controls, with its own address ranges and routing — and security groups are the vendor-specific stateful virtual firewall rules attached to individual resources inside a VPC. Neither VPC nor security groups appear in any RFC or NIST document, since they are cloud-provider-specific implementations layered on top of the general shared-infrastructure model NIST 800-145 describes.",
+      },
+      {
+        title: 'SD-WAN, SASE & SSE',
+        body: "SD-WAN (Software-Defined Wide Area Network) applies the SDN idea of centralized, policy-based control specifically to WAN connections: instead of manually configuring routing across a company's MPLS circuits, broadband, and LTE/5G links at every branch, a central controller picks the best available path for each type of traffic in real time and can fail over automatically when a link degrades. SASE (Secure Access Service Edge) and its narrower subset SSE (Security Service Edge) extend that same centralized, cloud-delivered model to security: rather than backhauling every branch's traffic to a data center to pass through security appliances, SASE bundles SD-WAN-style networking with security functions — firewall, secure web gateway, zero-trust access — as a single cloud service that traffic routes through no matter where a user connects from, with SSE covering just the security half of that bundle.",
+      },
+      {
+        title: 'VXLAN (RFC 7348) & Infrastructure as Code',
+        body: "VXLAN (Virtual eXtensible LAN), defined in RFC 7348, is an overlay technology that tunnels a Layer 2 network across an existing Layer 3 (IP) network, making it possible to stretch what looks like one flat broadcast domain across multiple physical racks or data centers. It was designed specifically for multi-tenant virtualized data centers, where the traditional 802.1Q VLAN ID field (12 bits, supporting roughly 4,000 usable networks) runs out of room; VXLAN instead identifies each virtual segment with a 24-bit VXLAN Network Identifier (VNI), supporting over 16 million logical networks. Infrastructure as Code (IaC) is the practice of defining network and infrastructure configuration — VLANs, routing policy, security rules, whole topologies — as version-controlled text or code rather than manual point-and-click changes, so a network's configuration can be tested, reviewed, and deployed the same repeatable way application code is.",
+      },
+      {
+        title: 'Zero Trust Architecture (NIST SP 800-207)',
+        body: 'Zero trust architecture rests on one core assumption: no user, device, or network location — not even something already "inside" the traditional network perimeter — should be implicitly trusted. NIST SP 800-207 frames zero trust as a shift away from static, perimeter-based defenses toward continuously verifying users, assets, and resources instead of assuming trust based on network location or asset ownership; every access request gets its own authentication and authorization check at the time it is made, rather than one login granting broad standing access to everything "inside" the network, and each resource should only be granted the minimum access it actually needs (least privilege). NIST calls out remote work, bring-your-own-device (BYOD), and cloud-hosted resources sitting outside any enterprise-owned network boundary as the trends driving this shift, since all three make a hard network perimeter meaningless as a security boundary on their own.',
+      },
+      {
+        title: 'IPv6 (RFC 8200): Dual-Stack, Tunneling & NAT64',
+        body: "IPv6, specified in RFC 8200, increases the IP address size from IPv4's 32 bits to 128 bits — an enormously larger address pool meant to solve IPv4 address exhaustion — while also simplifying the base packet header and moving optional features out into separate, chainable extension headers instead of baking every possible option into one fixed header the way IPv4 does. Because the internet cannot switch to IPv6 all at once, several coexistence strategies are in common use: dual-stack runs IPv4 and IPv6 side by side on the same device or network so it can reach destinations on either version, tunneling encapsulates IPv6 packets inside IPv4 (or the reverse) to cross network segments that only support one version, and NAT64 translates between an IPv6-only network and IPv4-only destinations so IPv6-only clients can still reach services that have not adopted IPv6.",
+      },
+    ],
+  },
+];

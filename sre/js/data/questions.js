@@ -1184,4 +1184,336 @@ export const QUESTIONS = [
     correctIndexes: [2],
     explanation: "The book's own framing is that a draft nobody reviews is functionally worthless, and it recommends regular review sessions to close out discussion, capture ideas, and finalize the document's state before it's shared more broadly. A formal legal-review gate, IC-exclusive reviewership, and revenue-based optionality are not part of this practice.",
   },
+  // --- Sub-theme: Load Balancing Layers ---
+  {
+    id: 'capacity-001',
+    domain: 'capacity',
+    questionType: 'multiple-choice',
+    question:
+      "The SRE book's chapter on frontend load balancing points out a hard technical ceiling on plain DNS-based load balancing, independent of how clever the resolver logic gets. What is it?",
+    options: [
+      'A single DNS reply is capped at 512 bytes by RFC 1035, which bounds how many addresses it can list',
+      'Authoritative nameservers are contractually barred by the DNS specification from ever returning more than one single IP address per client query',
+      'Recursive resolvers are required by the DNS specification to completely disregard any TTL value an authoritative nameserver sets below 300 seconds',
+      'Client operating systems are hardcoded to reject any DNS reply that originates from a nameserver using an anycast address',
+    ],
+    correctIndexes: [0],
+    explanation:
+      "The chapter notes that DNS replies must fit within the 512-byte limit set by RFC 1035, which caps the number of addresses a single reply can carry — almost certainly fewer than a service's actual server count, which is why DNS alone can't fully solve frontend load balancing. Returning multiple A/AAAA records in one reply is exactly the simple technique the chapter describes, so replies aren't limited to a single address; there's no such TTL-ignoring rule, and anycast nameservers are actually one of the techniques used to help DNS load balancing, not something clients reject.",
+  },
+  {
+    id: 'capacity-002',
+    domain: 'capacity',
+    questionType: 'multiple-choice',
+    question:
+      "In the SRE book's discussion of load balancing at the virtual IP (VIP), a naive scheme picks a backend for a new connection using `id(packet) mod N`. What breaks this scheme as soon as a single backend is removed from the pool?",
+    options: [
+      'The load balancer must fully renegotiate and reassign a brand-new virtual IP address to every single remaining backend before any further traffic can be routed at all',
+      'The 512-byte DNS reply limit prevents the load balancer from advertising the reduced backend count to resolvers',
+      'N drops to N-1, so the modulo operation remaps nearly every packet to a different backend, forcing almost all existing connections to reset',
+      'Backends automatically switch from TCP to UDP whenever the pool size changes, which most stateful client protocols cannot parse',
+    ],
+    correctIndexes: [2],
+    explanation:
+      "Losing one backend turns the divisor N into N-1, so id(packet) mod N now points almost every packet at a different backend than before — resetting nearly all existing connections even though only one machine actually failed. This is exactly the problem consistent hashing was later adopted to avoid. Nothing in the scheme involves renegotiating VIP addresses, the unrelated 512-byte figure is a DNS-reply limit from a different section of the chapter, and there's no automatic TCP-to-UDP switch tied to pool size changes.",
+  },
+  {
+    id: 'capacity-003',
+    domain: 'capacity',
+    questionType: 'multiple-response',
+    question:
+      'Which of the following are real reasons the SRE book gives for why Simple (unweighted) Round Robin load balancing in the datacenter can leave a roughly 2x spread between the least- and most-loaded backend tasks? Select all that apply.',
+    options: [
+      "Clients using small subsets don't all issue requests at the same rate, so backends assigned to the busiest clients end up more loaded",
+      'Every forwarded packet carries a mandatory GRE encryption header that some backends must spend extra CPU decrypting',
+      'The cost of individual queries can vary enormously — in some services the priciest requests cost roughly a thousand times more CPU than the cheapest',
+      "Machines in the same datacenter aren't necessarily identical, so the same request can represent very different amounts of work depending on which machine handles it",
+      'Backends are contractually guaranteed to receive an identical lifetime total of requests, which Round Robin cannot satisfy',
+      "Unpredictable factors, like noisy neighbor processes competing for shared resources or newly restarted tasks running less efficiently, can't be accounted for statically",
+    ],
+    correctIndexes: [0, 2, 3, 5],
+    explanation:
+      "The chapter lists four real causes of Round Robin's imbalance: small subsetting (clients don't all send at the same rate), wide variance in per-query cost, machine diversity (heterogeneous hardware in one datacenter), and unpredictable performance factors such as antagonistic neighbors and task restarts. GRE encapsulation is a real Google technique, but it's about how VIP load balancers forward packets, not about Round Robin's imbalance, and there's no contractual guarantee anywhere in the chapter that every backend receives an identical total request count.",
+  },
+  {
+    id: 'capacity-004',
+    domain: 'capacity',
+    questionType: 'multiple-choice',
+    question:
+      'The SRE book explains that Google abandoned random subsetting as a way to pick which backend tasks a client connects to. What made random subsetting impractical?',
+    options: [
+      'It required every single client to open and tear down a brand-new TCP connection for each individual request instead of reusing any long-lived connections at all',
+      'Spreading load evenly with it would have required subset sizes around 75% of all backends — impractically large',
+      'It could only be used for stateless protocols like DNS over UDP, never for stateful HTTP traffic',
+      'It conflicted with the lame duck shutdown sequence, causing tasks to be killed before they finished draining',
+    ],
+    correctIndexes: [1],
+    explanation:
+      "The chapter's own simulation showed that spreading load evenly with random subsetting would need subset sizes around three-quarters of the backend pool — an impractical amount of per-client fan-out — which is why deterministic subsetting (grouping clients into rounds, each with an independently shuffled backend list) was adopted instead. Random subsetting doesn't force a fresh connection per request, isn't restricted to stateless protocols, and has nothing to do with the lame duck shutdown sequence.",
+  },
+  {
+    id: 'capacity-005',
+    domain: 'capacity',
+    questionType: 'multiple-choice',
+    question:
+      'The SRE book defines three states a backend task can be in from a client\'s perspective: healthy, refusing connections, and lame duck. What distinguishes the lame duck state from the other two?',
+    options: [
+      "The task has already crashed outright, and the cluster's job scheduler is now restarting it on an entirely different physical machine",
+      'The task is outright refusing any new TCP connection attempts while it finishes either starting up or shutting down cleanly',
+      'The task has simply been reassigned to a lower request-criticality tier by the separate adaptive overload-protection system',
+      'The task can still handle requests, but it has told its clients to route new traffic elsewhere while it drains',
+    ],
+    correctIndexes: [3],
+    explanation:
+      "Lame duck is the quasi-operational state where a task can still serve but has told clients to send new requests elsewhere — this lets it drain in-flight work cleanly during shutdown or maintenance. Refusing connections (unresponsive while starting up, shutting down, or in an abnormal state) is a separate, distinct state described right alongside it, and there's no crash-and-restart state or criticality-tier concept in this particular three-state model.",
+  },
+  {
+    id: 'capacity-006',
+    domain: 'capacity',
+    questionType: 'multiple-choice',
+    question:
+      "The SRE Workbook explains that Maglev machines can each pick up any incoming packet for a shared address, since ECMP (Equal-Cost Multi-Path) forwarding spreads that traffic uniformly over the whole pool. Compared to a traditional active/passive hardware load balancer's 1 + 1 redundancy, how does the workbook describe Maglev's resulting redundancy?",
+    options: [
+      "As N + 1, since ECMP lets any machine in the pool absorb another machine's load rather than relying on one dedicated standby",
+      'As N + 2, deliberately matching the same outage-coverage target that this same material uses elsewhere for whole-service capacity planning against outages',
+      'As N + 3, to compensate for the extra latency ECMP forwarding introduces',
+      'As plain N, since ECMP is described as removing the need for any redundancy margin at all',
+    ],
+    correctIndexes: [0],
+    explanation:
+      "The workbook specifically credits ECMP's even packet-spreading with letting Maglev's redundancy be modeled as N + 1, an improvement over a traditional active/passive pair's 1 + 1 redundancy. This is a distinct, narrower claim from the N + 2 target used elsewhere for whole-service capacity planning against a simultaneous planned-plus-unplanned outage — the two figures describe different layers of the stack, not a contradiction. Neither N + 3 nor plain N (no margin at all) appears in this passage.",
+  },
+  // --- Sub-theme: Demand Forecasting & Capacity Planning ---
+  {
+    id: 'capacity-007',
+    domain: 'capacity',
+    questionType: 'multiple-choice',
+    question:
+      "The SRE book's collection of best practices for production services recommends provisioning capacity in an 'N + 2' configuration. What does that configuration guarantee?",
+    options: [
+      'N instances alone must be sized generously enough to absorb all of peak traffic even if any single one of those instances unexpectedly goes fully dark, covering only one outage happening at a time',
+      'N instances alone are sized to absorb peak traffic even with the three largest instances knocked out simultaneously',
+      'Even with its two largest instances down at once, N instances (maybe in a degraded mode) still cover peak traffic — one planned outage and one unplanned outage, simultaneously',
+      'Exactly the number of instances already running in production at any given moment must be sufficient entirely on its own, with absolutely no spare capacity held back in reserve for anything',
+    ],
+    correctIndexes: [2],
+    explanation:
+      "The best-practices list defines N + 2 specifically as surviving the largest two instances being down at the same time — one planned (e.g., maintenance) and one unplanned (e.g., a failure) — while still serving peak traffic, possibly in a degraded mode. The N+1 option (surviving only a single simultaneous outage) and N+3 option (surviving three) are both real capacity-planning notions in general, just not the one this list names, and the plain-N option describes having no reserve margin at all.",
+  },
+  {
+    id: 'capacity-008',
+    domain: 'capacity',
+    questionType: 'multiple-choice',
+    question:
+      "The SRE book's capacity-planning best practices say a team should keep checking its demand forecasts. What is the recommended practice, and why?",
+    options: [
+      'Continuously compare past forecasts against what actually happened, because a growing gap signals unstable forecasting and a risk of running short on capacity',
+      'Discard any forecast older than one fiscal quarter, since only the newest forecast has planning value',
+      "Keep reusing whichever forecast was used for the previous year's provisioning, since demand patterns rarely shift",
+      "Hand all forecast validation work off entirely to the product development organization, since SRE's stated role here is strictly limited to procuring and racking physical hardware",
+    ],
+    correctIndexes: [0],
+    explanation:
+      "This is meant to be an ongoing habit, not a one-time forecast to lock in: keep checking earlier demand predictions against what traffic actually did, since a persistent gap between the two points to a forecasting process that isn't yet trustworthy, wasteful provisioning, and a real chance of coming up short on capacity when it counts. Reusing an old forecast unchanged, discarding forecasts purely by age, and treating validation as entirely someone else's job all run counter to that guidance.",
+  },
+  {
+    id: 'capacity-009',
+    domain: 'capacity',
+    questionType: 'multiple-response',
+    question:
+      "Which of the following are capacity-planning practices the SRE book's best-practices list actually recommends? Select all that apply.",
+    options: [
+      "Always provision for the average of the last four quarters' peak traffic, regardless of any planned launch",
+      'Keep checking demand forecasts against what actually happens, and treat any persistent mismatch as a warning sign',
+      "Use load testing, rather than relying on past performance, to establish a cluster's current resource-to-capacity ratio",
+      'Cap total error-budget spend at a flat 1% per month no matter what SLO a service has committed to',
+      "Don't mistake the elevated traffic of a product's launch day for its long-term, steady-state load",
+      "Provision so a planned outage and an unplanned outage overlapping at the same time still leave the fleet able to serve peak traffic (an 'N + 2' configuration)",
+    ],
+    correctIndexes: [1, 2, 4, 5],
+    explanation:
+      "The best-practices list names four concrete capacity-planning habits: keep validating forecasts against reality, use load testing rather than tradition to size the resource-to-capacity ratio, don't confuse day-one launch traffic with steady state, and provision for N + 2 to survive a simultaneous planned and unplanned outage. Locking in a flat four-quarter average regardless of launches, and a flat 1%-per-month error-budget cap regardless of a service's actual SLO, are both fabricated rules that appear nowhere in the list.",
+  },
+  {
+    id: 'capacity-010',
+    domain: 'capacity',
+    questionType: 'multiple-choice',
+    question:
+      "The SRE Workbook's guidance on configuring autoscalers describes them as being deliberately asymmetric. What is that asymmetry?",
+    options: [
+      "They're deliberately configured to react quickly to any traffic drop in order to save on cost, but to wait considerably longer before adding capacity for a traffic jump",
+      'They treat traffic increases and decreases with exactly the same speed, to avoid oscillating between sizes',
+      'They ignore short-lived traffic spikes entirely and only respond to trends sustained over multiple days',
+      'They react quickly and aggressively to add capacity for a traffic jump, but wait longer and act more cautiously before removing capacity as traffic drops',
+    ],
+    correctIndexes: [3],
+    explanation:
+      'The workbook describes autoscalers as carrying a deliberate bias: they respond eagerly to a rise in traffic so they can head off overload, but hold back and act more slowly once traffic starts to fall, to avoid prematurely shrinking capacity. That is the reverse of reacting fast to drops and slow to jumps, and it is neither a symmetric design nor one that ignores short spikes entirely.',
+  },
+  // --- Sub-theme: Overload Protection & Cascading Failures ---
+  {
+    id: 'capacity-011',
+    domain: 'capacity',
+    questionType: 'multiple-choice',
+    question:
+      "The SRE book gives cascading failure a precise, technical definition: a failure that worsens over time because of positive feedback. Which scenario below actually matches that definition?",
+    options: [
+      'A single bad configuration push takes the entire service down at once, and no other component is affected afterward',
+      'One overloaded replica fails and its traffic is redirected onto the surviving replicas, pushing them past their own limits so they fail too, in a widening loop',
+      "A scheduled maintenance window removes one datacenter's capacity for a known, fixed period before it's restored on schedule",
+      'A load test intentionally sends traffic at ten times the provisioned rate to one isolated backend, which cleanly rejects the excess without affecting anything else',
+    ],
+    correctIndexes: [1],
+    explanation:
+      "A cascading failure specifically requires the growing, self-reinforcing loop where a failure increases the probability of further failures — exactly what happens as redirected load pushes surviving replicas over their own limits. A single root-cause outage with no such feedback loop, a planned and bounded maintenance drain, and an isolated load test that's absorbed cleanly are all outages or non-events of a different kind, without the defining positive-feedback loop.",
+  },
+  {
+    id: 'capacity-012',
+    domain: 'capacity',
+    questionType: 'multiple-choice',
+    question:
+      'In a deep stack where a frontend calls a backend which calls another backend in turn, the SRE book warns that letting every layer independently retry a rejected request can multiply into a combinatorial explosion of load. What does it recommend instead?',
+    options: [
+      'Every single layer in the stack should retry independently up to ten separate times each, since retries are assumed to be cheaper than surfacing one failure to the end user',
+      'Only the deepest, bottom-most layer nearest the database should ever be allowed to retry, since it has the fullest picture of load',
+      "Only the layer directly above whichever layer rejected the request should retry; deeper layers instead return an 'overloaded; don't retry' signal so it doesn't fan out",
+      'Each layer should double the RPC deadline it passes downward, guaranteeing every layer has enough time to complete its own retries',
+    ],
+    correctIndexes: [2],
+    explanation:
+      "Retrying only at the layer immediately above the rejecting layer, and passing an 'overloaded; don't retry' signal (or a usable degraded result) further up, keeps one rejected request from multiplying across every layer of the stack. Letting every layer retry independently is exactly the pattern the book warns can produce that combinatorial explosion, retries aren't restricted to only the deepest layer, and deadlines are meant to be propagated and typically trimmed going downward, not doubled at each hop.",
+  },
+  {
+    id: 'capacity-013',
+    domain: 'capacity',
+    questionType: 'multiple-response',
+    question:
+      'The SRE book frames overload protection as involving the client, not just the server or load balancer. Which of these statements about that client-side machinery are accurate? Select all that apply.',
+    options: [
+      'Adaptive throttling has each client track its own recent request and accept counts, and the client starts locally rejecting some of its own outgoing requests once rejections become significant',
+      'Overload protection lives exclusively inside the load balancer; individual client processes have no say in whether a request is sent',
+      'A client is only counted by the adaptive throttling system while it holds an active TCP connection; clients with no active connections are excluded entirely',
+      'Criticality is a value (such as CRITICAL or SHEDDABLE) carried on each request that determines which traffic gets shed first, and it propagates automatically to any RPCs that request triggers further down the stack',
+      'Google found that four criticality levels were enough to usefully model the overload behavior of nearly every service',
+      'Client-side throttling is turned off by default and has to be manually switched on for each individual RPC call by the engineer writing it',
+    ],
+    correctIndexes: [0, 3, 4],
+    explanation:
+      "Adaptive throttling is explicitly a client-side mechanism — each client tracks its own request/accept ratio and self-regulates by locally dropping some of its own traffic — and criticality is likewise a client-cooperative, request-level concept that both determines shedding order and propagates automatically down the call tree, with four criticality levels found sufficient for nearly every service. It is not exclusively a load-balancer mechanism, inactive clients still participate via periodic health checks rather than being excluded outright, and it's a default, standing part of the RPC system rather than something switched on per call.",
+  },
+  {
+    id: 'capacity-014',
+    domain: 'capacity',
+    questionType: 'multiple-choice',
+    question:
+      "The SRE book describes a 'GC death spiral' as a way memory exhaustion can help trigger a cascading failure in a garbage-collected runtime like Java. What is that spiral?",
+    options: [
+      'A server exhausts its file descriptors, which stops it from writing new log files, which fills its local disk and crashes its health-check thread',
+      'A client stops sending its periodic health checks, so the load balancer instantly marks every backend as unhealthy and drains all traffic at once',
+      'A cold cache after a restart is claimed to have no effect on latency or capacity at all, since the book says Google\'s task scheduler automatically pre-warms every cache before a newly started task can receive any traffic',
+      'Reduced CPU slows requests down, which raises how many are in flight and how much RAM they use, which triggers more GC, which eats still more CPU',
+    ],
+    correctIndexes: [3],
+    explanation:
+      "The spiral runs: less available CPU makes requests take longer, more in-flight requests consume more RAM, more RAM pressure triggers more garbage collection, and that GC work eats even more CPU — a vicious cycle. The file-descriptor chain and the health-check-drain scenario are both fabricated sequences, and the automatic-pre-warming claim is also fabricated: the book instead recommends deliberate strategies like overprovisioning and gradually ramping up load precisely because a cold cache can meaningfully hurt a service, especially one that depends on the cache for serving capacity rather than just latency.",
+  },
+  {
+    id: 'capacity-015',
+    domain: 'capacity',
+    questionType: 'multiple-choice',
+    question:
+      "For a service with fairly steady, non-bursty traffic, what queue size does the SRE book recommend relative to the thread pool, and what's the reasoning?",
+    options: [
+      'A queue sized to at least ten times the total thread pool capacity, so that even brief, sudden bursts of traffic never cause a single incoming request to be rejected outright',
+      "A small queue, roughly half the thread pool size or less, so the server turns away requests early instead of making callers wait behind a long backlog",
+      'No queue whatsoever, under any circumstances, because the book treats queuing as never useful for a production service',
+      'A queue sized dynamically to match the total CPU core count of the entire datacenter, not just the local machine',
+    ],
+    correctIndexes: [1],
+    explanation:
+      "For steady traffic, the book favors small queues relative to thread-pool size so a server sheds excess load quickly rather than letting requests pile up and wait; it even walks through an example where a full 10x-sized queue turns a 100ms request into a 1.1-second one, mostly spent waiting. It doesn't claim queuing is never useful — some services use queueless designs and others, with bursty traffic, may reasonably want a larger queue — and there's no datacenter-wide CPU-count sizing rule described.",
+  },
+  {
+    id: 'capacity-016',
+    domain: 'capacity',
+    questionType: 'multiple-choice',
+    question:
+      "The SRE book walks through a service that was healthy at 10,000 QPS but tipped into a cascading failure once load reached 11,000 QPS. It warns that simply reducing load back down to 9,000 QPS will 'almost certainly not stop the crashes.' Why not?",
+    options: [
+      "The cascade already reduced the pool's healthy capacity, so 9,000 QPS now overwhelms far fewer healthy machines than before — a much bigger drop may be needed to stabilize",
+      "Because 9,000 QPS still technically exceeds the service's originally rated capacity of exactly 10,000 QPS, so any amount of nonzero load supposedly keeps the cascade going indefinitely no matter how far it drops",
+      'Because the load balancer caches its overload decision for a fixed 24-hour window regardless of how load subsequently changes',
+      "Because stopping the cascade requires a full binary redeploy, which can't be performed while an incident is still active",
+    ],
+    correctIndexes: [0],
+    explanation:
+      "Once servers have already started crashing, the surviving healthy fraction of the fleet is much smaller than it was before the cascade began, so the same 9,000 QPS now overwhelms a shrunken pool of healthy servers — the book's example estimates load may need to drop to roughly a tenth of the original rate to let the system stabilize and recover. 9,000 QPS is comfortably below the originally rated 10,000 QPS, there's no 24-hour caching behavior described for overload decisions, and a mid-incident redeploy isn't presented as a hard requirement for reducing load.",
+  },
+  {
+    id: 'capacity-017',
+    domain: 'capacity',
+    questionType: 'multiple-choice',
+    question:
+      "How does the SRE book distinguish 'graceful degradation' from plain load shedding as responses to overload?",
+    options: [
+      'Load shedding only applies to background batch traffic, while graceful degradation only applies to interactive user-facing traffic',
+      'Load shedding drops a share of traffic outright near overload, while graceful degradation keeps serving nearly all requests but reduces the work each one costs, like returning lower-quality results',
+      'Graceful degradation can only run on the client, while load shedding can only run on the server',
+      "Graceful degradation is said to mean that a service's total provisioned capacity gets permanently and irreversibly cut back after any incident occurs, rather than ever being restored to its prior level once the incident is resolved",
+    ],
+    correctIndexes: [1],
+    explanation:
+      "The book frames graceful degradation as taking load shedding a step further: rather than dropping some fraction of requests outright, the service keeps answering nearly everything but does less work per request — like searching a smaller slice of an index — to stay within capacity. It isn't segmented by traffic type (batch versus interactive), isn't restricted to one side of the client/server boundary, and has nothing to do with permanently shrinking provisioned capacity after the fact.",
+  },
+  // --- Sub-theme: Non-Abstract Large System Design (NALSD) ---
+  {
+    id: 'capacity-018',
+    domain: 'capacity',
+    questionType: 'multiple-choice',
+    question:
+      "The SRE Workbook's Non-Abstract Large System Design (NALSD) process has a 'basic design' phase before it considers scaling the design up. What two questions does that basic-design phase ask?",
+    options: [
+      "'Is it feasible?' and 'Is it resilient?'",
+      "'What is the SLO?' and 'What is the error budget?'",
+      "'Is it possible?' and 'Can we do better?'",
+      "'How many machines does it need?' and 'What will it cost?'",
+    ],
+    correctIndexes: [2],
+    explanation:
+      "The basic-design phase asks whether a design that ignores real-world resource constraints is even possible in principle, and then whether that design can be made faster, smaller, or more efficient. 'Is it feasible?' and 'Is it resilient?' are real NALSD questions too, but they belong to the later scale-up phase, not the basic-design phase; SLO/error-budget framing and a direct cost-and-machine-count question aren't how the chapter phrases either phase's questions.",
+  },
+  {
+    id: 'capacity-019',
+    domain: 'capacity',
+    questionType: 'multiple-response',
+    question:
+      'In the SRE Workbook\'s NALSD walkthrough of designing a click-through-rate (CTR) dashboard, which of the following are accurate about how the design evolved? Select all that apply.',
+    options: [
+      'The main point of the exercise is to land on one precise, final machine count that the team then locks in and never revisits',
+      'The single-machine design was rejected partly because it was a single point of failure, not solely because of its disk IOPS limits',
+      'A MapReduce-based batch design was rejected because splitting logs into small, fixed batches could permanently prevent a query and its matching click from ever being joined if they landed in different batches',
+      'The multidatacenter design relies on a Paxos-style consensus algorithm running across several replicas so the system can tolerate a datacenter-sized failure',
+      'QueryMap ends up sharded by ad_id rather than by query_id, because ad_id is already known at read time and gives a consistent lookup',
+      'NALSD explicitly forbids revisiting or iterating on a design more than twice, to keep the exercise time-boxed',
+    ],
+    correctIndexes: [1, 2, 3, 4],
+    explanation:
+      "The walkthrough rejects the single-machine design for being both IO-bound and a single point of failure, rejects the naive MapReduce design because its arbitrary batch boundaries can strand a query and its click in different batches forever, adopts a Paxos-style consensus algorithm across replicas once it goes multidatacenter, and shards QueryMap by ad_id specifically because that key is already known at read time. The chapter's own framing is that the value is in the reasoning across many imperfect iterations, not in freezing one final number, and it never caps the number of design iterations at two.",
+  },
+  {
+    id: 'capacity-020',
+    domain: 'capacity',
+    questionType: 'multiple-choice',
+    question:
+      'How does the SRE Workbook describe the underlying skill that practicing Non-Abstract Large System Design (NALSD) is meant to build?',
+    options: [
+      "The ability to memorize the exact machine counts provisioned for every single one of Google's production services well enough to recite them all correctly during a live incident",
+      "The ability to produce a formally verified proof that a distributed system's code is free of race conditions",
+      'The ability to negotiate exceptions to an error-budget policy between an SRE team and a product development team',
+      'NALSD is meant to build the skill of turning a vague requirement into a grounded resource estimate, combining capacity planning, isolation, and graceful degradation',
+    ],
+    correctIndexes: [3],
+    explanation:
+      "The chapter closes by describing NALSD as the learned skill of turning an abstract requirement into a concrete approximation of needed resources, blending capacity planning, component isolation, and graceful degradation into one design discipline. Memorizing service-by-service machine counts, producing formal concurrency proofs, and negotiating error-budget policy exceptions are all real SRE-adjacent activities described elsewhere in this material, just not what this chapter says NALSD itself builds.",
+  },
 ];

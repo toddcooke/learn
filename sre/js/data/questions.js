@@ -1848,4 +1848,258 @@ export const QUESTIONS = [
     explanation:
       "All three confirmed claims trace directly to the cached sources: smaller, self-contained release artifacts are explicitly called cheaper and easier to walk back; provisioning is explicitly called riskier than routine load shifting because it touches configuration, load balancers, and networking; and a canary process is said to demonstrate its value exactly when it flags a bad candidate confidently without also false-flagging good ones. The other three are fabricated — no branch-count limit on Rapid, no contractual ban on manual rollback, and no requirement that a canary process detect zero defects ever, appear anywhere in the material.",
   },
+
+  // --- Sub-theme: Toil definition / elimination ---
+  {
+    id: 'reliability-001',
+    domain: 'reliability',
+    questionType: 'multiple-choice',
+    question:
+      "Toil's 'devoid of enduring value' attribute is the one most often misunderstood. Which statement about it matches the SRE book's actual guidance?",
+    options: [
+      "A task is probably toil if the service ends up unchanged; a one-off manual cleanup that leaves a lasting improvement usually isn't toil",
+      "Any task counts as toil the moment a human spends hands-on time on it, regardless of what lasting effect that time has on the service, or whether it was novel",
+      "A task performed only a single time can never be classified as toil, no matter whether the service is any better off for it afterward, since novelty alone is decisive",
+      "Enduring value is judged by counting how many fiscal quarters a task drags on for, rather than by whether the service's actual state or capability changes",
+    ],
+    correctIndexes: [0],
+    explanation:
+      "The book's own test is whether the service ends up in a durably different, better state once the task is done — a task that leaves things unchanged is probably toil, while a manual, grungy, even one-time task that leaves a lasting improvement isn't toil at all. The option treating hands-on time alone as sufficient ignores that human involvement is only one of several toil traits, not toil's defining feature; the option claiming a single occurrence automatically escapes toil ignores that one-off work with zero lasting effect on the service (like the workbook's backup-tooling migration that changes only what database sits underneath, not what capability is delivered) can still be toil; and the fiscal-quarters framing isn't how the book measures enduring value at all.",
+  },
+  {
+    id: 'reliability-002',
+    domain: 'reliability',
+    questionType: 'multiple-choice',
+    question:
+      "The SRE book carves 'overhead' out as a category distinct from toil. How does it define overhead?",
+    options: [
+      "Work that a machine could perform just as well as a human, or whose underlying need could be designed away entirely",
+      "Administrative work with no direct tie to running a production service, such as team meetings, hiring, and HR paperwork",
+      "Interrupt-driven work that arrives unpredictably during an on-call rotation and has to be handled reactively rather than on a schedule",
+      "Work whose required effort grows in step with a service's traffic, user count, or overall size as it scales up",
+    ],
+    correctIndexes: [1],
+    explanation:
+      "Overhead is the book's label for administrative tasks that were never meant to reduce operational load in the first place — meetings, hiring, goal-grading, HR paperwork — which is exactly why it isn't toil even though nobody would call it fun. The option describing work a machine could equally perform is actually toil's 'automatable' attribute, the interrupt-driven option describes toil's 'tactical' attribute, and the option about effort scaling with service size describes toil's O(n)-with-growth attribute — all three describe facets of toil itself, not the separate overhead category.",
+  },
+  {
+    id: 'reliability-003',
+    domain: 'reliability',
+    questionType: 'multiple-choice',
+    question:
+      "The SRE book cites two different figures about SRE time spent toiling: a policy ceiling and a measured survey result. Which pairing matches each figure to what it actually represents?",
+    options: [
+      "33% is the ceiling the organization sets so at least a third of an SRE's time goes to engineering work, while roughly 50% is what quarterly surveys found SREs actually average",
+      "50% is the ceiling the organization sets so at least half of an SRE's time goes to engineering work, while roughly 33% is what quarterly surveys found SREs actually average",
+      "Both the 50% and 33% figures come from the very same quarterly survey of how SREs actually spend their time",
+      "50% is described as the minimum share of time an SRE must spend toiling, to keep the team operationally sharp",
+    ],
+    correctIndexes: [1],
+    explanation:
+      "These are two distinct numbers answering two distinct questions: the 50% figure is an advertised policy goal capping toil so at least half of an SRE's time goes to engineering work, while the roughly 33% figure is a separate, empirical result from quarterly surveys of actual toil load — comfortably under the policy ceiling, but not the same measurement. The option swapping which number is the target versus the survey result inverts that relationship, the option claiming a shared source ignores that they come from different kinds of evidence (an organizational goal versus a survey), and the option calling 50% a toil minimum inverts what the figure actually caps.",
+  },
+  {
+    id: 'reliability-004',
+    domain: 'reliability',
+    questionType: 'multiple-response',
+    question:
+      "Which of the following statements about identifying and measuring toil are accurate, according to the cached SRE sources? Select all that apply.",
+    options: [
+      "Toil should be tracked using a consistent, objective unit of effort — such as hours spent or completed tickets — rather than relying on individual gut feeling about how much of it exists",
+      "In a six-person on-call rotation, primary and secondary on-call duty alone create a toil floor of roughly a third of an SRE's time, since each person carries that duty two weeks out of every six",
+      "Before committing engineering effort to eliminate a piece of toil, it's worth checking that the time a fix will save is at least proportional to the time spent building and maintaining it",
+      "A team's toil-reduction project that fails a strict hours-saved-versus-hours-invested comparison should always be scrapped, since morale and onboarding benefits don't factor into that decision",
+      "Widening an on-call rotation from six engineers to eight raises the on-call-driven toil floor, since spreading a rotation across more people means more total interrupt handling for the team",
+      "Whether a task counts as toil depends mainly on whether the person doing it finds it enjoyable — if an SRE genuinely likes the work, it isn't toil",
+    ],
+    correctIndexes: [0, 1, 2],
+    explanation:
+      "Three claims hold up: an objective, consistently tracked unit of effort is exactly what the workbook recommends over trusting intuition; a six-person on-call rotation does put a floor of roughly 33% (2 of 6 weeks) on an SRE's toil regardless of how well the service itself is engineered; and the workbook explicitly recommends a rough cost-benefit check before investing in a fix. The claim that an 'unprofitable' toil project should always be scrapped is wrong — the workbook explicitly says such projects can still be worth doing for softer benefits like morale, fewer human-error outages, and faster onboarding. The rotation-size claim has the direction backward — widening a rotation from six to eight people actually lowers the on-call-driven floor, from about a third down to a quarter. And the book is explicit that toil isn't defined by whether the work is unpleasant or enjoyable — some people genuinely enjoy toil-heavy work, and it's still toil.",
+  },
+
+  // --- Sub-theme: Automation as an engineering discipline ---
+  {
+    id: 'reliability-005',
+    domain: 'reliability',
+    questionType: 'multiple-choice',
+    question:
+      "The SRE book breaks the payoff from automation into several distinct value drivers rather than treating 'saves time' as the whole story. Which pairing of a driver to its rationale is accurate?",
+    options: [
+      "A platform's main advantage is that it always removes the need for any future human judgment about when to run it, for any task",
+      "Time savings is called the automation benefit Google can calculate most precisely and cheaply, and it's always tallied up in full before a project even begins",
+      "Consistency is often automation's primary value for well-scoped procedures, since manual repetition is never quite as uniform as a machine's",
+      "Faster action means a single bug fix in the automation benefits every future user of the tool, instead of just whoever first wrote it",
+    ],
+    correctIndexes: [2],
+    explanation:
+      "The book calls out consistency as often the primary value of automating a well-understood procedure, precisely because human repetition is never as uniform as a machine's, and that inconsistency is itself a source of mistakes. The 'benefits every future user' description actually belongs to the platform driver's mistake-centralizing property, not to faster action; the platform option's claim about removing the need for judgment mischaracterizes what a platform actually provides; and time savings is explicitly called the hardest of the five drivers to calculate, not the easiest or most precisely tallied.",
+  },
+  {
+    id: 'reliability-006',
+    domain: 'reliability',
+    questionType: 'multiple-choice',
+    question:
+      "The SRE book illustrates its five-stage automation hierarchy with a single running example: a database master failing over between locations. Which stage-to-example pairing is correct?",
+    options: [
+      "Externally maintained generic automation — the database ships with failover logic built directly into its own codebase",
+      "Internally maintained, system-specific automation — one engineer keeps a personal failover script sitting in their home directory",
+      "The fully autonomous end state — the failover script grows into a shared tool that other teams plug their own systems into",
+      "No automation at all — an engineer manually fails the database master over between locations",
+    ],
+    correctIndexes: [3],
+    explanation:
+      "The book's own first stage in the progression is exactly this: no automation, with an engineer manually failing the master over. Each distractor swaps in an example that actually belongs to a different stage — a database shipping with its own built-in failover logic is the internally maintained, system-specific stage, not externally maintained generic; a personal home-directory script is the externally maintained, system-specific stage, not internally maintained; and a shared 'generic failover' tool other teams plug into is the externally maintained generic automation stage, not the fully autonomous stage where the system needs no external automation at all.",
+  },
+  {
+    id: 'reliability-007',
+    domain: 'reliability',
+    questionType: 'multiple-choice',
+    question:
+      "What specifically went wrong in the incident the SRE book describes under the name 'Diskerase'?",
+    options: [
+      "A restarted workflow found zero machines still needing erasure, but that empty result was misread as a sentinel meaning 'erase everything,' wiping disks across nearly all colocation facilities",
+      "A misconfigured scheduled job kept re-running the erase step on the same rack long after decommissioning had already finished, slowly and quietly wiping unrelated racks over the following several weeks",
+      "An engineer accidentally pointed the decommissioning tool at the primary datacenters instead of the intended CDN edge colocation facilities, wiping genuinely critical core production data outright",
+      "The erase automation shipped with no timeout configured at all, so a single erase operation ran indefinitely and eventually reached every disk it could find anywhere on the network",
+    ],
+    correctIndexes: [0],
+    explanation:
+      "The book's account is specific: the decommission workflow was restarted to debug an earlier failure, correctly determined that zero machines still needed erasing, but that empty set was interpreted by the tooling as a sentinel meaning 'everything,' so it wiped disks across nearly all of Google's colocation facilities before the mistake was caught. The recurring-scheduled-job explanation, the wrong-datacenter-target explanation, and the missing-timeout explanation are all plausible-sounding automation failure modes, but none of them is what the book actually describes as the root cause here.",
+  },
+  {
+    id: 'reliability-008',
+    domain: 'reliability',
+    questionType: 'multiple-response',
+    question:
+      "Which of the following statements about the Ads Database 'Decider' automation case study are accurate, according to the cached SRE sources? Select all that apply.",
+    options: [
+      "Manual MySQL failovers before Decider typically completed in well under 30 seconds, comfortably inside the team's error-budget requirement",
+      "Decider's failover success rate within its 30-second target was measured at a perfect 100%, with no failed attempts ever recorded",
+      "Decider needed to exist because migrating onto Google's cluster scheduler meant tasks could be rescheduled onto different machines roughly once or twice a week, and manual failover couldn't reliably finish inside the team's error budget",
+      "Once failover was automated, the team went on to automate schema changes too, and the database's total ongoing operational-maintenance burden eventually dropped by close to 95%",
+      "Consolidating multiple MySQL instances onto shared machines after the migration freed up roughly 60% of the team's hardware footprint",
+      "The Ads team abandoned its migration onto the cluster scheduler once building failover automation proved difficult, reverting to dedicated machines instead",
+    ],
+    correctIndexes: [2, 3, 4],
+    explanation:
+      "Three claims match the case study directly: the migration to the cluster scheduler introduced weekly-or-twice-weekly task rescheduling that manual failover (30-90 minutes each) couldn't keep up with inside the error budget, which is exactly why the automated failover daemon was built; automating failover led the team to automate schema changes as well, eventually cutting total operational-maintenance burden by nearly 95%; and consolidating MySQL instances onto shared machines freed up about 60% of the team's hardware. The claim about pre-Decider manual failovers finishing in under 30 seconds is backward — that speed was the whole problem automation had to solve; the claim of a flawless 100% success rate overstates the real figure, which was around 95%; and the team never abandoned the migration — automation is what made it viable.",
+  },
+
+  // --- Sub-theme: Simplicity as a reliability property ---
+  {
+    id: 'reliability-009',
+    domain: 'reliability',
+    questionType: 'multiple-choice',
+    question:
+      "Borrowing Fred Brooks's classic distinction, how does the SRE book differentiate essential complexity from accidental complexity?",
+    options: [
+      "Essential complexity comes from choosing the wrong programming language for a project, while accidental complexity is baked permanently into a system's business requirements",
+      "Essential complexity applies only to distributed, multi-service systems, while accidental complexity applies only to standalone, single-binary applications",
+      "Essential complexity is inherent to the problem and can't be removed, while accidental complexity comes from an implementation choice and can genuinely be engineered away",
+      "Essential complexity is whatever complexity gets introduced by automation tooling, while accidental complexity is whatever gets introduced by a human operator's manual changes",
+    ],
+    correctIndexes: [2],
+    explanation:
+      "The book's example is serving web pages quickly, which is essential complexity no web server can avoid, versus the garbage-collection tuning that shows up specifically because a team chose a language with automatic memory management, which is accidental complexity introduced by that choice and can be engineered away. The language-choice option and the automation-versus-manual option both invert or fabricate what makes complexity 'essential' versus 'accidental,' and the book never restricts either category to a particular system architecture like distributed versus single-binary.",
+  },
+  {
+    id: 'reliability-010',
+    domain: 'reliability',
+    questionType: 'multiple-choice',
+    question:
+      "What does the SRE book mean when it says that in an always-on production service, every new line of code is 'a liability'?",
+    options: [
+      "Code becomes a liability only once it's been running in production for more than a full calendar year, per Hyrum's Law",
+      "Every function call consumes CPU cycles roughly proportional to its own line count, so shorter functions are always considered computationally cheaper to run in production",
+      "The book recommends commenting unused code out rather than deleting it, so the logic can be quickly restored the moment it's needed again",
+      "More code means more surface area for defects, so scrutinizing features, deleting dead code, and testing for bloat all count as real reliability work",
+    ],
+    correctIndexes: [3],
+    explanation:
+      "The book's point is that every line written is a standing source of potential defects, so removing dead code, questioning whether a feature is worth adding, and building bloat detection into testing all count as real reliability work rather than mere tidiness. The commented-out-code option describes exactly the kind of suggestion the book calls 'terrible,' preferring deletion (with source control available to restore it if truly needed) over permanently commented or flag-gated dead code; the Hyrum's-Law option confuses code age with the liability argument, which is about defect surface area, not a one-year cutoff; and the CPU-cycles claim isn't the reasoning the book gives at all.",
+  },
+  {
+    id: 'reliability-011',
+    domain: 'reliability',
+    questionType: 'multiple-choice',
+    question:
+      "The Workbook notes that cyclomatic complexity works well for a single function but admits there's no single rigorous metric for an entire system's complexity. Which of these is one of the practical proxies it offers instead?",
+    options: [
+      "The total number of git commits ever merged into the system's repository over its lifetime",
+      "How long a newly onboarded engineer takes to be ready for on-call on the system",
+      "The total dollar cost of the cloud infrastructure the system currently runs on each month",
+      "The number of distinct programming languages used anywhere across the system's codebase",
+    ],
+    correctIndexes: [1],
+    explanation:
+      "Training time — how long it takes a new engineer to be ready for on-call — is one of the workbook's named proxies for whole-system complexity, alongside things like explanation time and administrative diversity. Commit counts, monthly infrastructure spend, and the number of programming languages in use are all plausible-sounding metrics an engineer might guess at, but none of them appears in the workbook's actual list of complexity proxies.",
+  },
+
+  // --- Sub-theme: Distributed reliability patterns ---
+  {
+    id: 'reliability-012',
+    domain: 'reliability',
+    questionType: 'multiple-choice',
+    question:
+      "Neither Google SRE book actually uses the term 'circuit breaker.' Which term does the SRE book use for its client-side mechanism, in which each client tracks its own recent ratio of attempted-to-accepted requests and starts rejecting new requests locally once that ratio crosses a tunable threshold?",
+    options: [
+      "Adaptive throttling",
+      "Circuit breaking",
+      "Criticality-based load shedding",
+      "Graceful degradation",
+    ],
+    correctIndexes: [0],
+    explanation:
+      "Adaptive throttling is the book's actual name for this client-side self-regulation mechanism, where a client compares its own recent request and accept counts and begins rejecting new requests locally once the ratio crosses a configurable multiplier. 'Circuit breaking' is the trap here — the book never uses that term for this or any related mechanism. Criticality-based shedding is a real, related mechanism, but it's a server-side priority scheme rather than the client-side self-regulation being described, and graceful degradation is a different lever entirely, serving cheaper responses rather than rejecting requests.",
+  },
+  {
+    id: 'reliability-013',
+    domain: 'reliability',
+    questionType: 'multiple-choice',
+    question:
+      "How does the SRE book distinguish load shedding from graceful degradation?",
+    options: [
+      "The two terms are used interchangeably in the book to describe a single, identical overload-response strategy",
+      "Load shedding is only ever implemented at frontend servers, while graceful degradation is only ever implemented at backend database layers",
+      "Graceful degradation is always attempted first, with load shedding held in reserve as a last resort only once every degradation option has been fully exhausted across the whole service",
+      "Load shedding rejects a request outright, doing no work toward it, while graceful degradation keeps answering but with a cheaper, lower-quality response",
+    ],
+    correctIndexes: [3],
+    explanation:
+      "The book treats these as two distinct, complementary levers: load shedding is a binary refusal that does no work toward the request at all, while graceful degradation keeps serving requests but cuts corners — searching a smaller index, returning a slightly stale cached value, or skipping an optional expensive feature. Calling them interchangeable ignores that distinction entirely; restricting each to one specific layer of the stack isn't a rule the book states; and the book never establishes a fixed sequencing where one must be fully exhausted before the other kicks in — it presents them as levers that can be combined rather than a strict order of operations.",
+  },
+  {
+    id: 'reliability-014',
+    domain: 'reliability',
+    questionType: 'multiple-choice',
+    question:
+      "According to the SRE book's discussion of majority-quorum consensus systems, what happens to a system's tolerable-loss fraction when it grows from five replicas to six?",
+    options: [
+      "The quorum requirement stays fixed at three votes either way, so the tolerable-loss fraction is unchanged at roughly 40%",
+      "Adding a sixth replica has no effect on the quorum requirement at all, since quorum size depends only on how many failures need tolerating, not on the replica count",
+      "The quorum requirement rises from three votes to four, and the tolerable-loss fraction actually drops, from about 40% down to about 33%",
+      "The quorum requirement falls from four votes to three, so the tolerable-loss fraction rises from about 33% up to about 40%",
+    ],
+    correctIndexes: [2],
+    explanation:
+      "With five replicas, a majority quorum needs three votes, so the system can still make progress with two replicas (about 40%) unavailable; growing to six replicas raises the quorum to four votes, which actually lowers the tolerable-loss fraction to about 33% even though there's one more replica in the pool. That's the book's own point that adding replicas isn't automatically better for availability. The option claiming no change, the option claiming no effect from the extra replica, and the option that reverses the direction of the shift (from three votes to four, framed backward) all misstate that same underlying math.",
+  },
+  {
+    id: 'reliability-015',
+    domain: 'reliability',
+    questionType: 'multiple-response',
+    question:
+      "Which of the following are strategies the SRE book identifies for defending against cascading failures? Select all that apply.",
+    options: [
+      "Switching an overloaded server's request queue from first-in-first-out to last-in-first-out, so remaining capacity goes toward requests still likely to be wanted rather than ones the caller has probably already given up on",
+      "Retrying a failed request independently at every layer of the stack, since retrying more times at more layers only raises the odds that any given request eventually succeeds",
+      "Giving each layer of the stack its own long, independent deadline, so a single slow dependency never causes an upstream timeout",
+      "Dropping load testing and capacity planning once a service has redundant replicas, since redundancy alone is what prevents cascading failures",
+      "Propagating a single deadline down through a chain of RPC calls, so a server several layers deep can abandon stale work as soon as the original caller has already given up",
+      "Capping the total number of retries a process will issue per minute, so a spike of failures doesn't snowball into an even larger spike of retries competing for the same scarce capacity",
+    ],
+    correctIndexes: [0, 4, 5],
+    explanation:
+      "Three real defenses appear here: switching a struggling server's queue discipline to last-in-first-out so it spends effort on requests still worth answering; propagating one deadline down an entire RPC call chain so deep servers can bail out the moment the original caller has given up; and capping a process's total retries per minute so a failure spike doesn't compound into a larger retry spike. Retrying independently at every layer is exactly backward — the book shows how that multiplies into a much larger number of attempts hitting an already-overloaded backend; giving every layer its own long independent deadline undermines the deadline-propagation strategy rather than supporting it; and capacity planning is itself part of the book's cascading-failure toolkit, not something redundancy makes unnecessary.",
+  },
 ];

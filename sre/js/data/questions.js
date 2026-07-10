@@ -1516,4 +1516,336 @@ export const QUESTIONS = [
     explanation:
       "The chapter closes by describing NALSD as the learned skill of turning an abstract requirement into a concrete approximation of needed resources, blending capacity planning, component isolation, and graceful degradation into one design discipline. Memorizing service-by-service machine counts, producing formal concurrency proofs, and negotiating error-budget policy exceptions are all real SRE-adjacent activities described elsewhere in this material, just not what this chapter says NALSD itself builds.",
   },
+  // --- Sub-theme: Release Engineering Foundations ---
+  {
+    id: 'release-001',
+    domain: 'release',
+    questionType: 'multiple-choice',
+    question:
+      "According to the SRE book's Release Engineering chapter, what does the 'Self-Service Model' principle credit for Google's ability to sustain high release velocity across thousands of engineers and products?",
+    options: [
+      'A companywide committee that reviews and pre-approves every release slot months in advance',
+      'A single central release-engineering team that personally executes every product team\'s deployment',
+      'Individual product teams controlling and running their own release process, largely automated so it needs minimal engineer involvement',
+      'Every single team across the whole company being required to release strictly on the same fixed weekly calendar, so that all of their releases can be batched and shipped together at once',
+    ],
+    correctIndexes: [2],
+    explanation:
+      "The chapter's Self-Service Model principle credits high release velocity to product teams being self-sufficient: they control their own release process, and automation reduces the need for engineer involvement to only when problems arise. A centralized team executing every deployment, a companywide approval committee, and a mandatory shared release calendar are the opposite of self-service — each would concentrate control rather than distribute it.",
+  },
+  {
+    id: 'release-002',
+    domain: 'release',
+    questionType: 'multiple-choice',
+    question:
+      "The Release Engineering chapter describes Google's builds as 'hermetic.' What does that term mean in this context?",
+    options: [
+      'A hermetic build depends only on pinned, known versions of its own tools and dependencies, so the result stays the same no matter what else is installed locally',
+      'Each build runs inside an isolated runtime container or sandbox environment that permanently prevents the resulting deployed binary from ever reaching the host machine\'s network',
+      'Builds are encrypted end to end so that only authorized release engineers can inspect the compiled artifact',
+      "Builds automatically discard any code that hasn't passed a security audit before compilation begins",
+    ],
+    correctIndexes: [0],
+    explanation:
+      "Hermetic, in this chapter's usage, is about build-time reproducibility: two people building the same revision on different machines should get identical output, because the build depends only on known, versioned tools and libraries rather than whatever the local machine happens to have installed. Wrapping the running binary in a sandbox describes runtime isolation, not this build-time property; encrypting artifacts and gating on a security audit aren't part of the chapter's definition either.",
+  },
+  {
+    id: 'release-003',
+    domain: 'release',
+    questionType: 'multiple-choice',
+    question:
+      "Per the Release Engineering chapter, why does Google cut a dedicated branch off the main source tree at a chosen revision for major releases, rather than releasing straight off that main tree?",
+    options: [
+      'The mainline is treated as strictly read-only for everyone except the dedicated release-engineering team, so that ordinary product developers are never, under any circumstances, permitted to modify it directly themselves',
+      "Google's build tool, Blaze, is physically incapable of compiling code taken directly from the mainline branch",
+      'Branching removes the need for code review on any change destined for a release',
+      'Cherry-picking specific bug fixes onto the release branch, instead of releasing straight off the mainline, keeps unrelated work committed afterward from silently sneaking into the release',
+    ],
+    correctIndexes: [3],
+    explanation:
+      "The book explains that building from a branch and only cherry-picking bug fixes into it — rather than releasing straight from the mainline — lets a team know the exact contents of a release without unrelated work that lands on the mainline afterward getting swept in. Blaze has no such restriction on the mainline, the mainline isn't read-only, and code review is described as required for nearly all changes regardless of branching.",
+  },
+  {
+    id: 'release-004',
+    domain: 'release',
+    questionType: 'multiple-choice',
+    question:
+      "The Release Engineering chapter describes using the mainline itself to hold configuration as the earliest method used to configure Borg services. What downside does it attribute to that approach?",
+    options: [
+      'It requires every single configuration change, no matter how small or routine, to pass through a full binary rebuild and complete redeploy cycle before any of it can take effect at all',
+      "It commonly leaves the checked-in configuration out of sync with what's actually deployed, because each running job needs a separate update before it picks up the change",
+      'It prevents SREs from reviewing a configuration change before it is applied',
+      'It makes it impossible to ever roll back a configuration once it has been committed',
+    ],
+    correctIndexes: [1],
+    explanation:
+      "Because this scheme decouples binary releases from configuration changes, the book notes it often leads to skew between what's checked in and what's actually running, since jobs have to be individually updated to pick up the change. It doesn't require a binary rebuild, doesn't block code review (review is still required), and doesn't make rollback impossible.",
+  },
+  {
+    id: 'release-005',
+    domain: 'release',
+    questionType: 'multiple-response',
+    question:
+      "Which of the following are among the philosophy principles that the SRE book's Release Engineering chapter names for Google's release process? Select all that apply.",
+    options: [
+      'Self-Service Model',
+      'Reproducible builds',
+      'Enforcement of Policies and Procedures',
+      'High Velocity',
+      'Small deployments',
+      'Hermetic Builds',
+    ],
+    correctIndexes: [0, 2, 3, 5],
+    explanation:
+      "The SRE book's own Philosophy section for release engineering names exactly four principles: Self-Service Model, High Velocity, Hermetic Builds, and Enforcement of Policies and Procedures. Reproducible builds and small deployments are real ideas too, but they belong to a different, five-item list of release engineering principles laid out in the Workbook's separate Canarying Releases chapter, not to this chapter's four.",
+  },
+  // --- Sub-theme: Configuration as a Risk Surface ---
+  {
+    id: 'release-006',
+    domain: 'release',
+    questionType: 'multiple-choice',
+    question:
+      "Per the Workbook's 'Configuration Design and Best Practices' chapter, how does the impact of a single configuration change typically differ from that of a typical code change?",
+    options: [
+      'A single configuration change can produce dramatic shifts in system behavior immediately, while code changes are typically small, incremental, and pass through review and testing',
+      'Configuration changes are described as always requiring the exact same lengthy, multi-stage build-and-review pipeline that code changes go through, which is said to make the two kinds of change equally risky in every case',
+      'Configuration changes can never affect a running system until the next full binary redeploy',
+      'Code changes are inherently riskier because a second engineer is never allowed to review them before submission',
+    ],
+    correctIndexes: [0],
+    explanation:
+      "The chapter contrasts a typically slow, incremental code-change process (small changes, review, testing) with configuration, where changing a single option can dramatically shift functionality — its own example is one bad firewall rule locking an operator out of their own system. It never claims configuration follows the same pipeline as code, that config changes require a redeploy to take effect, or that code changes skip review.",
+  },
+  {
+    id: 'release-007',
+    domain: 'release',
+    questionType: 'multiple-choice',
+    question:
+      "The Workbook states that for a configuration change to be considered 'safe' to apply, it must have three main properties. Which set below matches those three properties?",
+    options: [
+      'Mandatory peer review, a documented rollback plan, and a scheduled maintenance window',
+      'Semantic validation of the config, syntax highlighting inside the editor, and an automatic code formatter that standardizes style across the whole team',
+      'Gradual rollout instead of an all-or-nothing push, the ability to reverse a harmful change, and an automatic halt if operator control is lost',
+      'A staging environment, a load test, and a canary population of at least 5%',
+    ],
+    correctIndexes: [2],
+    explanation:
+      "The Workbook lists three properties a safe configuration change must have: gradual deployment instead of an all-or-nothing push, the ability to reverse the change if it proves harmful, and an automatic halt or rollback if it causes a loss of operator control. Peer review and maintenance windows, tooling like linters and formatters, and a specific canary percentage are all discussed elsewhere in the material but aren't this three-property list.",
+  },
+  {
+    id: 'release-008',
+    domain: 'release',
+    questionType: 'multiple-choice',
+    question:
+      "Why does the Workbook say configuration must be hermetic in order to be reliably rolled forward and back?",
+    options: [
+      'Non-hermetic configuration cannot be checked into a version control system at all',
+      'Configuration is only safely reversible if evaluating it always gives the same result; that breaks if it leans on an outside resource able to drift on its own',
+      'Hermetic configuration is required strictly so that the configuration language itself can later be compiled directly into the final production binary before every release',
+      'Hermeticity guarantees that a configuration change will never need to be reviewed before being applied',
+    ],
+    correctIndexes: [1],
+    explanation:
+      "The Workbook's note warns that configuration referencing something able to change outside its own hermetic environment — its example is config in version control that points at data on a network filesystem — can become very hard to roll forward or back reliably. It says nothing about barring non-hermetic config from version control, compiling the config language into a binary, or skipping review.",
+  },
+  {
+    id: 'release-009',
+    domain: 'release',
+    questionType: 'multiple-choice',
+    question:
+      "The Workbook distinguishes 'replication toil' from 'complexity toil' when discussing configuration. How does it define replication toil?",
+    options: [
+      'The exasperating experience of taming unpredictable, unwanted side effects that emerge once configuration automation has grown large and intricate',
+      'The work of migrating a legacy configuration language over to a brand-new domain-specific language',
+      'The effort of writing unit tests for a configuration template library',
+      'The day-to-day chore of keeping the same configuration value in sync across many duplicate locations, like several separate files',
+    ],
+    correctIndexes: [3],
+    explanation:
+      "Replication toil is the Workbook's term for the mundane burden of managing configuration that's duplicated across a system, such as a setting spread across many files. The option about taming unpredictable side effects in large automation actually describes the chapter's other named category, complexity toil, which tends to show up after teams build automation to solve replication toil; migrating languages and writing template-library tests are real activities mentioned elsewhere but aren't either toil definition.",
+  },
+  {
+    id: 'release-010',
+    domain: 'release',
+    questionType: 'multiple-response',
+    question:
+      "Per the Workbook's configuration chapters, which of the following are accurate recommendations or observations about managing configuration risk? Select all that apply.",
+    options: [
+      'Because configuration is just data, teams get little practical benefit from applying software-engineering discipline like code review, versioning, and testing to it',
+      'Configuration changes should be pushed out gradually rather than all at once, so problems can be detected and the push aborted before it reaches the entire system',
+      "Each configuration snippet should have a clear, single owner, which makes it easier to track who made a given change",
+      'Validating that a configuration is merely syntactically well-formed (e.g., parsable JSON) is usually enough on its own to catch most real configuration bugs',
+      'Reverting to the last-known-good configuration usually resolves an outage faster than attempting a live patch, which carries much less certainty that it will actually help',
+      "Because configuration is easy to change, it doesn't need to be checked into a version control system the way source code does",
+    ],
+    correctIndexes: [1, 2, 4],
+    explanation:
+      "Three of these are drawn straight from the configuration chapters: push changes out gradually rather than all at once, give each configuration snippet a clear owner, and prefer reverting to a known-good state over patching forward because that carries more confidence. The other three are contradicted directly: the chapters recommend applying the same software-engineering discipline (review, versioning, testing) to configuration as to code, they say syntactic validation alone won't find many bugs, and they recommend checking configuration into source control just like code, not skipping it.",
+  },
+  // --- Sub-theme: Canarying and Progressive Rollout ---
+  {
+    id: 'release-011',
+    domain: 'release',
+    questionType: 'multiple-choice',
+    question:
+      "How does the Workbook's Canarying Releases chapter characterize the relationship between canarying and A/B testing?",
+    options: [
+      'It argues canarying is fundamentally different from A/B testing because canarying only measures operational safety, never product-facing metrics',
+      'It says A/B testing is a marketing-only technique that has no valid application to release safety',
+      'It treats canarying as purely a pre-production testing-environment activity that happens before any real user traffic is involved',
+      "It states directly that canarying amounts to a form of A/B testing, pitting a small 'canary' segment against a 'control' segment",
+    ],
+    correctIndexes: [3],
+    explanation:
+      "The chapter flatly equates the two, calling a canary rollout a variety of A/B test in its own words. Framing canarying as fundamentally different from A/B testing, dismissing A/B testing as marketing-only, or restricting canarying to a pre-production testing environment all contradict that direct statement — canarying, by the chapter's own definition, involves splitting real production traffic between a canary and a control.",
+  },
+  {
+    id: 'release-012',
+    domain: 'release',
+    questionType: 'multiple-choice',
+    question:
+      "In the Workbook's terminology for a canary deployment, what are 'the canary' and 'the control'?",
+    options: [
+      "'The canary' is the monitoring dashboard used to visualize the rollout, and 'the control' is the on-call engineer supervising it",
+      "'The canary' names whichever slice of the service is running the new change — usually a small fraction of production; 'the control' names the rest of the service, still on the prior version",
+      "'The canary' is a synthetic load-testing harness, and 'the control' is the production environment it sends traffic into",
+      "'The canary' refers to the dedicated staging environment used exclusively for pre-release testing, and 'the control' refers to the separate production environment it eventually gets promoted into once all testing has fully concluded",
+    ],
+    correctIndexes: [1],
+    explanation:
+      "By the chapter's own definition, the canary is whatever part of the service receives the change — usually a small slice of production — while the control is the rest of the service still running the prior version. A monitoring dashboard paired with an on-call engineer, a synthetic load harness, and a staging environment are all different things the chapter discusses elsewhere, not what it means by canary or control.",
+  },
+  {
+    id: 'release-013',
+    domain: 'release',
+    questionType: 'multiple-choice',
+    question:
+      "In the Workbook's worked canary example, a release candidate that fails 20% of requests is deployed to a 5% canary population. What overall error rate does this produce, illustrating how canarying conserves the error budget?",
+    options: [
+      "About 1% overall, since only the canary's 5% slice of traffic experiences the 20% failure rate",
+      "About 20% overall, because the size of the canary population doesn't change the blast radius of a defect",
+      'About 5% overall, matching the canary population size directly',
+      'About 25% overall, because the canary and control failure rates add together',
+    ],
+    correctIndexes: [0],
+    explanation:
+      "Because only the 5% canary slice serves the broken release candidate, 20% of that 5% fails — about 1% of overall traffic — which is exactly the worked example's point about conserving the error budget. Treating the blast radius as unaffected by population size, equating the overall rate directly with the canary size, or adding the two rates together all misstate how the two percentages combine.",
+  },
+  {
+    id: 'release-014',
+    domain: 'release',
+    questionType: 'multiple-choice',
+    question:
+      "Why does the Workbook caution against a 'before/after' canary evaluation, where the entire system is replaced and compared against its own prior behavior over time?",
+    options: [
+      "Before/after evaluation is disallowed by definition because it doesn't use a control group at all",
+      'Before/after evaluation is described as always taking measurably longer to complete from start to finish than any population-based canary process, no matter how much traffic the service actually receives at the time',
+      "A system's behavior naturally shifts with time regardless of any release, so it's hard to tell whether a change is really caused by the deployment or by an unrelated shift, like weekday-versus-weekend traffic",
+      'Before/after evaluation cannot be combined with blue/green deployment under any circumstances',
+    ],
+    correctIndexes: [2],
+    explanation:
+      "The chapter's concern with before/after evaluation is attribution: because a system's behavior naturally drifts over time for reasons that have nothing to do with the release, a degradation seen afterward might really be caused by something else that changed over that same window, like the difference between weekday and weekend traffic. It does treat a before/after comparison as a valid (if riskier) way to segment a canary, doesn't claim it's always slower, and explicitly discusses using blue/green in a before/after style.",
+  },
+  {
+    id: 'release-015',
+    domain: 'release',
+    questionType: 'multiple-choice',
+    question:
+      "In the Workbook's example service, why does the chapter recommend evaluating a canary using HTTP return codes and response latency rather than raw CPU usage?",
+    options: [
+      'CPU usage cannot be measured separately for the canary and control populations',
+      'HTTP return codes are the only metric type App Engine is capable of exporting',
+      'Response latency is claimed to be the one and only metric that this particular canary-evaluation chapter ever mentions anywhere in its entire discussion of the topic, from start to finish',
+      "Degradation in return codes and latency tracks real user problems, while a rise in CPU usage doesn't necessarily hurt the service and can make the signal noisy",
+    ],
+    correctIndexes: [3],
+    explanation:
+      "The chapter favors HTTP return codes and latency because their degradation closely tracks real user-facing problems, whereas a rise in CPU usage doesn't necessarily hurt the service and risks producing a flaky, easily distrusted signal. It never claims CPU can't be measured per population, that App Engine only exports one metric type, or that latency is the chapter's only mentioned metric — it lists several others too, like queue depth and memory footprint.",
+  },
+  {
+    id: 'release-016',
+    domain: 'release',
+    questionType: 'multiple-response',
+    question:
+      "The Workbook's Canarying Releases chapter discusses several concepts related to (but distinct from) canarying. Which of the following statements about them are accurate? Select all that apply.",
+    options: [
+      'Blue/green deployment keeps two full environments running — one live, one on standby — so cutting over needs no downtime, and undoing the change just means flipping traffic back through the router',
+      'Artificial load generation is described as providing good state coverage in mutable systems, such as those with caches or cookies',
+      'The chapter recommends running many canary deployments simultaneously so that unrelated changes can be validated in parallel',
+      "Traffic teeing copies live traffic to a test system whose responses are typically discarded, but it doesn't work well for identifying risk in stateful systems",
+      'Generating artificial load against a billing system is described as entirely safe, since test transactions are automatically distinguished from real ones',
+      'Because it keeps a full second environment on standby, blue/green deployment roughly doubles the infrastructure footprint compared to a single-environment rollout',
+    ],
+    correctIndexes: [0, 3, 5],
+    explanation:
+      "Blue/green deployment really does avoid downtime on cutover and roughly doubles infrastructure footprint by keeping two full environments, and traffic teeing — copying live traffic to a test system while discarding its responses — really is called out as working poorly for stateful systems. The other three invert the chapter's actual warnings: it says artificial load does a poor job of state coverage in mutable systems, it strongly urges keeping canary rollouts to a single one in flight at any given moment, and it specifically flags artificial load against a billing system as potentially dangerous, since it might trigger real charges to customers.",
+  },
+  // --- Sub-theme: Change Risk and Rollback ---
+  {
+    id: 'release-017',
+    domain: 'release',
+    questionType: 'multiple-choice',
+    question:
+      "Which cached source attributes roughly 70% of outages to changes made to a live production system, and in which section does that appear?",
+    options: [
+      "The Workbook's 'Canarying Releases' chapter, in its section on release engineering principles",
+      "The SRE book's Introduction chapter, in its 'Change Management' section",
+      "The SRE book's 'Embracing Risk' chapter, in its section on error budgets",
+      "The Workbook's 'Configuration Specifics' chapter, in its section on configuration-induced toil",
+    ],
+    correctIndexes: [1],
+    explanation:
+      "That figure appears in the SRE book's Introduction chapter, specifically its Change Management section. It's tempting to assume it belongs to Embracing Risk, since that chapter also discusses risk and error budgets at length, but the statistic isn't there; it's likewise absent from the Workbook's canarying and configuration-toil discussions, which make related but different points about release and configuration risk.",
+  },
+  {
+    id: 'release-018',
+    domain: 'release',
+    questionType: 'multiple-choice',
+    question:
+      "The SRE book's Introduction chapter follows its statistic on change-driven outages with a trio of automated best practices for limiting their impact. Which set below matches that trio?",
+    options: [
+      'Rolling out changes progressively, catching problems quickly and precisely, and reversing a bad change safely once problems appear',
+      'Freezing every single release during normal business hours, requiring dual sign-off on each and every commit, and running a nightly full-system canary check',
+      'Maintaining a hermetic build system, versioning every configuration package, and auditing access-control lists quarterly',
+      'Writing a postmortem for every release, tracking release velocity metrics, and holding a weekly production meeting',
+    ],
+    correctIndexes: [0],
+    explanation:
+      "The Introduction's Change Management section names exactly this trio as the automated best practices that minimize how many users and operations get exposed to a bad change: roll changes out progressively, detect problems fast and accurately, and roll back safely once something goes wrong. Business-hour freezes and mandatory dual sign-off, hermetic builds paired with config versioning, and postmortems paired with production meetings are all real SRE practices covered elsewhere in the material, but they aren't this section's named trio.",
+  },
+  {
+    id: 'release-019',
+    domain: 'release',
+    questionType: 'multiple-choice',
+    question:
+      "How does the Workbook's Canarying Releases chapter frame the relationship between shipping software quickly and maintaining reliability?",
+    options: [
+      'It argues that reliability targets should always be sacrificed in favor of maximizing release velocity',
+      'It argues that release velocity is completely irrelevant to a service’s error budget, and that the two should always and forever be tracked in total isolation from one another no matter what happens',
+      "Velocity and reliability are treated as being in tension, but the chapter argues it's possible to ship fast while still meeting a product's own reliability targets, not 100%",
+      "It recommends freezing releases entirely whenever a service is meeting its SLO, since further releases can only introduce risk",
+    ],
+    correctIndexes: [2],
+    explanation:
+      "The chapter frames velocity and reliability as commonly treated like opposing goals, then argues the real objective is shipping as fast as possible while still meeting a product's actual reliability targets — not the unachievable ideal of 100% reliability. It doesn't argue for sacrificing reliability outright, for treating velocity and error budget as unrelated, or for freezing releases the moment a service happens to be within its SLO.",
+  },
+  {
+    id: 'release-020',
+    domain: 'release',
+    questionType: 'multiple-response',
+    question:
+      "Which of the following statements about reducing the risk of production changes are accurate, according to the cached SRE sources? Select all that apply.",
+    options: [
+      'Bundling changes into small, self-contained release units makes it less costly to reverse any single one of them if it turns out to be buggy',
+      'Provisioning additional capacity is called riskier than simple load shifting, because it typically means altering live infrastructure — config files, load balancers, network setup — rather than just redistributing existing traffic',
+      'Rapid, Google’s release automation system, cannot create more than one release branch per project at a time',
+      "Google's SREs are contractually prohibited from ever performing a manual rollback outside of the automated Sisyphus rollout framework",
+      "A canary process proves its worth exactly when it can flag a broken release candidate with strong confidence, without also crying wolf on releases that are actually fine",
+      'A canary process is considered successful only if it detects zero defects across every single deployment it ever evaluates',
+    ],
+    correctIndexes: [0, 1, 4],
+    explanation:
+      "All three confirmed claims trace directly to the cached sources: smaller, self-contained release artifacts are explicitly called cheaper and easier to walk back; provisioning is explicitly called riskier than routine load shifting because it touches configuration, load balancers, and networking; and a canary process is said to demonstrate its value exactly when it flags a bad candidate confidently without also false-flagging good ones. The other three are fabricated — no branch-count limit on Rapid, no contractual ban on manual rollback, and no requirement that a canary process detect zero defects ever, appear anywhere in the material.",
+  },
 ];

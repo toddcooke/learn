@@ -2057,16 +2057,16 @@ export const QUESTIONS = [
     domain: 'reliability',
     questionType: 'multiple-choice',
     question:
-      "How does the SRE book distinguish load shedding from graceful degradation?",
+      "Under Google's criticality-based load shedding, which requests get rejected first as a backend task approaches overload?",
     options: [
-      "The two terms are used interchangeably in the book to describe a single, identical overload-response strategy",
-      "Load shedding is only ever implemented at frontend servers, while graceful degradation is only ever implemented at backend database layers",
-      "Graceful degradation is always attempted first, with load shedding held in reserve as a last resort only once every degradation option has been fully exhausted across the whole service",
-      "Load shedding rejects a request outright, doing no work toward it, while graceful degradation keeps answering but with a cheaper, lower-quality response",
+      "CRITICAL_PLUS requests, since shedding the highest-priority traffic first frees the most capacity in a single step",
+      "Whichever requests happen to arrive first, processed strictly in FIFO order regardless of criticality",
+      "SHEDDABLE requests, since a backend only starts rejecting a given criticality once it is already rejecting all lower criticalities beneath it",
+      "An equal percentage of traffic from every criticality tier at once, so the relative mix of traffic served stays unchanged",
     ],
-    correctIndexes: [3],
+    correctIndexes: [2],
     explanation:
-      "The book treats these as two distinct, complementary levers: load shedding is a binary refusal that does no work toward the request at all, while graceful degradation keeps serving requests but cuts corners — searching a smaller index, returning a slightly stale cached value, or skipping an optional expensive feature. Calling them interchangeable ignores that distinction entirely; restricting each to one specific layer of the stack isn't a rule the book states; and the book never establishes a fixed sequencing where one must be fully exhausted before the other kicks in — it presents them as levers that can be combined rather than a strict order of operations.",
+      "A backend task only rejects requests of a given criticality once it is already rejecting all requests of every lower criticality — so SHEDDABLE, the lowest of the four tiers, gets cut first as utilization climbs, well before CRITICAL_PLUS (the default for production-serving traffic, the last tier to be shed). There's no FIFO-by-arrival-time rule and no proportional across-the-board shedding; rejection cascades strictly from least to most critical, which is also why CRITICAL_PLUS being shed first is backwards from how the mechanism actually works.",
   },
   {
     id: 'reliability-014',

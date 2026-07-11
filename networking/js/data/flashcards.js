@@ -246,7 +246,7 @@ export const FLASHCARDS = [
     id: 'dhcp-dora',
     service: 'DHCP DORA',
     front: 'Walk through the four DORA messages and who sends each one.',
-    back: "DORA runs in four steps. First, the client sends out a broadcast DHCPDISCOVER since it doesn't know of any server yet. Every server that hears it can respond with a DHCPOFFER proposing an address. The client picks one offer and broadcasts DHCPREQUEST naming it, which is also how the servers that lost out find out they weren't chosen. The winning server finishes things off with a DHCPACK.",
+    back: "DORA runs in four steps. First, the client sends out a broadcast DHCPDISCOVER since it doesn't know of any server yet. Every listening server can answer back with its own DHCPOFFER, dangling a candidate address. Out of whichever offers come in, the client settles on just one and broadcasts a DHCPREQUEST calling it out by name, which doubles as the signal telling the losing servers they weren't picked. The winning server finishes things off with a DHCPACK.",
   },
   {
     id: 'ntp-ptp',

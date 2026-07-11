@@ -4,6 +4,7 @@ import { drawMockExam, isCorrect, estimateScaledScore } from '../lib/scoring.js'
 import { createStore } from '../lib/storage.js';
 
 const store = createStore();
+const QUESTIONS_BY_ID = new Map(QUESTIONS.map((q) => [q.id, q]));
 
 // Tracks the single in-flight exam timer (if any) so that navigating away
 // from an in-progress mock exam — or starting a new one — can never leave a
@@ -12,6 +13,7 @@ const store = createStore();
 // so this module has to detect "the user left" itself via `hashchange`.
 let activeTimerId = null;
 let activeHashchangeHandler = null;
+let activeBeforeUnloadHandler = null;
 
 function stopActiveTimer() {
   if (activeTimerId !== null) {
@@ -22,16 +24,72 @@ function stopActiveTimer() {
     window.removeEventListener('hashchange', activeHashchangeHandler);
     activeHashchangeHandler = null;
   }
+  if (activeBeforeUnloadHandler !== null) {
+    window.removeEventListener('beforeunload', activeBeforeUnloadHandler);
+    activeBeforeUnloadHandler = null;
+  }
+}
+
+function formatClock(totalSeconds) {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+// Reads and validates the persisted checkpoint (if any). A checkpoint that
+// has expired or whose question ids no longer resolve (e.g. the question
+// bank changed) is discarded rather than offered for resume.
+function readResumableCheckpoint() {
+  const checkpoint = store.getExamCheckpoint();
+  if (!checkpoint) return null;
+
+  const { questionIds, answers, index, deadline } = checkpoint;
+  const isWellFormed = Array.isArray(questionIds)
+    && Array.isArray(answers)
+    && typeof index === 'number'
+    && typeof deadline === 'number';
+  if (!isWellFormed || deadline <= Date.now()) {
+    store.clearExamCheckpoint();
+    return null;
+  }
+
+  const exam = questionIds.map((id) => QUESTIONS_BY_ID.get(id));
+  if (exam.some((q) => !q)) {
+    store.clearExamCheckpoint();
+    return null;
+  }
+
+  const answeredCount = answers.filter((a) => Array.isArray(a) && a.length > 0).length;
+  const secondsLeft = Math.max(0, Math.round((deadline - Date.now()) / 1000));
+  const boundedIndex = Math.min(Math.max(index, 0), exam.length - 1);
+
+  return {
+    exam,
+    answers: exam.map((_, i) => (Array.isArray(answers[i]) ? answers[i] : null)),
+    index: boundedIndex,
+    deadline,
+    answeredCount,
+    timeLeftLabel: formatClock(secondsLeft),
+  };
 }
 
 export function render(mount) {
+  const checkpoint = readResumableCheckpoint();
   mount.innerHTML = `
     <h2>${EXAM_UI.examLabel}</h2>
     <p>${EXAM_UI.startBlurb}</p>
     ${EXAM_UI.startNote ? `<p class="exam-note">${EXAM_UI.startNote}</p>` : ''}
     <button type="button" id="start-exam">Start ${EXAM_UI.examLabel}</button>
+    ${checkpoint ? `<button type="button" id="resume-exam">Resume ${EXAM_UI.examLabel} (${checkpoint.answeredCount} answered, ${checkpoint.timeLeftLabel} left)</button>` : ''}
   `;
   document.getElementById('start-exam').addEventListener('click', () => startExam(mount));
+  if (checkpoint) {
+    document.getElementById('resume-exam').addEventListener('click', () => {
+      stopActiveTimer();
+      const state = { index: checkpoint.index, answers: checkpoint.answers };
+      runExam(mount, checkpoint.exam, state, checkpoint.deadline);
+    });
+  }
 }
 
 function startExam(mount) {
@@ -44,36 +102,64 @@ function startExam(mount) {
   const state = {
     index: 0,
     answers: new Array(exam.length).fill(null),
-    secondsLeft: EXAM_FORMAT.durationMinutes * 60,
   };
+  const deadline = Date.now() + EXAM_FORMAT.durationMinutes * 60 * 1000;
+  runExam(mount, exam, state, deadline);
+}
+
+// Shared exam loop used by both a fresh start and a resumed-from-checkpoint
+// exam. `deadline` is an absolute epoch-ms timestamp; time remaining is
+// always derived from it rather than decremented, so a resumed exam reflects
+// genuinely elapsed time instead of resetting the clock.
+function runExam(mount, exam, state, deadline) {
+  const questionIds = exam.map((q) => q.id);
+
+  function persistCheckpoint() {
+    store.setExamCheckpoint({
+      questionIds,
+      answers: state.answers,
+      index: state.index,
+      deadline,
+    });
+  }
+  persistCheckpoint();
 
   // The mock exam view doesn't use hash params (it's always just `#/exam`),
   // so any navigation away — to Home, Study Guide, back to Mock Exam, etc.
   // — fires a `hashchange`. Use that as the "user left without finishing"
   // signal and tear down the timer. `{ once: true }` means this self-removes
-  // the first time it fires, so it never leaks or double-fires.
+  // the first time it fires, so it never leaks or double-fires. The
+  // checkpoint persisted above (and refreshed on every saveAnswer()) is what
+  // makes leaving recoverable via the Resume button.
   const onHashChange = () => stopActiveTimer();
   activeHashchangeHandler = onHashChange;
   window.addEventListener('hashchange', onHashChange, { once: true });
 
-  state.timerId = setInterval(() => {
-    state.secondsLeft -= 1;
+  // Refresh/close while an exam is in flight loses nothing thanks to the
+  // checkpoint, but still ask for confirmation via the browser's native
+  // leave-confirmation prompt so an accidental refresh isn't the default.
+  const onBeforeUnload = (e) => { e.preventDefault(); };
+  activeBeforeUnloadHandler = onBeforeUnload;
+  window.addEventListener('beforeunload', onBeforeUnload);
+
+  function currentSecondsLeft() {
+    return Math.max(0, Math.round((deadline - Date.now()) / 1000));
+  }
+
+  function updateTimerDisplay() {
+    const el = document.getElementById('exam-timer');
+    if (!el) return;
+    el.textContent = formatClock(currentSecondsLeft());
+  }
+
+  activeTimerId = setInterval(() => {
     updateTimerDisplay();
-    if (state.secondsLeft <= 0) {
+    if (currentSecondsLeft() <= 0) {
       saveAnswer();
       stopActiveTimer();
       finishExam(mount, exam, state);
     }
   }, 1000);
-  activeTimerId = state.timerId;
-
-  function updateTimerDisplay() {
-    const el = document.getElementById('exam-timer');
-    if (!el) return;
-    const m = Math.floor(state.secondsLeft / 60);
-    const s = state.secondsLeft % 60;
-    el.textContent = `${m}:${String(s).padStart(2, '0')}`;
-  }
 
   function renderQuestion() {
     const q = exam[state.index];
@@ -99,11 +185,17 @@ function startExam(mount) {
       </div>
     `;
     updateTimerDisplay();
-    document.getElementById('exam-prev').addEventListener('click', () => { saveAnswer(); state.index -= 1; renderQuestion(); });
+    document.getElementById('exam-prev').addEventListener('click', () => {
+      saveAnswer();
+      state.index -= 1;
+      persistCheckpoint();
+      renderQuestion();
+    });
     document.getElementById('exam-next').addEventListener('click', () => {
       saveAnswer();
       if (state.index + 1 < exam.length) {
         state.index += 1;
+        persistCheckpoint();
         renderQuestion();
       } else {
         stopActiveTimer();
@@ -115,6 +207,7 @@ function startExam(mount) {
   function saveAnswer() {
     const selected = Array.from(mount.querySelectorAll('input[name="answer"]:checked')).map((el) => Number(el.value));
     state.answers[state.index] = selected;
+    persistCheckpoint();
   }
 
   renderQuestion();
@@ -157,6 +250,7 @@ function finishExam(mount, exam, state) {
     `).join('')}
     <p><a href="#/exam" id="exam-retake">Take another ${EXAM_UI.examLabel.toLowerCase()}</a> · <a href="#/progress">View progress</a></p>
   `;
+  store.clearExamCheckpoint();
   try {
     store.recordMockExamAttempt({
       score,

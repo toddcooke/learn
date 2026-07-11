@@ -1,6 +1,6 @@
 import { DOMAINS } from '../data/examInfo.js';
 import { QUESTIONS } from '../data/questions.js';
-import { isCorrect } from '../lib/scoring.js';
+import { isCorrect, shuffle } from '../lib/scoring.js';
 import { createStore } from '../lib/storage.js';
 
 const store = createStore();
@@ -35,6 +35,7 @@ function runQuiz(mount, domain, questions) {
   function renderQuestion(focusLegend) {
     const q = questions[state.index];
     const isMulti = q.questionType === 'multiple-response';
+    const shuffledOptions = shuffle(q.options.map((opt, i) => ({ opt, i })));
     mount.innerHTML = `
       <p><a href="#/quiz">&larr; All quizzes</a></p>
       <h2>${domain.name} Quiz</h2>
@@ -42,7 +43,7 @@ function runQuiz(mount, domain, questions) {
       <form id="quiz-form">
         <fieldset>
           <legend class="quiz-question">${q.question}</legend>
-          ${q.options.map((opt, i) => `
+          ${shuffledOptions.map(({ opt, i }) => `
             <label class="quiz-option">
               <input type="${isMulti ? 'checkbox' : 'radio'}" name="answer" value="${i}" />
               ${opt}

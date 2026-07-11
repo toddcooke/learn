@@ -1,15 +1,17 @@
 import { FLASHCARDS } from '../data/flashcards.js';
 import { createStore } from '../lib/storage.js';
+import { shuffle } from '../lib/scoring.js';
 
 const store = createStore();
 
 export function render(mount) {
+  const shuffledCards = shuffle(FLASHCARDS);
   const state = { index: 0, showBack: false, filterUnknown: false };
 
   function visibleCards() {
-    if (!state.filterUnknown) return FLASHCARDS;
+    if (!state.filterUnknown) return shuffledCards;
     const known = store.getFlashcardState();
-    return FLASHCARDS.filter((c) => !known[c.id]);
+    return shuffledCards.filter((c) => !known[c.id]);
   }
 
   function renderCard(focusFlip) {

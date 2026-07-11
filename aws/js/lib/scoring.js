@@ -10,7 +10,7 @@ export function estimateScaledScore(correctCount, totalCount, { minScore = 100, 
   return Math.round(minScore + fraction * (maxScore - minScore));
 }
 
-function shuffle(array) {
+export function shuffle(array) {
   const result = [...array];
   for (let i = result.length - 1; i > 0; i -= 1) {
     const j = Math.floor(Math.random() * (i + 1));

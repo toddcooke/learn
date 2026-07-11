@@ -1,6 +1,6 @@
 import { DOMAINS, EXAM_FORMAT, EXAM_UI } from '../data/examInfo.js';
 import { QUESTIONS } from '../data/questions.js';
-import { drawMockExam, isCorrect, estimateScaledScore } from '../lib/scoring.js';
+import { drawMockExam, isCorrect, estimateScaledScore, shuffle } from '../lib/scoring.js';
 import { createStore } from '../lib/storage.js';
 
 const store = createStore();
@@ -224,6 +224,7 @@ function runExam(mount, exam, state, deadline) {
     const q = exam[state.index];
     const isMulti = q.questionType === 'multiple-response';
     const selected = state.answers[state.index] ?? [];
+    const shuffledOptions = shuffle(q.options.map((opt, i) => ({ opt, i })));
     mount.innerHTML = `
       <div class="exam-header">
         <span id="exam-question-counter">Question ${state.index + 1} of ${exam.length}</span>
@@ -232,7 +233,7 @@ function runExam(mount, exam, state, deadline) {
       <form id="exam-form">
         <fieldset>
           <legend class="quiz-question">${q.question}</legend>
-          ${q.options.map((opt, i) => `
+          ${shuffledOptions.map(({ opt, i }) => `
             <label class="quiz-option">
               <input type="${isMulti ? 'checkbox' : 'radio'}" name="answer" value="${i}" ${selected.includes(i) ? 'checked' : ''} />
               ${opt}

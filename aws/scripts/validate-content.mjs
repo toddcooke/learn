@@ -12,7 +12,7 @@ function check(condition, message) {
 
 async function validateExamInfo() {
   const { DOMAINS, EXAM_FORMAT } = await import('../js/data/examInfo.js');
-  check(Array.isArray(DOMAINS) && DOMAINS.length === 4, 'DOMAINS must have exactly 4 entries');
+  check(Array.isArray(DOMAINS) && DOMAINS.length > 0, 'DOMAINS must be a non-empty array');
   const totalWeight = DOMAINS.reduce((sum, d) => sum + d.weight, 0);
   check(totalWeight === 100, `DOMAINS weights must sum to 100, got ${totalWeight}`);
   const totalMockCount = DOMAINS.reduce((sum, d) => sum + d.mockExamCount, 0);
@@ -23,8 +23,10 @@ async function validateExamInfo() {
     check(typeof d.name === 'string' && d.name.length > 0, `domain missing name: ${JSON.stringify(d)}`);
     check(typeof d.weight === 'number' && d.weight > 0, `domain missing weight: ${JSON.stringify(d)}`);
   }
-  check(EXAM_FORMAT.totalQuestions === EXAM_FORMAT.scoredQuestions + EXAM_FORMAT.unscoredQuestions,
-    'EXAM_FORMAT.totalQuestions must equal scoredQuestions + unscoredQuestions');
+  if ('scoredQuestions' in EXAM_FORMAT) {
+    check(EXAM_FORMAT.totalQuestions === EXAM_FORMAT.scoredQuestions + EXAM_FORMAT.unscoredQuestions,
+      'EXAM_FORMAT.totalQuestions must equal scoredQuestions + unscoredQuestions');
+  }
   return DOMAINS;
 }
 

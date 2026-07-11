@@ -32,10 +32,18 @@ function memoryBackend() {
   };
 }
 
-export function createStore(backend = globalThis.localStorage) {
+export function createStore(backend) {
+  let resolved = backend;
+  if (resolved === undefined) {
+    try {
+      resolved = globalThis.localStorage;
+    } catch {
+      resolved = undefined;
+    }
+  }
   let b;
   try {
-    b = backend || memoryBackend();
+    b = resolved || memoryBackend();
     b.getItem(`${NAMESPACE}:probe`);
   } catch {
     b = memoryBackend();

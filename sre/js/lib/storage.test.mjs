@@ -58,3 +58,36 @@ test('exam checkpoint set/get/clear round-trips', () => {
   store.clearExamCheckpoint();
   assert.equal(store.getExamCheckpoint(), null);
 });
+
+test('backend whose getItem throws during probe falls back to in-memory store', () => {
+  const throwingProbe = {
+    getItem: () => { throw new Error('SecurityError'); },
+    setItem: () => { throw new Error('SecurityError'); },
+    removeItem: () => { throw new Error('SecurityError'); },
+  };
+  const store = createStore(throwingProbe);
+  assert.doesNotThrow(() => store.recordQuizAttempt({ score: 3 }));
+  assert.equal(store.getQuizHistory().length, 1);
+  assert.equal(store.getQuizHistory()[0].score, 3);
+});
+
+test('globalThis.localStorage access throwing does not crash zero-arg createStore', () => {
+  const original = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+  Object.defineProperty(globalThis, 'localStorage', {
+    get() { throw new Error('SecurityError'); },
+    configurable: true,
+  });
+  try {
+    let store;
+    assert.doesNotThrow(() => { store = createStore(); });
+    store.recordQuizAttempt({ score: 4 });
+    assert.equal(store.getQuizHistory().length, 1);
+    assert.equal(store.getQuizHistory()[0].score, 4);
+  } finally {
+    if (original) {
+      Object.defineProperty(globalThis, 'localStorage', original);
+    } else {
+      delete globalThis.localStorage;
+    }
+  }
+});

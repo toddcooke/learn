@@ -128,7 +128,7 @@ export const FLASHCARDS = [
     id: 'administrative-distance',
     service: 'Administrative Distance',
     front: 'Administrative distance settles a tie between which two things — protocols, or routes within one protocol?',
-    back: "Between protocols. If OSPF and EIGRP both hand the router a route toward the exact same network, whichever one carries the lower administrative distance simply wins (EIGRP's default 90 beats OSPF's 110), with zero regard for which path is actually shorter or faster. Metric is a separate, later step that only ranks candidate routes from within a single already-chosen protocol.",
+    back: "Between protocols, not routes within a protocol. When OSPF and EIGRP both hand the router a path toward one identical network, only the entry with the lower AD value gets installed — EIGRP's 90 beats OSPF's 110 by default — with zero comparison of which route is quicker or more efficient. Ranking multiple paths inside one already-selected protocol is metric's job, a separate calculation that happens afterward.",
   },
   {
     id: 'nat-pat',
@@ -246,7 +246,7 @@ export const FLASHCARDS = [
     id: 'dhcp-dora',
     service: 'DHCP DORA',
     front: 'Walk through the four DORA messages and who sends each one.',
-    back: 'The client broadcasts DHCPDISCOVER looking for any server. Available servers answer with DHCPOFFER. The client broadcasts DHCPREQUEST accepting one specific offer, so any other server knows its own offer went unused. That chosen server closes the exchange with DHCPACK.',
+    back: "DORA runs in four steps. First, the client sends out a broadcast DHCPDISCOVER since it doesn't know of any server yet. Every server that hears it can respond with a DHCPOFFER proposing an address. The client picks one offer and broadcasts DHCPREQUEST naming it, which is also how the servers that lost out find out they weren't chosen. The winning server finishes things off with a DHCPACK.",
   },
   {
     id: 'ntp-ptp',
@@ -274,7 +274,7 @@ export const FLASHCARDS = [
     id: 'mfa',
     service: 'Multifactor Authentication (MFA)',
     front: 'A login demands a password and a separate 4-digit PIN. Does that count as MFA?',
-    back: "It doesn't. MFA requires factors pulled from at least two different categories — something you know, something you have, something you are — and a PIN is just another memorized secret from the same 'something you know' bucket a password already belongs to. NIST SP 800-63B's top tier, AAL3, goes further still, requiring an actual hardware cryptographic authenticator that no number of memorized secrets can substitute for.",
+    back: "No — MFA needs factors from at least two different categories: something you know, something you have, something you are. A password and a PIN are both memorized secrets, so together they're still single-category, single-factor authentication no matter how many are stacked. NIST SP 800-63B's highest tier, AAL3, pushes even further, mandating a physical hardware cryptographic authenticator — a requirement no amount of extra passwords or PINs can fulfill.",
   },
   {
     id: 'pki',
@@ -286,13 +286,13 @@ export const FLASHCARDS = [
     id: 'radius-vs-tacacs',
     service: 'RADIUS vs. TACACS+',
     front: 'Which protocol protects an entire authentication packet, and which one leaves the username exposed?',
-    back: "RADIUS (RFC 2865, UDP, port 1812) encrypts only the password field of an Access-Request — the username rides along unprotected. TACACS+ (RFC 8907, TCP port 49) obfuscates the full packet body instead, and it also keeps authentication, authorization, and accounting as three distinct exchanges rather than folding them into one combined reply the way RADIUS does.",
+    back: "RADIUS (UDP port 1812, RFC 2865) only ever encrypts the password inside an Access-Request; the username travels in plain text right alongside it. TACACS+ (TCP port 49, RFC 8907) scrambles the entire packet body instead, and it splits authentication, authorization, and accounting into three separate conversations rather than RADIUS's single combined reply.",
   },
   {
     id: 'saml',
     service: 'SAML',
     front: "In an SSO exchange, why doesn't the application (service provider) ever see the user's real password?",
-    back: "Because it never authenticates the user itself. The identity provider is the only party that checks real credentials, and it hands the application a signed SAML assertion vouching for the user's identity instead. The application just verifies that signature — a compromised or retired application never had the password to leak.",
+    back: "Because it never handles authentication at all. Only the identity provider ever validates a real credential; it then vouches for the user by handing the application a signed SAML assertion. The application checks that assertion's signature and trusts it — so if that application is later breached or decommissioned, no actual password was ever sitting there to steal.",
   },
   {
     id: 'ldap',
@@ -346,7 +346,7 @@ export const FLASHCARDS = [
     id: 'nac-8021x',
     service: 'NAC & 802.1X',
     front: 'What traffic is allowed through an 802.1X port before authentication succeeds?',
-    back: "Essentially only the EAPOL exchange itself. The three roles involved are the supplicant (the client's own 802.1X software), the authenticator (the switch port, which blocks everything else until a decision comes back), and the authentication server (usually RADIUS), which is the one that actually decides accept or reject.",
+    back: "Essentially nothing but the EAPOL handshake. Three parties are involved: the supplicant, meaning the connecting endpoint's own 802.1X client software; the authenticator — the switch port, which holds regular traffic back until a verdict comes down; and the authentication server — typically RADIUS — which is the party that actually renders the accept-or-reject verdict.",
   },
   {
     id: 'ids-vs-ips',
@@ -368,7 +368,7 @@ export const FLASHCARDS = [
     id: 'top-down-bottom-up',
     service: 'Top-Down, Bottom-Up & Divide-and-Conquer',
     front: 'A user reports one specific web app is broken while everything else works fine. Which troubleshooting approach fits best, and why?',
-    back: "Top-down — start at the application layer, since the symptom already points there, and work downward only if that doesn't turn up the cause. Bottom-up instead starts at the physical layer, suited to cabling or no-link-light symptoms. Divide-and-conquer just starts in the middle (usually the network layer) when neither end looks more likely than the other.",
+    back: "Top-down fits here — begin at the application layer, exactly where the symptom is pointing, and only drop to lower layers if that comes up empty. Bottom-up flips that order, beginning at the physical layer, which is the right call for cabling faults or a dead link light. Divide-and-conquer skips both endpoints and checks the middle first — typically Layer 3 — when nothing yet suggests which end is more likely to be broken.",
   },
   {
     id: 'cat6-vs-cat6a',
@@ -386,7 +386,7 @@ export const FLASHCARDS = [
     id: 'crc-errors',
     service: 'CRC Errors',
     front: 'A switch port shows climbing CRC errors but zero collisions. What layer does that point to?',
-    back: "The physical layer. A CRC error just means a frame's contents no longer match its own checksum — it was corrupted somewhere in transit, most likely by a bad cable, a failing connector, or a marginal transceiver. Since that corruption has nothing to do with two devices contending for the medium, a clean collision count alongside it rules out a contention-related cause.",
+    back: "The physical layer. A CRC mismatch tells you the frame arrived different from how it was sent — the checksum no longer matches the data — which points to transmission damage from something like a worn cable, a bad connector, or a flaky transceiver. That kind of corruption doesn't come from two devices fighting over the same medium, so a zero collision count rules out a contention-based explanation.",
   },
   {
     id: 'duplex-mismatch',
@@ -398,7 +398,7 @@ export const FLASHCARDS = [
     id: 'stp-loop-cause',
     service: 'STP Loop Root Cause',
     front: 'In practice, is an active STP loop usually a bug in STP itself?',
-    back: "Rarely. It's almost always a blocked port that started forwarding again because it stopped hearing the BPDUs that were telling it to keep blocking — commonly from a duplex mismatch corrupting BPDUs on a link that's still technically up, not from any flaw in the protocol's own logic.",
+    back: "Rarely. The usual trigger is a previously blocked port that starts forwarding again simply because BPDUs stopped arriving to tell it to stay blocked — the link itself stays up while a duplex mismatch (or similar fault) silently corrupts the control traffic riding across it. STP's own logic is almost never actually at fault.",
   },
   {
     id: 'dhcp-decline-nak',

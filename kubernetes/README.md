@@ -2,7 +2,7 @@
 
 An unofficial study site for the Certified Kubernetes Administrator (CKA) exam. Not affiliated with or endorsed by the Linux Foundation or CNCF.
 
-Live at https://toddcooke.github.io/learn/kubernetes/ (once deployed). A companion to https://toddcooke.github.io/learn/aws/.
+Live at https://toddcooke.github.io/learn/kubernetes/. A companion to https://toddcooke.github.io/learn/aws/.
 
 ## Running it
 

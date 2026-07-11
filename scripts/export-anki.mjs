@@ -2,9 +2,12 @@
 // Exports each module's FLASHCARDS deck to a plain-text file Anki can
 // import directly (File > Import). See
 // docs/superpowers/specs/2026-07-10-anki-export-design.md.
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readdirSync, existsSync } from 'node:fs';
 
-const ALL_MODULES = ['aws', 'kubernetes', 'postgres', 'sre', 'networking'];
+const ALL_MODULES = readdirSync(new URL('..', import.meta.url), { withFileTypes: true })
+  .filter((e) => e.isDirectory() && existsSync(new URL(`../${e.name}/js/data/flashcards.js`, import.meta.url)))
+  .map((e) => e.name)
+  .sort();
 
 function toTag(service) {
   return service
@@ -19,7 +22,7 @@ function sanitizeField(text) {
 
 async function exportModule(name) {
   const { FLASHCARDS } = await import(`../${name}/js/data/flashcards.js`);
-  const lines = ['#separator:tab', '#html:false'];
+  const lines = ['#separator:tab', '#html:false', '#tags column:3'];
   for (const card of FLASHCARDS) {
     const front = sanitizeField(card.front);
     const back = sanitizeField(card.back);

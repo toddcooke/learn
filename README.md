@@ -20,10 +20,16 @@ step — see each module's own README for how to run and develop it.
 
 Add a new top-level directory (e.g. `gcp/`) with its own `index.html` entry
 point — everything in each module uses relative paths, so a module works
-unmodified at whatever path it's nested under. Link to it from
-`toddcooke.github.io`'s `content/learn.md` page (that repo owns the
-`/learn/` landing page itself; this repo only supplies the module content
-under it).
+unmodified at whatever path it's nested under. Then:
+
+- add it to the Modules list in this README;
+- add a `.claude/launch.json` entry on the next free port;
+- run `node scripts/check-drift.mjs` to confirm the copied app layer
+  matches the other modules (`scripts/export-anki.mjs` discovers modules
+  automatically — no registration needed);
+- link to it from `toddcooke.github.io`'s `content/learn.md` page (that
+  repo owns the `/learn/` landing page; this repo only supplies the module
+  content under it).
 
 ## Anki export
 
@@ -34,7 +40,7 @@ imports directly (File > Import):
 node scripts/export-anki.mjs [module...]
 ```
 
-With no arguments, exports all five modules to `anki/<module>.txt`
+With no arguments, exports every module that has a flashcard deck (auto-discovered) to `anki/<module>.txt`
 (gitignored — regenerate anytime with the command above). Pass one or
 more module names (`aws`, `kubernetes`, `postgres`, `sre`, `networking`)
 to export only those. Each file only needs the deck picked/created once

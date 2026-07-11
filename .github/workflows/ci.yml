@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Unit tests (all modules)
+        run: |
+          for m in aws kubernetes postgres sre networking; do
+            echo "--- $m ---"
+            (cd "$m" && node --test "js/lib/"*.test.mjs)
+          done
+
+      - name: Content validation (all modules)
+        run: |
+          for m in aws kubernetes postgres sre networking; do
+            echo "--- $m ---"
+            (cd "$m" && node scripts/validate-content.mjs)
+          done
+
+      - name: Shared app-layer drift check
+        run: node scripts/check-drift.mjs
+
+      - name: Anki export (format + cross-deck ID assertions)
+        run: node scripts/export-anki.mjs

@@ -835,8 +835,8 @@ export const QUESTIONS = [
       "Under a typical change management process, an emergency change made to fix an active outage may follow an expedited approval path, but it still requires documentation after the fact",
       "NIST SP 800-53's security and privacy control catalog places asset inventory within its own dedicated Configuration Management control family",
     ],
-    correctIndexes: [0, 2, 4],
-    explanation: "The physical-versus-logical diagram distinction, an SOW spelling out one project under an MSA's already-established general terms, and NIST SP 800-53 housing asset inventory inside its Configuration Management control family are all accurate. IPAM actually does the opposite of ignoring lease origin — cross-referencing whether an address came from a DHCP lease or a static assignment is one of its core jobs, alongside tracking DNS hostnames tied to each address. And an emergency change is not exempt from documentation; it typically gets expedited approval specifically because skipping the process and its after-the-fact paperwork entirely is how an unreviewed change turns into the next outage.",
+    correctIndexes: [0, 2, 3, 4],
+    explanation: "The physical-versus-logical diagram distinction, an SOW spelling out one project under an MSA's already-established general terms, an emergency change still requiring after-the-fact documentation despite its expedited approval path, and NIST SP 800-53 housing asset inventory inside its Configuration Management control family are all accurate. IPAM is the one false statement here, since it actually does the opposite of ignoring lease origin — cross-referencing whether an address came from a DHCP lease or a static assignment is one of its core jobs, alongside tracking DNS hostnames tied to each address.",
   },
 
   // --- Sub-theme: Monitoring, Logging & Discovery (operations-006..010) ---

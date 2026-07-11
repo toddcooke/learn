@@ -62,8 +62,14 @@ export const FLASHCARDS = [
   {
     id: 'shared-buffers',
     service: 'shared_buffers',
-    front: 'What does the shared_buffers setting control, and what is a reasonable starting value?',
-    back: "It sizes PostgreSQL's own shared-memory cache of table and index pages, separate from the operating system's page cache. A commonly recommended starting point on a dedicated server is around 25% of system RAM, since relying purely on the OS cache plus a much larger shared_buffers rarely helps beyond roughly 40% of RAM.",
+    front: 'What does the shared_buffers setting control?',
+    back: "It sizes PostgreSQL's own shared-memory cache of table and index pages, separate from the operating system's page cache.",
+  },
+  {
+    id: 'shared-buffers-sizing',
+    service: 'shared_buffers',
+    front: 'What starting value is commonly recommended for shared_buffers, and why not just set it much higher?',
+    back: 'A commonly recommended starting point on a dedicated server is around 25% of system RAM, since relying purely on the OS cache plus a much larger shared_buffers rarely helps beyond roughly 40% of RAM.',
   },
   {
     id: 'wal',
@@ -192,8 +198,14 @@ export const FLASHCARDS = [
   {
     id: 'planner-cost-constants',
     service: 'seq_page_cost / random_page_cost',
-    front: 'What do seq_page_cost and random_page_cost represent, and what are their defaults?',
-    back: "They're the planner's relative cost estimates for fetching one disk page as part of a sequential scan versus a non-sequential (random) fetch, defaulting to 1.0 and 4.0 respectively. Lowering random_page_cost relative to seq_page_cost — appropriate when the working set fits mostly in cache — makes the planner favor index scans; raising it makes index scans look relatively more expensive.",
+    front: 'What do seq_page_cost and random_page_cost represent?',
+    back: "They're the planner's relative cost estimates for fetching one disk page as part of a sequential scan versus a non-sequential (random) fetch. Setting random_page_cost lower than seq_page_cost — appropriate when the working set fits mostly in cache — makes the planner favor index scans; raising random_page_cost instead makes index scans look comparatively more expensive.",
+  },
+  {
+    id: 'planner-cost-constants-defaults',
+    service: 'seq_page_cost / random_page_cost',
+    front: 'What are the default values of seq_page_cost and random_page_cost?',
+    back: 'seq_page_cost defaults to 1.0 and random_page_cost defaults to 4.0, reflecting an assumption that a random disk-page fetch costs about four times as much as a sequential one.',
   },
 
   // --- Transactions & Concurrency ---
@@ -242,8 +254,14 @@ export const FLASHCARDS = [
   {
     id: 'advisory-lock',
     service: 'Advisory Lock',
-    front: 'What makes an advisory lock "advisory", and what are the two ways to hold one?',
-    back: 'It has an application-defined meaning that PostgreSQL itself never enforces — cooperating sessions simply agree to check it. A session-level advisory lock persists until the process unlocks it on purpose or its session closes, and rolling back the transaction that acquired it does not release it; a transaction-level one instead drops away automatically the moment its own transaction ends, with no explicit unlock call needed, which is usually more convenient for short-lived use.',
+    front: 'What makes an advisory lock "advisory"?',
+    back: 'It has an application-defined meaning that PostgreSQL itself never enforces — cooperating sessions simply agree to check it.',
+  },
+  {
+    id: 'advisory-lock-scopes',
+    service: 'Advisory Lock',
+    front: 'What are the two ways to hold a PostgreSQL advisory lock, and when does each release?',
+    back: "A session-level advisory lock stays held until the process releases it on purpose or its session ends — even a rolled-back transaction that acquired it won't let it go — while a transaction-level lock instead drops away automatically the instant its own transaction finishes, with no explicit unlock call needed, which is usually more convenient for short-lived use.",
   },
   {
     id: 'deadlock',

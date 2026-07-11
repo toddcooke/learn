@@ -61,8 +61,14 @@ export const FLASHCARDS = [
   {
     id: 'namespace',
     service: 'Namespace',
-    front: 'What does a Namespace scope, and what does it not scope?',
-    back: "Provides a scope for object names — two Deployments named 'web' can coexist in different namespaces — and a boundary that ResourceQuotas and RBAC bindings can apply to. It only applies to namespaced objects; cluster-wide objects like Nodes, PersistentVolumes, and StorageClasses live outside any namespace.",
+    front: 'What does a Namespace scope?',
+    back: "Provides a scope for object names — two Deployments named 'web' can coexist in different namespaces — and a boundary that ResourceQuotas and RBAC bindings can apply to.",
+  },
+  {
+    id: 'namespace-scope-exceptions',
+    service: 'Namespace',
+    front: 'What kinds of Kubernetes objects live outside any Namespace?',
+    back: "Namespace scoping only applies to namespaced objects; cluster-wide objects like Nodes, PersistentVolumes, and StorageClasses live outside any namespace regardless of which namespace you're working in.",
   },
   {
     id: 'static-pod',
@@ -145,8 +151,14 @@ export const FLASHCARDS = [
   {
     id: 'configmap',
     service: 'ConfigMap',
-    front: 'What is a ConfigMap for, and what limits it?',
-    back: "Holds non-sensitive configuration as key-value pairs, decoupling config from the container image so the same image can run with different settings. A single ConfigMap is capped at 1 MiB total, and a container can pick it up as an injected env var, a CLI flag value, a mounted file inside a volume, or a direct read through the API.",
+    front: 'What is a ConfigMap for?',
+    back: "Holds non-sensitive configuration as key-value pairs, decoupling config from the container image so the same image can run with different settings. A container can pick it up as an injected env var, a CLI flag value, a mounted file inside a volume, or a direct read through the API.",
+  },
+  {
+    id: 'configmap-size-limit',
+    service: 'ConfigMap',
+    front: 'What is the maximum size of a single ConfigMap?',
+    back: 'A single ConfigMap is capped at 1 MiB total.',
   },
   {
     id: 'secret',
@@ -331,8 +343,14 @@ export const FLASHCARDS = [
   {
     id: 'hpa',
     service: 'HorizontalPodAutoscaler',
-    front: 'What does a HorizontalPodAutoscaler do, and what can it target?',
-    back: "Watches a metric (commonly CPU or memory utilization) and adjusts spec.replicas on a scalable workload resource — a Deployment or StatefulSet, for example — up or down to keep the metric near its target. It cannot target a DaemonSet, since a DaemonSet's Pod count is fixed by the number of matching nodes, not a replica field.",
+    front: 'What does a HorizontalPodAutoscaler do?',
+    back: "Watches a metric (commonly CPU or memory utilization) and adjusts spec.replicas on a scalable workload resource — a Deployment or StatefulSet, for example — up or down to keep the metric near its target.",
+  },
+  {
+    id: 'hpa-daemonset-exception',
+    service: 'HorizontalPodAutoscaler',
+    front: "Why can't a HorizontalPodAutoscaler target a DaemonSet?",
+    back: "Because a DaemonSet's Pod count is fixed by the number of matching nodes, not a replica field, so there's nothing for the HPA to adjust — it can only target workload resources like a Deployment or StatefulSet that expose spec.replicas.",
   },
   {
     id: 'resource-requests',

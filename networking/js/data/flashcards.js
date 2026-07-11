@@ -69,8 +69,14 @@ export const FLASHCARDS = [
   {
     id: 'dns-port',
     service: 'DNS',
-    front: 'What port does DNS use for an everyday lookup, and when does it switch transport protocols?',
-    back: 'DNS answers routine lookups on UDP port 53, moving to TCP port 53 only for oversized responses such as zone transfers.',
+    front: 'What port does DNS use for an everyday lookup?',
+    back: 'DNS answers routine lookups on UDP port 53.',
+  },
+  {
+    id: 'dns-tcp-fallback',
+    service: 'DNS',
+    front: 'When does DNS switch from UDP to TCP port 53?',
+    back: 'DNS moves from UDP to TCP port 53 only for oversized responses, such as zone transfers between authoritative servers.',
   },
   {
     id: 'dhcp-ports',

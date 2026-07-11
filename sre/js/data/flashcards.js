@@ -37,8 +37,14 @@ export const FLASHCARDS = [
   {
     id: 'error-budget',
     service: 'Error budget',
-    front: 'What is an error budget, and where does the number come from?',
-    back: "The allowed amount of unreliability over an SLO window, calculated as 100% minus the SLO target. If an SLO is 99.9% over 28 days, the error budget is the remaining 0.1% of requests that are allowed to fail. It reframes reliability as a spendable resource shared between the team shipping features and the team keeping things stable, rather than a separate goal to chase in isolation.",
+    front: 'What is an error budget?',
+    back: "The allowed amount of unreliability over an SLO window. It reframes reliability as a spendable resource shared between the team shipping features and the team keeping things stable, rather than a separate goal to chase in isolation.",
+  },
+  {
+    id: 'error-budget-formula',
+    service: 'Error budget',
+    front: "How is an error budget's size calculated from its SLO?",
+    back: "It's calculated as 100% minus the SLO target — for example, an SLO of 99.9% over 28 days leaves an error budget of the remaining 0.1% of requests allowed to fail.",
   },
   {
     id: 'error-budget-policy',
@@ -271,8 +277,14 @@ export const FLASHCARDS = [
   {
     id: 'dns-load-balancing',
     service: 'DNS load balancing',
-    front: "What is DNS load balancing, and what limits how many backends it can advertise at once?",
-    back: "The simplest layer of load balancing: returning multiple IP addresses for a name and letting the client pick one, which spreads load before a connection is even opened. A DNS reply is bound by RFC 1035's 512-byte limit, which caps how many addresses can be squeezed into a single reply — almost always far fewer than the real number of backend servers — so DNS alone is never sufficient on its own.",
+    front: 'What is DNS load balancing?',
+    back: 'The simplest layer of load balancing: returning multiple IP addresses for a name and letting the client pick one, which spreads load before a connection is even opened.',
+  },
+  {
+    id: 'dns-load-balancing-reply-limit',
+    service: 'DNS load balancing',
+    front: 'What size limit caps how many backend addresses a single DNS reply can advertise?',
+    back: "A DNS reply is bound by RFC 1035's 512-byte limit, which caps how many addresses can be squeezed into a single reply — almost always far fewer than the real number of backend servers — so DNS alone is never sufficient on its own.",
   },
   {
     id: 'demand-forecasting',

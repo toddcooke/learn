@@ -48,14 +48,26 @@ export const FLASHCARDS = [
   {
     id: 'kms',
     service: 'AWS KMS',
-    front: 'What does KMS create and manage, and how often can a key rotate automatically?',
-    back: 'KMS creates and controls the encryption keys used to protect data across AWS services, keeping key material inside hardware security modules so it never leaves in plaintext. Each key is governed by a single required policy document that decides who can use it, and a key can optionally rotate its cryptographic material automatically once a year (or on demand) with no application changes required.',
+    front: 'What does KMS create and manage?',
+    back: 'KMS creates and controls the encryption keys used to protect data across AWS services, keeping key material inside hardware security modules so it never leaves in plaintext. Each key is governed by a single required policy document that decides who can use it.',
+  },
+  {
+    id: 'kms-key-rotation',
+    service: 'AWS KMS',
+    front: 'How often can a KMS key rotate its cryptographic material automatically?',
+    back: 'A key can optionally rotate its cryptographic material automatically once a year, or on demand, with no application changes required.',
   },
   {
     id: 'acm',
     service: 'AWS Certificate Manager',
-    front: 'What is it for, and when does it auto-renew a certificate?',
-    back: "ACM issues, stores, and manages public and private TLS certificates for services like a load balancer or a CloudFront distribution, saving you from tracking expiration dates yourself. It automatically renews a certificate that used DNS validation and is still attached to an integrated AWS service or has been exported since issuance; otherwise it just emails you as the expiration date approaches.",
+    front: 'What is AWS Certificate Manager for?',
+    back: "ACM issues, stores, and manages public and private TLS certificates for services like a load balancer or a CloudFront distribution, saving you from tracking expiration dates yourself.",
+  },
+  {
+    id: 'acm-auto-renewal',
+    service: 'AWS Certificate Manager',
+    front: 'Under what conditions does ACM automatically renew a certificate?',
+    back: "It automatically renews a certificate that used DNS validation and is still attached to an integrated AWS service or has been exported since issuance; otherwise it just emails you as the expiration date approaches.",
   },
   {
     id: 'secrets-manager',
@@ -84,8 +96,14 @@ export const FLASHCARDS = [
   {
     id: 'shield',
     service: 'AWS Shield',
-    front: 'What does it protect against, and what are the two tiers?',
-    back: 'Shield defends internet-facing applications against DDoS traffic floods aimed at knocking them offline. Standard protection is switched on for free on every account automatically; the paid Advanced tier layers on sharper detection, active mitigation, and hands-on incident support for attacks that reach up through the transport layer into the application layer itself.',
+    front: 'What does AWS Shield protect against?',
+    back: 'Shield defends internet-facing applications against DDoS traffic floods aimed at knocking them offline.',
+  },
+  {
+    id: 'shield-tiers',
+    service: 'AWS Shield',
+    front: "What are AWS Shield's two protection tiers, and how do they differ?",
+    back: 'Standard protection is switched on for free on every account automatically; the paid Advanced tier layers on sharper detection, active mitigation, and hands-on incident support for attacks that reach up through the transport layer into the application layer itself.',
   },
   {
     id: 'waf',
@@ -312,8 +330,14 @@ export const FLASHCARDS = [
   {
     id: 's3-glacier',
     service: 'Amazon S3 Glacier',
-    front: 'When would you use it over S3 Standard, and does retrieval always mean waiting?',
-    back: "Glacier's storage classes are built for data you rarely expect to touch again — archives and long-term compliance retention — trading storage price down in exchange for restrictions on how quickly (or cheaply) you get an object back. That tradeoff isn't uniform: Glacier Instant Retrieval still returns objects in milliseconds like S3 Standard, while Glacier Flexible Retrieval takes minutes to hours and Glacier Deep Archive, the cheapest tier, takes hours — so picking the right Glacier tier means matching how rarely the data is read to how tolerant the workload is of that wait.",
+    front: 'When would you use Amazon S3 Glacier over S3 Standard?',
+    back: "Glacier's storage classes are built for data you rarely expect to touch again — archives and long-term compliance retention — trading storage price down in exchange for restrictions on how quickly (or cheaply) you get an object back.",
+  },
+  {
+    id: 's3-glacier-retrieval-times',
+    service: 'Amazon S3 Glacier',
+    front: "How do retrieval times differ across S3 Glacier's storage tiers?",
+    back: "The tradeoff isn't uniform: Glacier Instant Retrieval still returns objects in milliseconds like S3 Standard, while Glacier Flexible Retrieval takes minutes to hours and Glacier Deep Archive, the cheapest tier, takes hours — so picking the right Glacier tier means matching how rarely the data is read to how tolerant the workload is of that wait.",
   },
   {
     id: 'ebs',
@@ -462,8 +486,14 @@ export const FLASHCARDS = [
   {
     id: 'savings-plans',
     service: 'AWS Savings Plans',
-    front: 'What do you commit to with a Savings Plan, and what discount does that unlock?',
-    back: 'Savings Plans trade a 1- or 3-year commitment to a steady hourly spend, measured in dollars rather than a specific instance type, for a discount of up to roughly 72% off On-Demand rates. Compute Savings Plans apply flexibly across EC2 instance family, size, OS, and Region, and even cover Fargate and Lambda usage — more flexible than committing to one fixed Reserved Instance configuration.',
+    front: 'What do you commit to with an AWS Savings Plan?',
+    back: 'Savings Plans trade a 1- or 3-year commitment to a steady hourly spend, measured in dollars rather than a specific instance type. Compute Savings Plans apply flexibly across EC2 instance family, size, OS, and Region, and even cover Fargate and Lambda usage — more flexible than committing to one fixed Reserved Instance configuration.',
+  },
+  {
+    id: 'savings-plans-discount',
+    service: 'AWS Savings Plans',
+    front: 'What discount off On-Demand rates does an AWS Savings Plan unlock?',
+    back: 'A discount of up to roughly 72% off On-Demand rates, in exchange for that 1- or 3-year commitment to a steady hourly spend.',
   },
   {
     id: 'trusted-advisor',
@@ -476,5 +506,69 @@ export const FLASHCARDS = [
     service: 'AWS Service Quotas',
     front: 'What does Service Quotas let you view and request changes to?',
     back: "Service Quotas gives you one place to see the default limits AWS applies to resources in your account — such as the number of VPCs per Region or EC2 instances of a given type — and to request an increase when a workload's real needs exceed the default, rather than hunting through each service's own documentation for its limits.",
+  },
+
+  // ---------------------------------------------------------------------
+  // Best-Fit Scenarios
+  // ---------------------------------------------------------------------
+  {
+    id: 'scenario-shared-posix-fs',
+    service: 'Amazon EFS',
+    front: 'A fleet of EC2 instances needs a shared POSIX file system that many of them can mount and write to at the same time — which storage service fits?',
+    back: 'Amazon EFS: a managed, elastic NFS file system built to be mounted by many instances or containers at once, resizing itself automatically as data is written or deleted. EBS only ever attaches to one instance at a time, and FSx for Windows File Server speaks SMB rather than POSIX, so EFS is the one built for concurrent, POSIX-style access across a fleet.',
+  },
+  {
+    id: 'scenario-microsecond-cache',
+    service: 'Amazon ElastiCache',
+    front: "An application needs to shave its hottest, most frequently requested lookups down from a database's millisecond round-trip to microseconds — which service sits in front of the database to do that?",
+    back: "Amazon ElastiCache: a managed in-memory cache that serves frequently requested data straight from memory in microseconds instead of paying a database round-trip measured in milliseconds. It's the caching layer teams place ahead of a database, not a substitute system of record for it.",
+  },
+  {
+    id: 'scenario-decouple-queue',
+    service: 'Amazon SQS',
+    front: 'A checkout service needs to hand work off to an inventory processor so that neither one goes down if the other is slow or briefly offline — which service decouples them?',
+    back: "Amazon SQS: a producer drops a message on the queue and moves on, and a consumer pulls it off whenever it's ready, so a traffic spike on one side simply queues up rather than overwhelming or stalling the other side.",
+  },
+  {
+    id: 'scenario-fanout-notification',
+    service: 'Amazon SNS',
+    front: 'One order-placed event needs to reach a fulfillment queue, an analytics function, and an email notification all at once, without the publisher tracking who is listening — which service fits?',
+    back: 'Amazon SNS: a publisher sends one message to a topic and SNS fans it out to every subscriber at once — SQS queues, Lambda functions, email, or HTTP endpoints — without the publisher tracking or individually contacting each downstream listener.',
+  },
+  {
+    id: 'scenario-dedicated-onprem-link',
+    service: 'AWS Direct Connect',
+    front: 'A company wants the steadiest possible bandwidth and lowest latency between its datacenter and AWS, entirely off the public internet, and can tolerate a multi-week provisioning lead time to get it — which connectivity option fits?',
+    back: 'AWS Direct Connect: a dedicated physical link straight into an AWS-associated facility that bypasses the public internet, trading a longer provisioning lead time for steadier bandwidth and lower latency than an internet-based path like Site-to-Site VPN can promise.',
+  },
+  {
+    id: 'scenario-udp-game-routing',
+    service: 'AWS Global Accelerator',
+    front: 'A multiplayer game server talks over a custom UDP protocol and needs every connection routed to whichever healthy regional deployment is currently closest, through IP addresses that never change — which service fits?',
+    back: "AWS Global Accelerator: it assigns a fixed pair of anycast IP addresses and routes TCP/UDP connections over AWS's private backbone to whichever healthy regional endpoint is currently nearest, failing over within seconds if a health check trips. CloudFront instead solves a different problem — caching HTTP content — so it isn't built to route arbitrary UDP traffic at all.",
+  },
+  {
+    id: 'scenario-cold-archive-lowest-cost',
+    service: 'Amazon S3 Glacier Deep Archive',
+    front: 'A compliance team needs to retain audit logs it expects to access less than once a year at the lowest possible storage cost, and can tolerate a many-hour wait on the rare occasion one needs restoring — which storage tier fits?',
+    back: 'S3 Glacier Deep Archive: the cheapest S3 storage tier, purpose-built for archives accessed less than once a year, with a retrieval time measured in hours. Glacier Instant Retrieval and Flexible Retrieval cost more precisely because they promise faster access than this workload actually needs.',
+  },
+  {
+    id: 'scenario-lift-shift-smb',
+    service: 'Amazon FSx',
+    front: 'A legacy Windows application expects to talk to a native SMB file server and is being lifted and shifted into AWS unmodified — which managed file system gives it that exact behavior?',
+    back: 'Amazon FSx for Windows File Server: a fully managed, native Windows file server built on SMB, so the application gets the exact file-system behavior and compatibility it already expects without anyone operating the underlying servers. EFS solves the equivalent problem for POSIX/NFS workloads, not SMB.',
+  },
+  {
+    id: 'scenario-transparent-appliance-insertion',
+    service: 'Gateway Load Balancer',
+    front: 'Security wants to insert a fleet of third-party intrusion-detection appliances into a traffic path so transparently that no other part of the architecture has to know inspection is even happening — which load balancer type fits?',
+    back: 'A Gateway Load Balancer: it works at the network layer to transparently slot third-party security appliances into a traffic path, spreading requests across whichever ones are healthy, while an ALB or NLB has no equivalent transparent-insertion role.',
+  },
+  {
+    id: 'scenario-serverless-nosql-latency',
+    service: 'Amazon DynamoDB',
+    front: 'A mobile app needs its own durable session-store table to hit single-digit-millisecond reads at any scale, without anyone managing servers or planning capacity ahead of time — which database fits?',
+    back: 'Amazon DynamoDB: a fully managed, serverless NoSQL database built for single-digit-millisecond response times at any scale. Unlike ElastiCache, which only caches in front of a system of record, DynamoDB is itself the durable, persistent store.',
   },
 ];

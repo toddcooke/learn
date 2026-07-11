@@ -4,7 +4,7 @@
 // docs/superpowers/specs/2026-07-10-anki-export-design.md.
 import { mkdirSync, writeFileSync } from 'node:fs';
 
-const ALL_MODULES = ['aws', 'kubernetes', 'postgres', 'sre'];
+const ALL_MODULES = ['aws', 'kubernetes', 'postgres', 'sre', 'networking'];
 
 function toTag(service) {
   return service

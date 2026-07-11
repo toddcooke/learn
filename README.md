@@ -10,6 +10,7 @@ subdirectory here and publishes at `https://toddcooke.github.io/learn/<module>/`
 - [`kubernetes/`](kubernetes) — Certified Kubernetes Administrator (CKA) exam prep, published at https://toddcooke.github.io/learn/kubernetes/
 - [`postgres/`](postgres) — general PostgreSQL mastery (not tied to a certification), published at https://toddcooke.github.io/learn/postgres/
 - [`sre/`](sre) — general Site Reliability Engineering mastery (not tied to a certification), published at https://toddcooke.github.io/learn/sre/
+- [`networking/`](networking) — CompTIA Network+ (N10-009) exam prep, published at https://toddcooke.github.io/learn/networking/
 
 Each module is self-contained: its own `index.html`, `js/`, `css/`,
 `scripts/`, and `docs/superpowers/` spec+plan. None of them use a build
@@ -33,11 +34,11 @@ imports directly (File > Import):
 node scripts/export-anki.mjs [module...]
 ```
 
-With no arguments, exports all four modules to `anki/<module>.txt`
+With no arguments, exports all five modules to `anki/<module>.txt`
 (gitignored — regenerate anytime with the command above). Pass one or
-more module names (`aws`, `kubernetes`, `postgres`, `sre`) to export only
-those. Each file only needs the deck picked/created once in Anki's own
-Import dialog — the script doesn't assume a deck name.
+more module names (`aws`, `kubernetes`, `postgres`, `sre`, `networking`)
+to export only those. Each file only needs the deck picked/created once
+in Anki's own Import dialog — the script doesn't assume a deck name.
 
 ## Deployment
 

@@ -287,7 +287,7 @@ export const FLASHCARDS = [
     id: 'vacuum-vs-analyze',
     service: 'VACUUM vs. ANALYZE',
     front: "Between VACUUM and ANALYZE, which one reclaims dead tuple space, and which one refreshes the planner's statistics?",
-    back: "VACUUM reclaims the space held by dead row versions so future writes can reuse it, without shrinking the file on disk. ANALYZE does a completely different job: it samples the table's current contents to refresh the row-count and value-distribution statistics in pg_statistic that the query planner relies on. Running VACUUM ANALYZE, or letting autovacuum do both, covers space reclamation and planner accuracy in one pass, but neither command substitutes for the other.",
+    back: "VACUUM reclaims the space held by dead row versions so future writes can reuse it, without shrinking the file on disk. ANALYZE does a completely different job: it samples the table's current contents to refresh the statistics the query planner relies on — the row-count estimate in pg_class and per-column value distributions in pg_statistic. Running VACUUM ANALYZE, or letting autovacuum do both, covers space reclamation and planner accuracy in one pass, but neither command substitutes for the other.",
   },
   {
     id: 'vacuum-full',

@@ -469,8 +469,8 @@ export const FLASHCARDS = [
   {
     id: 'stp-loop-cause',
     service: 'STP Loop Root Cause',
-    front: 'In practice, is an active STP loop usually a bug in STP itself?',
-    back: "Rarely. The usual trigger is a previously blocked port that starts forwarding again simply because BPDUs stopped arriving to tell it to stay blocked — the link itself stays up while a duplex mismatch (or similar fault) silently corrupts the control traffic riding across it. STP's own logic is almost never actually at fault.",
+    front: 'What usually causes an active STP loop, given that STP logic itself is rarely at fault?',
+    back: "The usual trigger is a previously blocked port that starts forwarding again simply because BPDUs stopped arriving to tell it to stay blocked — the link itself stays up while a duplex mismatch (or similar fault) silently corrupts the control traffic riding across it. STP's own logic is almost never actually at fault.",
   },
   {
     id: 'dhcp-decline-nak',

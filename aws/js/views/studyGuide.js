@@ -22,7 +22,7 @@ function renderDomainList(mount) {
 function renderDomain(mount, domainId) {
   const domain = DOMAINS.find((d) => d.id === domainId);
   if (!domain) {
-    mount.innerHTML = `<p>Unknown domain "${domainId}". <a href="#/study">Back to Study Guide</a></p>`;
+    mount.innerHTML = '<p>Unknown domain. <a href="#/study">Back to Study Guide</a></p>';
     return;
   }
   const sections = STUDY_CONTENT.filter((s) => s.domain === domainId);

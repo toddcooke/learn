@@ -13,7 +13,7 @@ export function render(mount, domainId) {
   const domain = DOMAINS.find((d) => d.id === domainId);
   const questions = QUESTIONS.filter((q) => q.domain === domainId);
   if (!domain || questions.length === 0) {
-    mount.innerHTML = `<p>Unknown quiz domain "${domainId}". <a href="#/quiz">Back to Quizzes</a></p>`;
+    mount.innerHTML = '<p>Unknown quiz domain. <a href="#/quiz">Back to Quizzes</a></p>';
     return;
   }
   runQuiz(mount, domain, questions);
@@ -84,12 +84,6 @@ function runQuiz(mount, domain, questions) {
   }
 
   function renderResults() {
-    store.recordQuizAttempt({
-      domain: domain.id,
-      score: state.correctCount,
-      total: questions.length,
-      timestamp: new Date().toISOString(),
-    });
     mount.innerHTML = `
       <h2>${domain.name} Quiz Results</h2>
       <p class="quiz-score">${state.correctCount} / ${questions.length} correct</p>
@@ -103,6 +97,16 @@ function runQuiz(mount, domain, questions) {
       e.preventDefault();
       runQuiz(mount, domain, questions);
     });
+    try {
+      store.recordQuizAttempt({
+        domain: domain.id,
+        score: state.correctCount,
+        total: questions.length,
+        timestamp: new Date().toISOString(),
+      });
+    } catch {
+      mount.insertAdjacentHTML('beforeend', '<p class="exam-note">Could not save this attempt to history.</p>');
+    }
   }
 
   renderQuestion();

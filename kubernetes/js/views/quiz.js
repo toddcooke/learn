@@ -32,7 +32,7 @@ function renderDomainPicker(mount) {
 function runQuiz(mount, domain, questions) {
   const state = { index: 0, correctCount: 0, answers: [] };
 
-  function renderQuestion() {
+  function renderQuestion(focusLegend) {
     const q = questions[state.index];
     const isMulti = q.questionType === 'multiple-response';
     mount.innerHTML = `
@@ -40,14 +40,16 @@ function runQuiz(mount, domain, questions) {
       <h2>${domain.name} Quiz</h2>
       <p class="quiz-progress">Question ${state.index + 1} of ${questions.length}</p>
       <form id="quiz-form">
-        <p class="quiz-question">${q.question}</p>
-        ${q.options.map((opt, i) => `
-          <label class="quiz-option">
-            <input type="${isMulti ? 'checkbox' : 'radio'}" name="answer" value="${i}" />
-            ${opt}
-          </label>
-        `).join('')}
-        <div id="quiz-feedback"></div>
+        <fieldset>
+          <legend class="quiz-question">${q.question}</legend>
+          ${q.options.map((opt, i) => `
+            <label class="quiz-option">
+              <input type="${isMulti ? 'checkbox' : 'radio'}" name="answer" value="${i}" />
+              ${opt}
+            </label>
+          `).join('')}
+        </fieldset>
+        <div id="quiz-feedback" role="status"></div>
         <button type="submit">Submit Answer</button>
       </form>
     `;
@@ -55,6 +57,11 @@ function runQuiz(mount, domain, questions) {
       e.preventDefault();
       handleSubmit(q);
     });
+    if (focusLegend) {
+      const legend = mount.querySelector('.quiz-question');
+      legend.setAttribute('tabindex', '-1');
+      legend.focus();
+    }
   }
 
   function handleSubmit(q) {
@@ -76,7 +83,7 @@ function runQuiz(mount, domain, questions) {
     document.getElementById('quiz-next').addEventListener('click', () => {
       state.index += 1;
       if (state.index < questions.length) {
-        renderQuestion();
+        renderQuestion(true);
       } else {
         renderResults();
       }

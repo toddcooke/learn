@@ -12,7 +12,7 @@ export function render(mount) {
     return FLASHCARDS.filter((c) => !known[c.id]);
   }
 
-  function renderCard() {
+  function renderCard(focusFlip) {
     const cards = visibleCards();
     if (cards.length === 0) {
       mount.innerHTML = `<p>All caught up! <button id="fc-reset">Show all cards</button></p>`;
@@ -21,6 +21,7 @@ export function render(mount) {
         state.index = 0;
         renderCard();
       });
+      if (focusFlip) document.getElementById('fc-reset').focus();
       return;
     }
     if (state.index >= cards.length) state.index = 0;
@@ -51,22 +52,23 @@ export function render(mount) {
     });
     document.getElementById('fc-flip').addEventListener('click', () => {
       state.showBack = !state.showBack;
-      renderCard();
+      renderCard(true);
     });
     document.getElementById('fc-prev').addEventListener('click', () => {
       state.index = (state.index - 1 + cards.length) % cards.length;
       state.showBack = false;
-      renderCard();
+      renderCard(true);
     });
     document.getElementById('fc-next').addEventListener('click', () => {
       state.index = (state.index + 1) % cards.length;
       state.showBack = false;
-      renderCard();
+      renderCard(true);
     });
     document.getElementById('fc-known').addEventListener('click', () => {
       store.setFlashcardKnown(card.id, !known[card.id]);
-      renderCard();
+      renderCard(true);
     });
+    if (focusFlip) document.getElementById('fc-flip').focus();
   }
 
   renderCard();

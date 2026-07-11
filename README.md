@@ -46,6 +46,10 @@ more module names (`aws`, `kubernetes`, `postgres`, `sre`, `networking`)
 to export only those. Each file only needs the deck picked/created once
 in Anki's own Import dialog — the script doesn't assume a deck name.
 
+Add `--reversed` to export two-way cards: the files then declare Anki's
+stock "Basic (and reversed card)" note type, so each card also quizzes
+back→front (assumes the English name for that note type).
+
 ## Deployment
 
 This whole repo is referenced as a single git submodule in

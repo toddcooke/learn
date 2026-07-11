@@ -52,13 +52,17 @@ node scripts/export-anki.mjs [module...]
 - `anki/` is a generated-output directory, gitignored — add `anki/` to
   the root `.gitignore` (which already has `.cache/` and `.worktrees/`
   for the same reason: build/research artifacts, not source).
-- Each file starts with two Anki header-comment directives so Anki's
+- Each file starts with Anki header-comment directives so Anki's
   importer auto-detects the format without the user having to configure
   it by hand:
   ```
   #separator:tab
   #html:false
+  #tags column:3
   ```
+  With the `--reversed` flag, a `#notetype:Basic (and reversed card)`
+  directive is added so each row imports as a two-way card (assumes the
+  English name of Anki's stock reversed note type).
 - Followed by one row per flashcard: `Front\tBack\tTags`.
   - `Front` = `<service> — <front>` (the site renders `service` as a
     heading above the front, so generic fronts like "What is it for?"

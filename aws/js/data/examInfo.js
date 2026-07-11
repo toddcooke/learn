@@ -14,3 +14,10 @@ export const EXAM_FORMAT = {
   minScore: 100,
   maxScore: 1000,
 };
+
+export const EXAM_UI = {
+  examLabel: 'Mock Exam',
+  startBlurb: `${EXAM_FORMAT.totalQuestions} questions, ${EXAM_FORMAT.durationMinutes} minutes, drawn and weighted like the real exam.`,
+  startNote: null,
+  resultsNote: `This is an estimate based on percent correct; AWS's real scaling formula is not public. Passing score is ${EXAM_FORMAT.passingScore}.`,
+};

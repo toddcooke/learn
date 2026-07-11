@@ -14,3 +14,10 @@ export const EXAM_FORMAT = {
   minScore: 0,
   maxScore: 100,
 };
+
+export const EXAM_UI = {
+  examLabel: 'Practice Exam',
+  startBlurb: `${EXAM_FORMAT.totalQuestions} questions, ${EXAM_FORMAT.durationMinutes} minutes, weighted by domain.`,
+  startNote: null,
+  resultsNote: `This is an estimate based on percent correct on a simplified 0–${EXAM_FORMAT.maxScore} scale — there's no official SRE exam or scaling formula behind it, since this module isn't tied to a certification. Passing score is ${EXAM_FORMAT.passingScore}.`,
+};

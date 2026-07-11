@@ -1,4 +1,4 @@
-import { DOMAINS } from '../data/examInfo.js';
+import { DOMAINS, EXAM_UI } from '../data/examInfo.js';
 import { FLASHCARDS } from '../data/flashcards.js';
 import { createStore } from '../lib/storage.js';
 
@@ -35,7 +35,7 @@ export function render(mount) {
       `}
     </section>
     <section>
-      <h3>Mock Exam History</h3>
+      <h3>${EXAM_UI.examLabel} History</h3>
       ${mockHistory.length === 0 ? '<p>No mock exams taken yet.</p>' : `
         <table class="history-table">
           <thead><tr><th>Score</th><th>Correct</th><th>Result</th><th>Date</th></tr></thead>

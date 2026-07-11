@@ -13,3 +13,10 @@ export const EXAM_FORMAT = {
   minScore: 0,
   maxScore: 100,
 };
+
+export const EXAM_UI = {
+  examLabel: 'Mock Exam',
+  startBlurb: `${EXAM_FORMAT.totalQuestions} questions, ${EXAM_FORMAT.durationMinutes} minutes, drawn and weighted like the real exam's domains.`,
+  startNote: `The real CKA exam is 100% hands-on (command-line tasks in a live cluster), not multiple-choice. This mock exam reinforces the same knowledge but isn't a replica of the real exam experience — pair it with hands-on practice (kind, minikube, killer.sh).`,
+  resultsNote: `This is an estimate based on percent correct against a simplified 0–100 scale; the real CKA exam is pass/fail on hands-on tasks, not scored this way. Passing score is ${EXAM_FORMAT.passingScore}.`,
+};

@@ -1,4 +1,4 @@
-import { DOMAINS, EXAM_FORMAT } from '../data/examInfo.js';
+import { DOMAINS, EXAM_FORMAT, EXAM_UI } from '../data/examInfo.js';
 import { QUESTIONS } from '../data/questions.js';
 import { drawMockExam, isCorrect, estimateScaledScore } from '../lib/scoring.js';
 import { createStore } from '../lib/storage.js';
@@ -26,10 +26,10 @@ function stopActiveTimer() {
 
 export function render(mount) {
   mount.innerHTML = `
-    <h2>Mock Exam</h2>
-    <p>${EXAM_FORMAT.totalQuestions} questions, ${EXAM_FORMAT.durationMinutes} minutes, drawn and weighted like the real exam's domains.</p>
-    <p class="exam-note">The real CKA exam is 100% hands-on (command-line tasks in a live cluster), not multiple-choice. This mock exam reinforces the same knowledge but isn't a replica of the real exam experience — pair it with hands-on practice (kind, minikube, killer.sh).</p>
-    <button type="button" id="start-exam">Start Mock Exam</button>
+    <h2>${EXAM_UI.examLabel}</h2>
+    <p>${EXAM_UI.startBlurb}</p>
+    ${EXAM_UI.startNote ? `<p class="exam-note">${EXAM_UI.startNote}</p>` : ''}
+    <button type="button" id="start-exam">Start ${EXAM_UI.examLabel}</button>
   `;
   document.getElementById('start-exam').addEventListener('click', () => startExam(mount));
 }
@@ -60,6 +60,7 @@ function startExam(mount) {
     state.secondsLeft -= 1;
     updateTimerDisplay();
     if (state.secondsLeft <= 0) {
+      saveAnswer();
       stopActiveTimer();
       finishExam(mount, exam, state);
     }
@@ -138,18 +139,10 @@ function finishExam(mount, exam, state) {
     return { domain: d, correct: domainCorrect, total: domainResults.length };
   });
 
-  store.recordMockExamAttempt({
-    score,
-    correct: correctCount,
-    total: exam.length,
-    passed,
-    timestamp: new Date().toISOString(),
-  });
-
   mount.innerHTML = `
-    <h2>Mock Exam Results</h2>
+    <h2>${EXAM_UI.examLabel} Results</h2>
     <p class="quiz-score">Estimated scaled score: ${score} / ${EXAM_FORMAT.maxScore} — ${passed ? 'PASS' : 'Below passing score'}</p>
-    <p class="exam-note">This is an estimate based on percent correct against a simplified 0–100 scale; the real CKA exam is pass/fail on hands-on tasks, not scored this way. Passing score is ${EXAM_FORMAT.passingScore}.</p>
+    <p class="exam-note">${EXAM_UI.resultsNote}</p>
     <p>${correctCount} / ${exam.length} correct</p>
     <h3>By Domain</h3>
     <ul>
@@ -162,8 +155,19 @@ function finishExam(mount, exam, state) {
         <p>${r.correct ? 'Correct' : 'Incorrect'} — ${r.question.explanation}</p>
       </article>
     `).join('')}
-    <p><a href="#/exam" id="exam-retake">Take another mock exam</a> · <a href="#/progress">View progress</a></p>
+    <p><a href="#/exam" id="exam-retake">Take another ${EXAM_UI.examLabel.toLowerCase()}</a> · <a href="#/progress">View progress</a></p>
   `;
+  try {
+    store.recordMockExamAttempt({
+      score,
+      correct: correctCount,
+      total: exam.length,
+      passed,
+      timestamp: new Date().toISOString(),
+    });
+  } catch {
+    mount.insertAdjacentHTML('beforeend', '<p class="exam-note">Could not save this attempt to history.</p>');
+  }
   // The hash (#/exam) is already active on this results screen, so a click
   // on "Take another mock exam" doesn't change the URL fragment and the
   // router's `hashchange` listener never fires. Re-invoke this module's own

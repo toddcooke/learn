@@ -45,8 +45,8 @@ export const FLASHCARDS = [
   {
     id: 'icmp',
     service: 'ICMP',
-    front: 'Does ICMP move application data, and what is it for instead?',
-    back: "No — ICMP (RFC 792) never carries application payloads. IP uses it purely to report back problems (an unreachable host, an expired TTL) and diagnostic conditions to the sender, which is the entire foundation ping and traceroute are built on top of.",
+    front: "Why doesn't ICMP carry application data, and what is it used for instead?",
+    back: "ICMP (RFC 792) never carries application payloads. IP uses it purely to report back problems (an unreachable host, an expired TTL) and diagnostic conditions to the sender, which is the entire foundation ping and traceroute are built on top of.",
   },
   {
     id: 'ftp-port',
@@ -199,8 +199,8 @@ export const FLASHCARDS = [
   {
     id: 'vlan',
     service: 'VLAN',
-    front: 'Two hosts sit on the same physical switch but different VLANs. Can they talk directly at Layer 2?',
-    back: "No. Each VLAN is its own broadcast domain, so hosts in separate VLANs are cut off from each other at Layer 2 no matter how they're physically cabled — reaching across requires routing, exactly as if they lived on two separate physical networks.",
+    front: "Why can't two hosts on the same physical switch but different VLANs talk directly at Layer 2?",
+    back: "Each VLAN is its own broadcast domain, so hosts in separate VLANs are cut off from each other at Layer 2 no matter how they're physically cabled — reaching across requires routing, exactly as if they lived on two separate physical networks.",
   },
   {
     id: 'trunk-8021q',
@@ -235,8 +235,8 @@ export const FLASHCARDS = [
   {
     id: 'wpa3',
     service: 'WPA3',
-    front: "Does WPA3 get rid of pre-shared keys, and how does SAE change the cracking math?",
-    back: "No — personal WPA3 still relies on a PSK. What changes is SAE (the Dragonfly handshake): rather than a handshake an attacker can capture once and crack offline forever, SAE forces a fresh live exchange with the actual access point for every single guess, which makes brute-forcing dramatically slower and easy to notice happening.",
+    front: "What happens to pre-shared keys under personal WPA3, and how does SAE change the cracking math?",
+    back: "Personal WPA3 still relies on a PSK. What changes is SAE (the Dragonfly handshake): rather than a handshake an attacker can capture once and crack offline forever, SAE forces a fresh live exchange with the actual access point for every single guess, which makes brute-forcing dramatically slower and easy to notice happening.",
   },
 
   // ---------------------------------------------------------------------
@@ -263,7 +263,7 @@ export const FLASHCARDS = [
   {
     id: 'mtd',
     service: 'Maximum Tolerable Downtime (MTD)',
-    front: 'Is RTO a bigger or smaller number than MTD, and why does that ordering matter?',
+    front: 'Why does RTO have to be a smaller number than MTD?',
     back: "RTO has to come in smaller than MTD. MTD (NIST SP 800-34) is the absolute ceiling on how long a whole business process can tolerate being down, counting every downstream consequence; RTO is the narrower, resource-specific recovery target that's supposed to land safely inside that larger ceiling, not exceed it.",
   },
   {
@@ -287,8 +287,8 @@ export const FLASHCARDS = [
   {
     id: 'dnssec',
     service: 'DNSSEC',
-    front: 'DNSSEC stops a forged DNS answer from being trusted. Does it also hide the query from an eavesdropper?',
-    back: "No. DNSSEC (RFC 4033) signs zone data so a resolver can verify a response actually came from the real authoritative source and wasn't altered — authentication and integrity, not secrecy. The query and response still travel in the clear; encrypting that content is left entirely to DoH or DoT.",
+    front: "DNSSEC stops a forged DNS answer from being trusted — why doesn't it also hide the query from an eavesdropper?",
+    back: "DNSSEC (RFC 4033) signs zone data so a resolver can verify a response actually came from the real authoritative source and wasn't altered — authentication and integrity, not secrecy. The query and response still travel in the clear; encrypting that content is left entirely to DoH or DoT.",
   },
   {
     id: 'dhcp-dora',
@@ -321,8 +321,8 @@ export const FLASHCARDS = [
   {
     id: 'mfa',
     service: 'Multifactor Authentication (MFA)',
-    front: 'A login demands a password and a separate 4-digit PIN. Does that count as MFA?',
-    back: "No — MFA needs factors from at least two different categories: something you know, something you have, something you are. A password and a PIN are both memorized secrets, so together they're still single-category, single-factor authentication no matter how many are stacked. NIST SP 800-63B's highest tier, AAL3, pushes even further, mandating a physical hardware cryptographic authenticator — a requirement no amount of extra passwords or PINs can fulfill.",
+    front: 'Why does a password plus a 4-digit PIN fail to qualify as MFA?',
+    back: "MFA needs factors from at least two different categories: something you know, something you have, something you are. A password and a PIN are both memorized secrets, so together they're still single-category, single-factor authentication no matter how many are stacked. NIST SP 800-63B's highest tier, AAL3, pushes even further, mandating a physical hardware cryptographic authenticator — a requirement no amount of extra passwords or PINs can fulfill.",
   },
   {
     id: 'pki',
@@ -363,7 +363,7 @@ export const FLASHCARDS = [
   {
     id: 'evil-twin-on-path',
     service: 'Evil Twin & On-Path Attack',
-    front: 'Is "evil twin" a type of on-path attack, or a separate category?',
+    front: 'What makes an "evil twin" a specific way of becoming an on-path attacker rather than a separate attack category?',
     back: "An evil twin — a rogue access point broadcasting a legitimate network's own SSID to lure clients — is one specific way to become an on-path attacker. On-path attack (the modern replacement for 'man-in-the-middle') just names the resulting position: sitting between two parties and able to see or alter their traffic, whether reached through an evil twin, ARP poisoning, or DNS poisoning.",
   },
   {
@@ -395,6 +395,12 @@ export const FLASHCARDS = [
     service: 'NAC & 802.1X',
     front: 'What traffic is allowed through an 802.1X port before authentication succeeds?',
     back: "Essentially nothing but the EAPOL handshake. Three parties are involved: the supplicant, meaning the connecting endpoint's own 802.1X client software; the authenticator — the switch port, which holds regular traffic back until a verdict comes down; and the authentication server — typically RADIUS — which is the party that actually renders the accept-or-reject verdict.",
+  },
+  {
+    id: 'dot1q-vs-dot1x',
+    service: '802.1Q vs. 802.1X',
+    front: 'Between 802.1Q and 802.1X, which one tags frames for VLAN membership, and which one gates a port until a device authenticates?',
+    back: "802.1Q inserts a tag into a frame crossing a trunk link so switches on either end can tell which VLAN that frame belongs to as multiple VLANs share the same physical link. 802.1X does something unrelated to tagging: it's port-based authentication, where a switch port blocks nearly all traffic from whatever's plugged in until an authentication server approves it, only then opening the port to ordinary traffic. The numbers look similar but the jobs don't overlap at all — one is a frame format, the other is an access-control handshake.",
   },
   {
     id: 'ids-vs-ips',
@@ -481,8 +487,8 @@ export const FLASHCARDS = [
   {
     id: 'latency-vs-packet-loss',
     service: 'Latency vs. Packet Loss',
-    front: 'Can a link have low latency but still suffer heavy packet loss?',
-    back: "Yes — they measure different things. Latency is how long a packet takes to arrive, adding up propagation, queuing, and processing delay. Packet loss is simply whether it arrived at all, which can happen fast (a full queue dropping it instantly) or slow, independent of how quick the surviving packets are.",
+    front: 'Why can a link have low latency but still suffer heavy packet loss?',
+    back: "They measure different things. Latency is how long a packet takes to arrive, adding up propagation, queuing, and processing delay. Packet loss is simply whether it arrived at all, which can happen fast (a full queue dropping it instantly) or slow, independent of how quick the surviving packets are.",
   },
   {
     id: 'traceroute',

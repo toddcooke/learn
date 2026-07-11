@@ -284,6 +284,12 @@ export const FLASHCARDS = [
     back: "An UPDATE or DELETE never removes the old row version immediately — MVCC requires keeping it as long as some other transaction's snapshot might still need to see it — so dead row versions pile up over time. VACUUM scans a table, removes dead row versions no longer visible to anyone, and marks that space available for reuse by future rows, without shrinking the file on disk.",
   },
   {
+    id: 'vacuum-vs-analyze',
+    service: 'VACUUM vs. ANALYZE',
+    front: "Between VACUUM and ANALYZE, which one reclaims dead tuple space, and which one refreshes the planner's statistics?",
+    back: "VACUUM reclaims the space held by dead row versions so future writes can reuse it, without shrinking the file on disk. ANALYZE does a completely different job: it samples the table's current contents to refresh the row-count and value-distribution statistics in pg_statistic that the query planner relies on. Running VACUUM ANALYZE, or letting autovacuum do both, covers space reclamation and planner accuracy in one pass, but neither command substitutes for the other.",
+  },
+  {
     id: 'vacuum-full',
     service: 'VACUUM FULL',
     front: 'How does VACUUM FULL differ from plain VACUUM in what it does and what it costs?',
@@ -364,8 +370,8 @@ export const FLASHCARDS = [
   {
     id: 'view',
     service: 'View',
-    front: 'Is a view\'s data physically stored anywhere?',
-    back: "No — CREATE VIEW just saves the query definition, and PostgreSQL re-runs that underlying query every time the view is referenced, so it always reflects the current data in the base tables. A sufficiently simple view (a single base relation in its FROM list, among other conditions) is even automatically updatable: INSERT/UPDATE/DELETE against it get translated into the equivalent statement on the underlying table.",
+    front: 'Why doesn\'t a view\'s data get physically stored anywhere, and what does PostgreSQL do instead each time it\'s queried?',
+    back: "CREATE VIEW just saves the query definition, and PostgreSQL re-runs that underlying query every time the view is referenced, so it always reflects the current data in the base tables. A sufficiently simple view (a single base relation in its FROM list, among other conditions) is even automatically updatable: INSERT/UPDATE/DELETE against it get translated into the equivalent statement on the underlying table.",
   },
   {
     id: 'materialized-view',

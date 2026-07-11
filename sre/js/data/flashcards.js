@@ -153,6 +153,12 @@ export const FLASHCARDS = [
     back: "MTTR is the mean time to repair (sometimes 'recovery'): the average time from when a problem starts affecting users to when it is fully resolved. Well-maintained, alert-specific playbooks are one of the more reliable levers for shortening it, since they replace improvised debugging with a known-good sequence of steps.",
   },
   {
+    id: 'mtbf',
+    service: 'MTBF (mean time between failures)',
+    front: 'What does MTBF measure, and how is that different from what MTTR measures?',
+    back: "MTBF is the average time a system runs before failing — a measure of how rarely it breaks in the first place. MTTR measures something else: once a failure has happened, how long it takes to detect, diagnose, and fully resolve it. A system can have a great MTBF but a terrible MTTR, or the reverse, because the two describe different halves of an incident's timeline — how often it happens, and how fast it's handled once it does.",
+  },
+  {
     id: 'low-traffic-burn-rate-alerting',
     service: 'Burn-rate alerting on low-traffic services',
     front: 'Why does burn-rate alerting break down for low-traffic services?',

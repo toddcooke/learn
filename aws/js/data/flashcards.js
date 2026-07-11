@@ -42,7 +42,7 @@ export const FLASHCARDS = [
   {
     id: 'control-tower',
     service: 'AWS Control Tower',
-    front: 'How is it different from plain Organizations?',
+    front: 'What does Control Tower automate when standing up a governed multi-account AWS environment, and what does it keep checking for afterward?',
     back: "Control Tower automates the setup of a governed multi-account environment on top of Organizations, wiring up baseline guardrails, centralized logging, and account provisioning that you would otherwise have to script by hand. It also monitors accounts for drifting away from those established guardrails over time.",
   },
   {
@@ -196,7 +196,7 @@ export const FLASHCARDS = [
   {
     id: 'global-accelerator',
     service: 'AWS Global Accelerator',
-    front: 'How is it different from CloudFront?',
+    front: 'What class of network traffic is Global Accelerator built to route and fail over?',
     back: "Global Accelerator improves application performance and availability by routing traffic over AWS's private backbone network to the nearest healthy regional endpoint, using a fixed set of static anycast IP addresses. It works for general TCP/UDP applications and failover, not caching — CloudFront is specifically the caching layer for HTTP(S) content.",
   },
   {
@@ -210,6 +210,12 @@ export const FLASHCARDS = [
     service: 'Network Load Balancer',
     front: 'What performance characteristics make a Network Load Balancer the right pick?',
     back: 'An NLB works at the transport layer and is built for extremely high throughput with very low, consistent latency, plus it can hand out a static IP address per Availability Zone. It fits non-HTTP protocols or workloads where shaving off microseconds matters more than routing based on request content.',
+  },
+  {
+    id: 'alb-vs-nlb',
+    service: 'Application Load Balancer vs. Network Load Balancer',
+    front: 'Between an ALB and an NLB, which OSI layer does each operate at, and what kind of traffic is each built to handle?',
+    back: 'An ALB operates at the application layer (Layer 7) and is built for HTTP(S) traffic, since routing by URL path, hostname, or headers means it has to actually read the request. An NLB operates at the transport layer (Layer 4) and handles any TCP or UDP traffic without inspecting request content, which is exactly what lets it hit the extreme throughput and ultra-low latency an ALB cannot match.',
   },
   {
     id: 'gwlb',
@@ -284,7 +290,7 @@ export const FLASHCARDS = [
   {
     id: 'sns',
     service: 'Amazon SNS',
-    front: 'How is it different from SQS?',
+    front: 'How does SNS deliver a single published message to multiple subscribers at once?',
     back: 'SNS is publish/subscribe: a publisher sends one message to a topic and SNS fans it out to every subscriber at once — which can be SQS queues, Lambda functions, email, SMS, or HTTP endpoints. SQS instead holds messages in a single queue for one or more consumers to pull, so SNS handles broadcast delivery where SQS handles point-to-point buffering.',
   },
   {
@@ -318,7 +324,7 @@ export const FLASHCARDS = [
   {
     id: 'efs',
     service: 'Amazon EFS',
-    front: 'How is it different from EBS?',
+    front: 'How many compute instances can mount the same EFS file system at the same time?',
     back: 'EFS is a managed NFS file system built to be mounted by a whole fleet of instances or containers at once, resizing itself up or down as data is written or deleted, with no storage size to pre-plan. EBS, by contrast, only ever attaches to one instance at a time — reach for EFS the moment several compute resources need shared, simultaneous access to the same files.',
   },
   {
@@ -450,7 +456,7 @@ export const FLASHCARDS = [
   {
     id: 'budgets',
     service: 'AWS Budgets',
-    front: 'How is it different from Cost Explorer?',
+    front: 'What can AWS Budgets do once actual or forecasted spend crosses a threshold you define?',
     back: 'Budgets lets you set a target cost or usage threshold and get alerted — or even trigger an automated action — when actual or forecasted spend crosses it. Where Cost Explorer is retrospective analysis, Budgets is the proactive guardrail watching spend against a number you defined ahead of time.',
   },
   {

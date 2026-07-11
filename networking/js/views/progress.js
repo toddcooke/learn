@@ -36,7 +36,7 @@ export function render(mount) {
     </section>
     <section>
       <h3>${EXAM_UI.examLabel} History</h3>
-      ${mockHistory.length === 0 ? '<p>No mock exams taken yet.</p>' : `
+      ${mockHistory.length === 0 ? `<p>No ${EXAM_UI.examLabel.toLowerCase()}s taken yet.</p>` : `
         <table class="history-table">
           <thead><tr><th>Score</th><th>Correct</th><th>Result</th><th>Date</th></tr></thead>
           <tbody>

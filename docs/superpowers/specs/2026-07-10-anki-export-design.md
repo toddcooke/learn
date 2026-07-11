@@ -36,46 +36,57 @@ only in-browser.
 node scripts/export-anki.mjs [module...]
 ```
 
-- No arguments: exports all four modules (`aws`, `kubernetes`, `postgres`,
-  `sre`).
+- No arguments: exports all modules that have a flashcard deck (auto-discovered):
+  `aws`, `kubernetes`, `networking`, `postgres`, `sre`.
 - One or more module names as arguments: exports only those (e.g.
   `node scripts/export-anki.mjs aws sre`).
 - An unknown module name is a hard error (`node`'s own uncaught-exception
   behavior is sufficient — no need for custom validation/help text beyond
   a clear thrown error message naming the bad argument).
+- Before writing any file, the script validates that all card IDs (across
+  all requested modules) are globally unique (i.e., no
+  `<module>-<card-id>` repeats); if a duplicate is found, the script
+  throws and no files are written. This is belt-and-braces — the module
+  prefix should guarantee uniqueness, but the assertion catches bugs.
 
 ## Output
 
 - Writes to a new root-level `anki/` directory (created if missing),
   one file per module: `anki/aws.txt`, `anki/kubernetes.txt`,
-  `anki/postgres.txt`, `anki/sre.txt`.
+  `anki/networking.txt`, `anki/postgres.txt`, `anki/sre.txt`.
 - `anki/` is a generated-output directory, gitignored — add `anki/` to
   the root `.gitignore` (which already has `.cache/` and `.worktrees/`
   for the same reason: build/research artifacts, not source).
 - Each file starts with Anki header-comment directives so Anki's
   importer auto-detects the format without the user having to configure
-  it by hand:
+  it by hand, followed by a date-stamp comment:
   ```
   #separator:tab
   #html:false
-  #tags column:3
+  #tags column:4
+  # exported <YYYY-MM-DD> from toddcooke/learn <module>
   ```
   The decks are deliberately one-way: 85% of the backs name their own
   service/topic (they're standalone prose explanations), so a reversed
   note type would produce mostly self-answering back→front cards. A
   `--reversed` flag was tried on 2026-07-11 and removed for this reason.
-- Followed by one row per flashcard: `Front\tBack\tTags`.
+- Followed by one row per flashcard: `ID\tFront\tBack\tTags`.
+  - `ID` = `<module>-<card-id>` — stable module-qualified identifier that
+    allows Anki to match and update notes on re-import instead of
+    duplicating; must be unique across all modules. Formatted as
+    lowercase module name, hyphen, lowercase alphanumeric card ID with
+    hyphens allowed.
   - `Front` = `<service> — <front>` (the site renders `service` as a
     heading above the front, so generic fronts like "What is it for?"
     need the service name attached to stand alone; Anki also dedupes on
     the first field, so bare generic fronts would collapse on import).
   - `Back` = the card's `back` field verbatim.
-  - `Tags` = the card's `service` field, converted to a single valid
-    Anki tag by: lowercasing, replacing every run of one or more
+  - `Tags` = hierarchical tag formatted as `<module>::<service-slug>`,
+    where the service slug is the card's `service` field converted to a
+    valid Anki tag by: lowercasing, replacing every run of one or more
     characters that isn't a letter or digit with a single hyphen, then
-    trimming any leading/trailing hyphen. Example:
-    `service: "SLI (Service Level Indicator)"` → tag
-    `sli-service-level-indicator`.
+    trimming any leading/trailing hyphen. Example: module `aws`, service
+    `"SLI (Service Level Indicator)"` → tag `aws::sli-service-level-indicator`.
   - `Front`/`Back` text is sanitized only to the extent required for
     TSV correctness: any literal tab or newline character inside a
     field is replaced with a single space (none are expected in current

@@ -60,9 +60,10 @@ node scripts/export-anki.mjs [module...]
   #html:false
   #tags column:3
   ```
-  With the `--reversed` flag, a `#notetype:Basic (and reversed card)`
-  directive is added so each row imports as a two-way card (assumes the
-  English name of Anki's stock reversed note type).
+  The decks are deliberately one-way: 85% of the backs name their own
+  service/topic (they're standalone prose explanations), so a reversed
+  note type would produce mostly self-answering back→front cards. A
+  `--reversed` flag was tried on 2026-07-11 and removed for this reason.
 - Followed by one row per flashcard: `Front\tBack\tTags`.
   - `Front` = `<service> — <front>` (the site renders `service` as a
     heading above the front, so generic fronts like "What is it for?"

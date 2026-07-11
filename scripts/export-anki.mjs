@@ -20,15 +20,9 @@ function sanitizeField(text) {
   return text.replace(/[\t\r\n]+/g, ' ');
 }
 
-async function exportModule(name, reversed) {
+async function exportModule(name) {
   const { FLASHCARDS } = await import(`../${name}/js/data/flashcards.js`);
-  const lines = ['#separator:tab', '#html:false'];
-  if (reversed) {
-    // Anki's stock two-way note type: each row imports as front→back AND
-    // back→front. Assumes the English default name for that note type.
-    lines.push('#notetype:Basic (and reversed card)');
-  }
-  lines.push('#tags column:3');
+  const lines = ['#separator:tab', '#html:false', '#tags column:3'];
   for (const card of FLASHCARDS) {
     // The site renders card.service as a heading above card.front, so some
     // decks (aws especially) use generic fronts like "What is it for?" that
@@ -46,9 +40,7 @@ async function exportModule(name, reversed) {
   console.log(`${name}: ${FLASHCARDS.length} cards → anki/${name}.txt`);
 }
 
-const args = process.argv.slice(2);
-const reversed = args.includes('--reversed');
-const requested = args.filter((a) => a !== '--reversed');
+const requested = process.argv.slice(2);
 const modules = requested.length > 0 ? requested : ALL_MODULES;
 
 for (const name of modules) {
@@ -58,5 +50,5 @@ for (const name of modules) {
 }
 
 for (const name of modules) {
-  await exportModule(name, reversed);
+  await exportModule(name);
 }

@@ -242,7 +242,7 @@ export const FLASHCARDS = [
   {
     id: 'ec2-auto-scaling',
     service: 'Amazon EC2 Auto Scaling',
-    front: 'How does EC2 Auto Scaling keep a group of instances at the right size?',
+    front: 'What three capacity settings does EC2 Auto Scaling use to size a group automatically?',
     back: 'It keeps a group of EC2 instances at the right size automatically. You set a minimum, a maximum, and a desired capacity, and scaling policies add or remove instances as demand rises and falls so the group never drops below its floor or climbs above its ceiling.',
   },
   {

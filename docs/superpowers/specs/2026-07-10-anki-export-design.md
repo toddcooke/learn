@@ -60,7 +60,10 @@ node scripts/export-anki.mjs [module...]
   #html:false
   ```
 - Followed by one row per flashcard: `Front\tBack\tTags`.
-  - `Front` = the card's `front` field verbatim.
+  - `Front` = `<service> — <front>` (the site renders `service` as a
+    heading above the front, so generic fronts like "What is it for?"
+    need the service name attached to stand alone; Anki also dedupes on
+    the first field, so bare generic fronts would collapse on import).
   - `Back` = the card's `back` field verbatim.
   - `Tags` = the card's `service` field, converted to a single valid
     Anki tag by: lowercasing, replacing every run of one or more

@@ -24,7 +24,12 @@ async function exportModule(name) {
   const { FLASHCARDS } = await import(`../${name}/js/data/flashcards.js`);
   const lines = ['#separator:tab', '#html:false', '#tags column:3'];
   for (const card of FLASHCARDS) {
-    const front = sanitizeField(card.front);
+    // The site renders card.service as a heading above card.front, so some
+    // decks (aws especially) use generic fronts like "What is it for?" that
+    // only make sense with the service name attached. Anki also dedupes on
+    // the first field, so a bare generic front would silently collapse
+    // cards on import. service + front is unique in every deck.
+    const front = sanitizeField(`${card.service} — ${card.front}`);
     const back = sanitizeField(card.back);
     const tag = toTag(card.service);
     lines.push(`${front}\t${back}\t${tag}`);

@@ -1,9 +1,13 @@
 // js/data/questions.js
-// Quiz questions for the Cluster Architecture, Installation and Configuration
-// domain (25% exam weight) and the Services and Networking domain (20% exam
-// weight). Grounded in kubernetes.io and helm.sh documentation fetched into
-// .cache/aws-docs/ (see scripts/fetch-doc.mjs).
-// Written in the author's own words, not copied verbatim from the source docs.
+// Quiz questions for all five CKA exam domains (140 total). Grounded in
+// kubernetes.io and helm.sh documentation fetched into .cache/aws-docs/
+// (see scripts/fetch-doc.mjs). Written in the author's own words, not
+// copied verbatim from the source docs.
+//   - cluster (28): Cluster Architecture, Installation and Configuration, 25% exam weight
+//   - services (25): Services and Networking, 20% exam weight
+//   - workloads (32): Workloads and Scheduling, 15% exam weight
+//   - storage (15): Storage, 10% exam weight
+//   - troubleshooting (40): Troubleshooting, 30% exam weight
 
 export const QUESTIONS = [
   // --- RBAC and access control (cluster-001..007) ---

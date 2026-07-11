@@ -1,7 +1,12 @@
 const NAMESPACE = 'net-prep';
 
 function load(backend, key, fallback) {
-  const raw = backend.getItem(`${NAMESPACE}:${key}`);
+  let raw;
+  try {
+    raw = backend.getItem(`${NAMESPACE}:${key}`);
+  } catch {
+    return fallback;
+  }
   if (raw === null) return fallback;
   try {
     return JSON.parse(raw);
@@ -11,34 +16,67 @@ function load(backend, key, fallback) {
 }
 
 function save(backend, key, value) {
-  backend.setItem(`${NAMESPACE}:${key}`, JSON.stringify(value));
+  try {
+    backend.setItem(`${NAMESPACE}:${key}`, JSON.stringify(value));
+  } catch {
+    /* ignore write failures (quota exceeded, blocked storage, etc.) */
+  }
+}
+
+function memoryBackend() {
+  const map = new Map();
+  return {
+    getItem: (k) => (map.has(k) ? map.get(k) : null),
+    setItem: (k, v) => { map.set(k, v); },
+    removeItem: (k) => { map.delete(k); },
+  };
 }
 
 export function createStore(backend = globalThis.localStorage) {
+  let b;
+  try {
+    b = backend || memoryBackend();
+    b.getItem(`${NAMESPACE}:probe`);
+  } catch {
+    b = memoryBackend();
+  }
   return {
     getQuizHistory() {
-      return load(backend, 'quiz-history', []);
+      return load(b, 'quiz-history', []);
     },
     recordQuizAttempt(attempt) {
-      const history = load(backend, 'quiz-history', []);
+      const history = load(b, 'quiz-history', []);
       history.push(attempt);
-      save(backend, 'quiz-history', history);
+      save(b, 'quiz-history', history);
     },
     getFlashcardState() {
-      return load(backend, 'flashcard-state', {});
+      return load(b, 'flashcard-state', {});
     },
     setFlashcardKnown(cardId, known) {
-      const state = load(backend, 'flashcard-state', {});
+      const state = load(b, 'flashcard-state', {});
       state[cardId] = known;
-      save(backend, 'flashcard-state', state);
+      save(b, 'flashcard-state', state);
     },
     getMockExamHistory() {
-      return load(backend, 'mock-exam-history', []);
+      return load(b, 'mock-exam-history', []);
     },
     recordMockExamAttempt(attempt) {
-      const history = load(backend, 'mock-exam-history', []);
+      const history = load(b, 'mock-exam-history', []);
       history.push(attempt);
-      save(backend, 'mock-exam-history', history);
+      save(b, 'mock-exam-history', history);
+    },
+    getExamCheckpoint() {
+      return load(b, 'exam-checkpoint', null);
+    },
+    setExamCheckpoint(checkpoint) {
+      save(b, 'exam-checkpoint', checkpoint);
+    },
+    clearExamCheckpoint() {
+      try {
+        b.removeItem(`${NAMESPACE}:exam-checkpoint`);
+      } catch {
+        /* ignore */
+      }
     },
   };
 }

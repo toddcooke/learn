@@ -56,12 +56,17 @@ function formatClock(totalSeconds) {
 // bank changed) is discarded rather than offered for resume.
 function readResumableCheckpoint() {
   const checkpoint = store.getExamCheckpoint();
-  if (!checkpoint) return null;
+  if (!checkpoint) {
+    // A stored-but-falsy value (e.g. a raw `0`) still needs clearing; this
+    // is a harmless no-op when nothing was stored at all.
+    store.clearExamCheckpoint();
+    return null;
+  }
 
   const { questionIds, answers, index, deadline } = checkpoint;
-  const isWellFormed = Array.isArray(questionIds)
+  const isWellFormed = Array.isArray(questionIds) && questionIds.length > 0
     && Array.isArray(answers)
-    && typeof index === 'number'
+    && Number.isInteger(index) && index >= 0
     && typeof deadline === 'number';
   if (!isWellFormed || deadline <= Date.now()) {
     store.clearExamCheckpoint();

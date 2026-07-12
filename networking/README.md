@@ -28,7 +28,7 @@ The real N10-009 exam is a maximum of 90 questions (multiple-choice AND performa
 
 ## How the content was sourced
 
-Unlike this repo's other modules, there's no single official documentation site for Network+ content, so this module uses a tiered sourcing strategy: IETF RFCs for internet protocols, NIST Special Publications for security/continuity concepts, Cisco's free public documentation for vendor/hardware implementation topics, and official man pages for CLI tools — confirmed reachable 2026-07-10. Domain weights and the exam format come directly from CompTIA's own official N10-009 exam objectives (fetched 2026-07-10). Every quiz question was drafted from and checked against the relevant cached documentation before being added. Fetched pages are cached locally under `.cache/aws-docs/` (gitignored; directory name kept for consistency with tooling shared across all five modules).
+Unlike this repo's other modules, there's no single official documentation site for Network+ content, so this module uses a tiered sourcing strategy: IETF RFCs for internet protocols, NIST Special Publications for security/continuity concepts, Cisco's free public documentation for vendor/hardware implementation topics, and official man pages for CLI tools — confirmed reachable 2026-07-10. Domain weights and the exam format come directly from CompTIA's own official N10-009 exam objectives (fetched 2026-07-10). Every quiz question was drafted from and checked against the relevant cached documentation before being added. Fetched pages are cached locally under `.cache/docs/` (gitignored; directory name kept for consistency with tooling shared across all five modules).
 
 ## Development
 

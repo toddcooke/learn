@@ -485,7 +485,7 @@ export const QUESTIONS = [
     domain: 'secure',
     questionType: 'multiple-choice',
     question:
-      'Which type of KMS key requires manual rotation because it is not eligible for either automatic or on-demand rotation?',
+      "Which type of KMS key has no in-place rotation mechanism at all, so 'rotating' it means creating an entirely new key and manually switching applications over to it?",
     options: [
       'A symmetric encryption KMS key with imported (EXTERNAL) key material',
       'An asymmetric KMS key',
@@ -494,7 +494,7 @@ export const QUESTIONS = [
     ],
     correctIndexes: [1],
     explanation:
-      "Automatic and on-demand rotation both depend on AWS KMS being able to generate the replacement material itself, which rules out asymmetric keys (along with HMAC keys and keys living in a custom key store) — those can only be rotated manually, by creating a new key and switching applications over to it. Keys with AWS-generated symmetric material support both automatic and on-demand rotation, imported (EXTERNAL) symmetric keys support on-demand rotation, and AWS managed keys are rotated automatically by AWS roughly every year with no customer control over that schedule.",
+      "Asymmetric keys (along with HMAC keys and keys living in a custom key store) have no rotation mechanism whatsoever — AWS KMS can't generate replacement material for them, so the only way to 'rotate' one is to create a brand-new key and cut applications over to it, retiring the old key once nothing depends on it anymore. Every other option rotates in place, keeping the same key ID: keys with AWS-generated symmetric material support both automatic and on-demand rotation, imported (EXTERNAL) symmetric keys support on-demand rotation of their material without changing the key ID, and AWS managed keys are rotated automatically by AWS roughly every year with no customer control over that schedule.",
   },
   {
     id: 'secure-031',

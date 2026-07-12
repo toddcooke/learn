@@ -24,7 +24,7 @@ Then open http://localhost:8000/ in a browser. (A plain `file://` open won't wor
 
 ## How the content was sourced
 
-Exam structure, domain weightings, and task statements come from AWS's official SAA-C03 exam guide (docs.aws.amazon.com), fetched 2026-07-07 — see [docs/superpowers/specs/2026-07-07-aws-saa-exam-prep-design.md](docs/superpowers/specs/2026-07-07-aws-saa-exam-prep-design.md) for details. Every quiz question was drafted from and checked against the relevant AWS service documentation before being added. Fetched doc pages are cached locally under `.cache/aws-docs/` (gitignored) so re-running the content pipeline doesn't re-hit AWS for pages already fetched.
+Exam structure, domain weightings, and task statements come from AWS's official SAA-C03 exam guide (docs.aws.amazon.com), fetched 2026-07-07 — see [docs/superpowers/specs/2026-07-07-aws-saa-exam-prep-design.md](docs/superpowers/specs/2026-07-07-aws-saa-exam-prep-design.md) for details. Every quiz question was drafted from and checked against the relevant AWS service documentation before being added. Fetched doc pages are cached locally under `.cache/docs/` (gitignored) so re-running the content pipeline doesn't re-hit AWS for pages already fetched.
 
 ## Development
 

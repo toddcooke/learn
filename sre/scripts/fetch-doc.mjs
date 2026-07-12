@@ -1,14 +1,14 @@
 // Usage: node scripts/fetch-doc.mjs <url>
 // Fetches a doc page (preferring the verbatim markdown sibling that
 // docs.aws.amazon.com pages expose at the same path with .html replaced
-// by .md), caches it under .cache/aws-docs/, and prints the cached path.
+// by .md), caches it under .cache/docs/, and prints the cached path.
 // Re-running with the same URL reuses the cache instead of hitting the
 // network again.
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 
-const CACHE_DIR = '.cache/aws-docs';
+const CACHE_DIR = '.cache/docs';
 const INDEX_PATH = path.join(CACHE_DIR, 'index.json');
 
 function slugify(url) {

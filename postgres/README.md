@@ -28,7 +28,7 @@ There is no single, universally recognized PostgreSQL certification the way ther
 
 ## How the content was sourced
 
-All content is grounded in the official PostgreSQL 18 documentation at postgresql.org/docs/current/ (confirmed current stable as of 2026-07-09), with one exception: connection pooling, which PostgreSQL core doesn't document at all (confirmed during planning) — that sub-topic draws from the official PgBouncer docs instead. Every quiz question was drafted from and checked against the relevant cached documentation before being added. Fetched doc pages are cached locally under `.cache/aws-docs/` (gitignored; directory name kept for consistency with tooling shared with the other two modules) so re-running the content pipeline doesn't re-hit the network for pages already fetched.
+All content is grounded in the official PostgreSQL 18 documentation at postgresql.org/docs/current/ (confirmed current stable as of 2026-07-09), with one exception: connection pooling, which PostgreSQL core doesn't document at all (confirmed during planning) — that sub-topic draws from the official PgBouncer docs instead. Every quiz question was drafted from and checked against the relevant cached documentation before being added. Fetched doc pages are cached locally under `.cache/docs/` (gitignored; directory name kept for consistency with tooling shared with the other two modules) so re-running the content pipeline doesn't re-hit the network for pages already fetched.
 
 ## Development
 

@@ -28,7 +28,7 @@ There is no single, industry-wide Site Reliability Engineering certification the
 
 ## How the content was sourced
 
-All content is grounded in Google's "Site Reliability Engineering" book and "The Site Reliability Workbook," both freely readable at sre.google (chapter URLs confirmed live as of 2026-07-10). Every quiz question was drafted from and checked against the relevant cached chapter before being added. Fetched pages are cached locally under `.cache/aws-docs/` (gitignored; directory name kept for consistency with tooling shared with the other three modules) so re-running the content pipeline doesn't re-hit the network for pages already fetched.
+All content is grounded in Google's "Site Reliability Engineering" book and "The Site Reliability Workbook," both freely readable at sre.google (chapter URLs confirmed live as of 2026-07-10). Every quiz question was drafted from and checked against the relevant cached chapter before being added. Fetched pages are cached locally under `.cache/docs/` (gitignored; directory name kept for consistency with tooling shared with the other three modules) so re-running the content pipeline doesn't re-hit the network for pages already fetched.
 
 ## Development
 

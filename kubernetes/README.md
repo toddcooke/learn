@@ -28,7 +28,7 @@ The real CKA exam is 100% hands-on — you solve tasks in a live cluster via the
 
 ## How the content was sourced
 
-Exam structure, domain weightings, and the curriculum come from the official CNCF CKA curriculum (github.com/cncf/curriculum) and Linux Foundation training/FAQ pages, fetched 2026-07-08 — see [docs/superpowers/specs/2026-07-08-cka-exam-prep-design.md](docs/superpowers/specs/2026-07-08-cka-exam-prep-design.md) for details. Every quiz question was drafted from and checked against the relevant kubernetes.io documentation before being added. Fetched doc pages are cached locally under `.cache/aws-docs/` (gitignored; directory name kept for consistency with tooling shared with the AWS exam prep site) so re-running the content pipeline doesn't re-hit the network for pages already fetched.
+Exam structure, domain weightings, and the curriculum come from the official CNCF CKA curriculum (github.com/cncf/curriculum) and Linux Foundation training/FAQ pages, fetched 2026-07-08 — see [docs/superpowers/specs/2026-07-08-cka-exam-prep-design.md](docs/superpowers/specs/2026-07-08-cka-exam-prep-design.md) for details. Every quiz question was drafted from and checked against the relevant kubernetes.io documentation before being added. Fetched doc pages are cached locally under `.cache/docs/` (gitignored; directory name kept for consistency with tooling shared with the AWS exam prep site) so re-running the content pipeline doesn't re-hit the network for pages already fetched.
 
 ## Development
 

@@ -400,7 +400,7 @@ function describeOutcome(result) {
     };
   }
 
-  const { winner, subnet, source, dest } = result;
+  const { winner, subnet, source, dest, matched } = result;
 
   if (!winner) {
     return {
@@ -415,7 +415,9 @@ function describeOutcome(result) {
     return {
       ok: true,
       pathText: `${source.label} → local route (stays inside the VPC) → ${dest.label}`,
-      explanation: 'Both the 10.0.0.0/16 local route and the 0.0.0.0/0 default route matched, but route tables always prefer the most specific (longest-prefix) match, so the /16 local route wins over the /0 default. Traffic to another address inside the VPC never needs to leave through a gateway, even when it crosses an Availability Zone boundary.',
+      explanation: matched.length > 1
+        ? 'Both the 10.0.0.0/16 local route and the 0.0.0.0/0 default route matched, but route tables always prefer the most specific (longest-prefix) match, so the /16 local route wins over the /0 default. Traffic to another address inside the VPC never needs to leave through a gateway, even when it crosses an Availability Zone boundary.'
+        : "Only the 10.0.0.0/16 local route matched — this tier's route table has no default route at all, so addresses inside the VPC are the only destinations it can reach. Traffic to another address inside the VPC never needs to leave through a gateway, even when it crosses an Availability Zone boundary.",
       hops: [`subnet-${subnet.id}`, dest.subnetId ? `subnet-${dest.subnetId}` : null].filter(Boolean),
     };
   }
@@ -520,6 +522,9 @@ function renderCidrExplorer(prefixLen) {
   if (boundary.degenerate) {
     interestingOctetText = 'No subdivision below /16 — the base 10.0.0.0/16 is already the whole block, so there is no "interesting" octet yet.';
     incrementsHtml = '<em>n/a &mdash; this prefix length is the VPC-sized block itself.</em>';
+  } else if (boundary.freeBitsInOctet === 0) {
+    interestingOctetText = `The prefix ends exactly on an octet boundary: the ${ordinal(boundary.interestingOctetIndex)} octet is fully fixed and every later octet is fully free, so each block is exactly one ${ordinal(boundary.interestingOctetIndex)}-octet value wide.`;
+    incrementsHtml = `any value 0&ndash;255 &mdash; consecutive blocks step by 1 in the ${ordinal(boundary.interestingOctetIndex)} octet`;
   } else {
     interestingOctetText = `The ${ordinal(boundary.interestingOctetIndex)} octet is the interesting one: ${boundary.fixedBitsInOctet} fixed bit${boundary.fixedBitsInOctet === 1 ? '' : 's'}, ${boundary.freeBitsInOctet} free bit${boundary.freeBitsInOctet === 1 ? '' : 's'} (block width ${boundary.blockWidth} within that octet).`;
     const starts = [];

@@ -11,11 +11,42 @@ export function render(mount) {
   const knownCount = Object.values(flashcardState).filter(Boolean).length;
   const masteryPct = FLASHCARDS.length ? Math.round((knownCount / FLASHCARDS.length) * 100) : 0;
 
+  const domainStats = DOMAINS.map((d) => {
+    const attempts = quizHistory.filter((a) => a.domain === d.id && a.total > 0);
+    const correct = attempts.reduce((sum, a) => sum + a.score, 0);
+    const total = attempts.reduce((sum, a) => sum + a.total, 0);
+    return {
+      id: d.id,
+      name: d.name,
+      attemptCount: attempts.length,
+      accuracyPct: total > 0 ? Math.round((correct / total) * 100) : null,
+    };
+  });
+  const attemptedDomains = domainStats.filter((d) => d.attemptCount > 0);
+  const weakestId = attemptedDomains.length >= 2
+    ? attemptedDomains.reduce((min, d) => (d.accuracyPct < min.accuracyPct ? d : min)).id
+    : (attemptedDomains.length === 1 && attemptedDomains[0].accuracyPct < 100 ? attemptedDomains[0].id : null);
+
   mount.innerHTML = `
     <h2>Progress</h2>
     <section>
       <h3>Flashcard Mastery</h3>
       <p>${knownCount} / ${FLASHCARDS.length} marked known (${masteryPct}%)</p>
+    </section>
+    <section>
+      <h3>By Domain</h3>
+      <table class="history-table">
+        <thead><tr><th>Domain</th><th>Attempts</th><th>Accuracy</th></tr></thead>
+        <tbody>
+          ${domainStats.map((d) => `
+            <tr>
+              <td>${d.name}${d.id === weakestId ? ' <span class="feedback-incorrect">— weakest, focus here</span>' : ''}</td>
+              <td>${d.attemptCount}</td>
+              <td>${d.accuracyPct === null ? 'no attempts yet' : `${d.accuracyPct}%`}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
     </section>
     <section>
       <h3>Quiz History</h3>

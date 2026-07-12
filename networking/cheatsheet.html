@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Network+ N10-009 Cheat Sheet — Printable</title>
+<style>
+  /* ============================================================
+     PRINT SCAFFOLDING — this block is the reusable skeleton.
+     Content-specific rules live below the "CONTENT" divider.
+     Contract: .sheet content box must stay <= 7.4in wide x 10.2in
+     tall so it prints on one page of both US Letter and A4 at
+     0.4in margins. Screen rendering mirrors print (fixed 7.4in
+     width). Chrome (header/back-link/print hint) is on-screen
+     only and is hidden under @media print.
+     ============================================================ */
+  @page {
+    size: letter portrait;
+    margin: 0.4in;
+  }
+
+  :root {
+    --color-text: #1a1a2e;
+    --color-muted: #5a6472;
+    --color-border: #d8dbe0;
+    --color-primary: #2563eb;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #eceff1;
+    font-family: var(--font-sans);
+    color: var(--color-text);
+  }
+
+  .screen-chrome {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 0.6rem 1rem;
+    background: #fff;
+    border-bottom: 1px solid var(--color-border);
+    position: sticky;
+    top: 0;
+    font-size: 0.85rem;
+  }
+
+  .screen-chrome a {
+    color: var(--color-primary);
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  .screen-chrome a:hover { text-decoration: underline; }
+
+  .screen-chrome .hint { color: var(--color-muted); }
+
+  .sheet-wrap {
+    display: flex;
+    justify-content: center;
+    padding: 1rem 0.5rem 2rem;
+  }
+
+  /* The one-page contract lives here: fixed 7.4in width mirrors
+     the print box exactly, so on-screen preview == what prints. */
+  .sheet {
+    box-sizing: border-box;
+    width: 7.4in;
+    max-height: 10.2in;
+    overflow: hidden;
+    background: #fff;
+    padding: 0.08in 0.12in;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.15);
+    font-size: 8.8px;
+    line-height: 1.3;
+  }
+
+  @media print {
+    body { background: #fff; }
+    .screen-chrome { display: none; }
+    /* .sheet keeps its exact screen dimensions (width, padding,
+       max-height) here so print output mirrors the screen preview
+       pixel-for-pixel; only the decorative wrapper chrome is stripped. */
+    .sheet-wrap {
+      display: block;
+      padding: 0;
+      margin: 0;
+      background: none;
+    }
+    .sheet {
+      box-shadow: none;
+      margin: 0;
+    }
+  }
+
+  .mono { font-family: var(--font-mono); }
+
+  /* ============================================================
+     CONTENT — module-specific below this line.
+     ============================================================ */
+
+  .sheet-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1.5px solid var(--color-text);
+    padding-bottom: 3px;
+    margin-bottom: 5px;
+  }
+
+  .sheet-title h1 {
+    font-size: 15px;
+    margin: 0;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+  }
+
+  .sheet-title .examid {
+    font-size: 9.5px;
+    color: var(--color-muted);
+    font-weight: 600;
+  }
+
+  .cols {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0 0.14in;
+  }
+
+  .col {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sec {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin-bottom: 5px;
+  }
+
+  .sec h2 {
+    font-size: 9.3px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 800;
+    margin: 0 0 1.5px;
+    padding-bottom: 1px;
+    border-bottom: 1px solid var(--color-text);
+  }
+
+  table.t {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 8.2px;
+    margin-bottom: 1px;
+  }
+
+  table.t th, table.t td {
+    text-align: left;
+    padding: 0.5px 3px 0.5px 0;
+    vertical-align: top;
+    border-bottom: 0.5px solid var(--color-border);
+  }
+
+  table.t th {
+    font-weight: 700;
+    border-bottom: 1px solid var(--color-text);
+  }
+
+  table.t tr:last-child td { border-bottom: none; }
+
+  ul.ol, ol.ol {
+    margin: 0;
+    padding: 0 0 0 0;
+    list-style: none;
+    font-size: 8.2px;
+  }
+
+  ul.ol li, ol.ol li {
+    margin: 0 0 1.5px;
+    padding-bottom: 1.5px;
+    border-bottom: 0.5px dotted var(--color-border);
+  }
+
+  ul.ol li:last-child, ol.ol li:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+  }
+
+  .ol b { font-weight: 700; }
+
+  p.note {
+    font-size: 7.8px;
+    color: var(--color-muted);
+    margin: 1px 0 0;
+  }
+
+  .sheet-footer {
+    border-top: 1px solid var(--color-border);
+    margin-top: 3px;
+    padding-top: 2px;
+    font-size: 7.2px;
+    color: var(--color-muted);
+    text-align: center;
+  }
+
+  ol.steps {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 8.2px;
+    counter-reset: step;
+  }
+
+  ol.steps li {
+    margin: 0 0 1.5px;
+    padding: 0 0 1.5px 12px;
+    border-bottom: 0.5px dotted var(--color-border);
+    position: relative;
+    counter-increment: step;
+  }
+
+  ol.steps li::before {
+    content: counter(step) ".";
+    position: absolute;
+    left: 0;
+    font-weight: 700;
+  }
+
+  ol.steps li:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+  }
+</style>
+</head>
+<body>
+  <div class="screen-chrome">
+    <a href="index.html#/">&larr; Network+ prep home</a>
+    <span class="hint">Print (Cmd/Ctrl+P) — fits one Letter/A4 page at default margins.</span>
+  </div>
+
+  <div class="sheet-wrap">
+    <main class="sheet" aria-label="CompTIA Network+ N10-009 printable cheat sheet">
+      <div class="sheet-title">
+        <h1>CompTIA Network+ — Cheat Sheet</h1>
+        <span class="examid">N10-009</span>
+      </div>
+
+      <div class="cols">
+        <!-- ============ COLUMN A ============ -->
+        <div class="col">
+          <section class="sec">
+            <h2>Exam Domains</h2>
+            <table class="t">
+              <tr><th>Domain</th><th>Weight</th></tr>
+              <tr><td>Troubleshooting</td><td class="mono">24%</td></tr>
+              <tr><td>Concepts</td><td class="mono">23%</td></tr>
+              <tr><td>Implementation</td><td class="mono">20%</td></tr>
+              <tr><td>Operations</td><td class="mono">19%</td></tr>
+              <tr><td>Security</td><td class="mono">14%</td></tr>
+            </table>
+            <p class="note">Max <span class="mono">90</span> Q, <span class="mono">90</span> min, scale <span class="mono">100&ndash;900</span>, pass <span class="mono">720</span>.</p>
+          </section>
+
+          <section class="sec">
+            <h2>Ports</h2>
+            <table class="t">
+              <tr><th>Proto</th><th>Port</th></tr>
+              <tr><td>FTP ctrl/data</td><td class="mono">21/20 TCP</td></tr>
+              <tr><td>SSH</td><td class="mono">22 TCP</td></tr>
+              <tr><td>DNS</td><td class="mono">53 UDP/TCP*</td></tr>
+              <tr><td>DHCP srv/client</td><td class="mono">67/68 UDP</td></tr>
+              <tr><td>TFTP</td><td class="mono">69 UDP</td></tr>
+              <tr><td>HTTP</td><td class="mono">80 TCP</td></tr>
+              <tr><td>SNMP poll/trap</td><td class="mono">161/162 UDP</td></tr>
+              <tr><td>LDAP</td><td class="mono">389 TCP</td></tr>
+              <tr><td>HTTPS / DoH</td><td class="mono">443 TCP</td></tr>
+              <tr><td>SMB</td><td class="mono">445 TCP</td></tr>
+              <tr><td>TACACS+</td><td class="mono">49 TCP</td></tr>
+              <tr><td>RADIUS</td><td class="mono">1812 UDP</td></tr>
+              <tr><td>RDP</td><td class="mono">3389 TCP</td></tr>
+              <tr><td>SIP / SIP-TLS</td><td class="mono">5060/5061</td></tr>
+              <tr><td>DoT</td><td class="mono">853 TCP</td></tr>
+            </table>
+            <p class="note">*TCP 53 for oversized replies/zone transfers only.</p>
+          </section>
+
+          <section class="sec">
+            <h2>OSI 7 Layers</h2>
+            <table class="t">
+              <tr><th>#</th><th>Layer</th><th>Job</th></tr>
+              <tr><td class="mono">7</td><td>Application</td><td>user interface</td></tr>
+              <tr><td class="mono">6</td><td>Presentation</td><td>format/encrypt</td></tr>
+              <tr><td class="mono">5</td><td>Session</td><td>dialogue control</td></tr>
+              <tr><td class="mono">4</td><td>Transport</td><td>segments, ports</td></tr>
+              <tr><td class="mono">3</td><td>Network</td><td>routing, IP</td></tr>
+              <tr><td class="mono">2</td><td>Data Link</td><td>framing, MAC</td></tr>
+              <tr><td class="mono">1</td><td>Physical</td><td>cabling, bits</td></tr>
+            </table>
+          </section>
+
+          <section class="sec">
+            <h2>Addressing</h2>
+            <ul class="ol">
+              <li>RFC 1918 private: <span class="mono">10.0.0.0/8</span>, <span class="mono">172.16.0.0/12</span>, <span class="mono">192.168.0.0/16</span></li>
+              <li>APIPA (RFC 3927): <span class="mono">169.254.0.0/16</span> &mdash; self-assigned only after DHCP fails, never chosen on purpose</li>
+              <li>Class A 1&ndash;126, B 128&ndash;191, C 192&ndash;223 (legacy, CIDR replaced this)</li>
+            </ul>
+          </section>
+
+          <section class="sec">
+            <h2>NAT &amp; PAT</h2>
+            <ul class="ol">
+              <li><b>NAT</b> (RFC 3022) &mdash; rewrites source/dest IP as a packet crosses a router</li>
+              <li><b>Basic NAT</b> &mdash; 1:1 address swap; one public IP per simultaneously-active host</li>
+              <li><b>PAT / NAPT</b> &mdash; also rewrites the source port, so many internal hosts share one public IP (the common home-router setup)</li>
+            </ul>
+          </section>
+        </div>
+
+        <!-- ============ COLUMN B ============ -->
+        <div class="col">
+          <section class="sec">
+            <h2>Administrative Distance</h2>
+            <table class="t">
+              <tr><th>Source</th><th>AD</th></tr>
+              <tr><td>Directly connected</td><td class="mono">0</td></tr>
+              <tr><td>Static route</td><td class="mono">1</td></tr>
+              <tr><td>EIGRP (internal)</td><td class="mono">90</td></tr>
+              <tr><td>OSPF</td><td class="mono">110</td></tr>
+              <tr><td>RIP</td><td class="mono">120</td></tr>
+            </table>
+            <p class="note">Lower AD wins between protocols (trust ranking). Metric only breaks ties within one protocol &mdash; the two are never compared.</p>
+          </section>
+
+          <section class="sec">
+            <h2>WPA2 vs. WPA3</h2>
+            <ul class="ol">
+              <li><b>WPA2</b> &mdash; AES-CCMP; 4-way handshake after PSK proof; captured handshake enables offline dictionary/brute-force cracking</li>
+              <li><b>WPA3</b> &mdash; still PSK for personal, but SAE (Dragonfly) replaces the handshake; forces one live exchange per guess, so cracking can't go offline</li>
+            </ul>
+          </section>
+
+          <section class="sec">
+            <h2>Wi-Fi &amp; DNS Encryption</h2>
+            <ul class="ol">
+              <li>2.4GHz non-overlapping channels: <span class="mono">1, 6, 11</span> (only 1&ndash;11 legal in US)</li>
+              <li>5GHz UNII-2/2e shares spectrum with radar &rarr; requires DFS</li>
+              <li><b>DoT</b> (RFC 7858) &mdash; dedicated port <span class="mono">853</span>, easy to block by port</li>
+              <li><b>DoH</b> (RFC 8484) &mdash; hides inside HTTPS on <span class="mono">443</span>, hard to block without breaking other web traffic</li>
+            </ul>
+          </section>
+
+          <section class="sec">
+            <h2>FHRP: HSRP vs. VRRP</h2>
+            <ul class="ol">
+              <li>FHRP &mdash; routers share one virtual IP as the default gateway; failover is invisible to hosts</li>
+              <li><b>HSRP</b> (Cisco, RFC 2281 Informational) &mdash; active/standby roles, multicast <span class="mono">224.0.0.2</span></li>
+              <li><b>VRRP</b> (open, RFC 5798 Standards Track) &mdash; Master/Backup roles</li>
+              <li>Not interoperable &mdash; different multicast address, packet format, virtual MAC range</li>
+            </ul>
+          </section>
+
+          <section class="sec">
+            <h2>PoE Wattage</h2>
+            <table class="t">
+              <tr><th>Type</th><th>Port max</th><th>Device gtd</th></tr>
+              <tr><td>802.3af (1)</td><td class="mono">15.4W</td><td class="mono">12.95W</td></tr>
+              <tr><td>802.3at (2)</td><td class="mono">30W</td><td class="mono">25.5W</td></tr>
+              <tr><td>802.3bt (3)</td><td class="mono">60W</td><td class="mono">~51W</td></tr>
+              <tr><td>802.3bt (4)</td><td class="mono">~90W</td><td class="mono">~71.3W</td></tr>
+            </table>
+            <p class="note">Plan against the device-guaranteed figure, not the port max.</p>
+          </section>
+
+          <section class="sec">
+            <h2>Cable Categories</h2>
+            <table class="t">
+              <tr><th>Cat</th><th>Speed</th><th>Distance</th></tr>
+              <tr><td>5e</td><td class="mono">1Gbps</td><td class="mono">100m</td></tr>
+              <tr><td>6</td><td class="mono">10Gbps</td><td class="mono">~37&ndash;55m*</td></tr>
+              <tr><td>6a</td><td class="mono">10Gbps</td><td class="mono">100m</td></tr>
+            </table>
+            <p class="note">*Cat6 only hits 10G over a shortened run; Cat6a's extra shielding (vs. alien crosstalk) is what guarantees the full 100m.</p>
+          </section>
+        </div>
+
+        <!-- ============ COLUMN C ============ -->
+        <div class="col">
+          <section class="sec">
+            <h2>Recovery Metrics</h2>
+            <ul class="ol">
+              <li><b>MTD</b> &mdash; total time a business process can tolerate being down (broadest)</li>
+              <li><b>RTO</b> &mdash; max downtime for one resource; must land inside MTD</li>
+              <li><b>RPO</b> &mdash; how much data loss is tolerable, measured backward to last good backup</li>
+              <li><b>MTBF</b> &mdash; avg time between failures (reliability, higher = better)</li>
+              <li><b>MTTR</b> &mdash; avg time to detect+repair one failure (lower = better)</li>
+            </ul>
+          </section>
+
+          <section class="sec">
+            <h2>DR Site Types</h2>
+            <ul class="ol">
+              <li><b>Cold</b> &mdash; space/power/connectivity only; cheapest, slowest</li>
+              <li><b>Warm</b> &mdash; some hardware/software pre-installed</li>
+              <li><b>Hot</b> &mdash; fully configured + staffed; priciest, fastest</li>
+            </ul>
+          </section>
+
+          <section class="sec">
+            <h2>Troubleshooting Methodology</h2>
+            <ol class="steps">
+              <li>Identify the problem</li>
+              <li>Establish theory of probable cause</li>
+              <li>Test the theory</li>
+              <li>Establish a plan of action</li>
+              <li>Implement the solution</li>
+              <li>Verify full system functionality</li>
+              <li>Document findings</li>
+            </ol>
+            <p class="note">Change one variable per attempt; if a theory fails, rule it out and move to the next rather than stacking fixes.</p>
+          </section>
+
+          <section class="sec">
+            <h2>Approach &amp; Diagnostics</h2>
+            <ul class="ol">
+              <li><b>Top-down</b> app-first (symptom looks app-specific) &middot; <b>bottom-up</b> physical-first (cabling/link) &middot; <b>divide-and-conquer</b> starts at L3</li>
+              <li><span class="mono">ping</span> reachability + RTT &middot; <span class="mono">traceroute</span> hop path via rising TTL</li>
+              <li><span class="mono">nslookup</span>/<span class="mono">dig</span> isolates DNS from routing</li>
+              <li><span class="mono">tcpdump</span> full packet capture &middot; <span class="mono">nmap</span> open ports/svc/OS fingerprint</li>
+            </ul>
+          </section>
+
+          <section class="sec">
+            <h2>RADIUS vs. TACACS+</h2>
+            <ul class="ol">
+              <li><b>RADIUS</b> (UDP <span class="mono">1812</span>, RFC 2865) &mdash; encrypts only the password; bundles authN+authZ into one Access-Accept</li>
+              <li><b>TACACS+</b> (TCP <span class="mono">49</span>, RFC 8907) &mdash; obfuscates the whole packet body; splits authN/authZ/accounting into 3 exchanges &mdash; fits per-command device authorization</li>
+            </ul>
+          </section>
+
+          <section class="sec">
+            <h2>ACLs</h2>
+            <ul class="ol">
+              <li>Ordered rules, evaluated top&ndash;down; first match wins</li>
+              <li><b>Standard</b> &mdash; source IP only &middot; <b>Extended</b> &mdash; source+dest+protocol+port</li>
+              <li>Implicit deny ends every ACL &mdash; unmatched traffic is dropped even with zero explicit deny lines</li>
+            </ul>
+          </section>
+        </div>
+      </div>
+
+      <div class="sheet-footer">
+        toddcooke.github.io/learn/networking &mdash; generated from the module's study content
+      </div>
+    </main>
+  </div>
+</body>
+</html>

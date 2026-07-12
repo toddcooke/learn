@@ -25,6 +25,7 @@ The real N10-009 exam is a maximum of 90 questions (multiple-choice AND performa
 - **Flashcards** — a cheat-sheet deck of core networking vocabulary with known/unknown tracking.
 - **Mock exam** — a 90-question, 90-minute timed exam weighted by domain, scored against the real exam's 100-900 scale and 720 passing line.
 - **Progress dashboard** — quiz and mock exam history, flashcard mastery, all stored locally in your browser (`localStorage`, nothing sent anywhere).
+- **[Printable cheatsheet](cheatsheet.html)** — a standalone one-page (Letter/A4) print reference distilled from the study guide and flashcards, linked from Home.
 
 ## How the content was sourced
 

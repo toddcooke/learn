@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CKA Cheat Sheet — Printable</title>
+<style>
+  /* ============================================================
+     PRINT SCAFFOLDING — this block is the reusable skeleton.
+     Content-specific rules live below the "CONTENT" divider.
+     Contract: .sheet content box must stay <= 7.4in wide x 10.2in
+     tall so it prints on one page of both US Letter and A4 at
+     0.4in margins. Screen rendering mirrors print (fixed 7.4in
+     width). Chrome (header/back-link/print hint) is on-screen
+     only and is hidden under @media print.
+     ============================================================ */
+  @page {
+    size: letter portrait;
+    margin: 0.4in;
+  }
+
+  :root {
+    --color-text: #1a1a2e;
+    --color-muted: #5a6472;
+    --color-border: #d8dbe0;
+    --color-primary: #2563eb;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #eceff1;
+    font-family: var(--font-sans);
+    color: var(--color-text);
+  }
+
+  .screen-chrome {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 0.6rem 1rem;
+    background: #fff;
+    border-bottom: 1px solid var(--color-border);
+    position: sticky;
+    top: 0;
+    font-size: 0.85rem;
+  }
+
+  .screen-chrome a {
+    color: var(--color-primary);
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  .screen-chrome a:hover { text-decoration: underline; }
+
+  .screen-chrome .hint { color: var(--color-muted); }
+
+  .sheet-wrap {
+    display: flex;
+    justify-content: center;
+    padding: 1rem 0.5rem 2rem;
+  }
+
+  /* The one-page contract lives here: fixed 7.4in width mirrors
+     the print box exactly, so on-screen preview == what prints. */
+  .sheet {
+    box-sizing: border-box;
+    width: 7.4in;
+    max-height: 10.2in;
+    overflow: hidden;
+    background: #fff;
+    padding: 0.08in 0.12in;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.15);
+    font-size: 8.8px;
+    line-height: 1.3;
+  }
+
+  @media print {
+    body { background: #fff; }
+    .screen-chrome { display: none; }
+    /* .sheet keeps its exact screen dimensions (width, padding,
+       max-height) here so print output mirrors the screen preview
+       pixel-for-pixel; only the decorative wrapper chrome is stripped. */
+    .sheet-wrap {
+      display: block;
+      padding: 0;
+      margin: 0;
+      background: none;
+    }
+    .sheet {
+      box-shadow: none;
+      margin: 0;
+    }
+  }
+
+  .mono { font-family: var(--font-mono); }
+
+  /* ============================================================
+     CONTENT — module-specific below this line.
+     ============================================================ */
+
+  .sheet-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1.5px solid var(--color-text);
+    padding-bottom: 3px;
+    margin-bottom: 5px;
+  }
+
+  .sheet-title h1 {
+    font-size: 15px;
+    margin: 0;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+  }
+
+  .sheet-title .examid {
+    font-size: 9.5px;
+    color: var(--color-muted);
+    font-weight: 600;
+  }
+
+  .cols {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0 0.14in;
+  }
+
+  .col {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sec {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin-bottom: 5px;
+  }
+
+  .sec h2 {
+    font-size: 9.3px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 800;
+    margin: 0 0 1.5px;
+    padding-bottom: 1px;
+    border-bottom: 1px solid var(--color-text);
+  }
+
+  table.t {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 8.2px;
+    margin-bottom: 1px;
+  }
+
+  table.t th, table.t td {
+    text-align: left;
+    padding: 0.5px 3px 0.5px 0;
+    vertical-align: top;
+    border-bottom: 0.5px solid var(--color-border);
+  }
+
+  table.t th {
+    font-weight: 700;
+    border-bottom: 1px solid var(--color-text);
+  }
+
+  table.t tr:last-child td { border-bottom: none; }
+
+  ul.ol, ol.ol {
+    margin: 0;
+    padding: 0 0 0 0;
+    list-style: none;
+    font-size: 8.2px;
+  }
+
+  ul.ol li, ol.ol li {
+    margin: 0 0 1.5px;
+    padding-bottom: 1.5px;
+    border-bottom: 0.5px dotted var(--color-border);
+  }
+
+  ul.ol li:last-child, ol.ol li:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+  }
+
+  .ol b { font-weight: 700; }
+
+  p.note {
+    font-size: 7.8px;
+    color: var(--color-muted);
+    margin: 1px 0 0;
+  }
+
+  .sheet-footer {
+    border-top: 1px solid var(--color-border);
+    margin-top: 3px;
+    padding-top: 2px;
+    font-size: 7.2px;
+    color: var(--color-muted);
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+  <div class="screen-chrome">
+    <a href="index.html#/">&larr; CKA prep home</a>
+    <span class="hint">Print (Cmd/Ctrl+P) — fits one Letter/A4 page at default margins.</span>
+  </div>
+
+  <div class="sheet-wrap">
+    <main class="sheet" aria-label="CKA printable cheat sheet">
+      <div class="sheet-title">
+        <h1>Certified Kubernetes Administrator — Cheat Sheet</h1>
+        <span class="examid">CKA</span>
+      </div>
+
+      <div class="cols">
+        <!-- ============ COLUMN A ============ -->
+        <div class="col">
+          <section class="sec">
+            <h2>Exam Domains</h2>
+            <table class="t">
+              <tr><th>Domain</th><th>Weight</th></tr>
+              <tr><td>Troubleshooting</td><td class="mono">30%</td></tr>
+              <tr><td>Cluster Architecture</td><td class="mono">25%</td></tr>
+              <tr><td>Services &amp; Networking</td><td class="mono">20%</td></tr>
+              <tr><td>Workloads &amp; Scheduling</td><td class="mono">15%</td></tr>
+              <tr><td>Storage</td><td class="mono">10%</td></tr>
+            </table>
+            <p class="note">Real exam: 100% hands-on, no multiple-choice. This mock: <span class="mono">60</span> Q, <span class="mono">90</span> min, pass <span class="mono">66%</span>.</p>
+          </section>
+
+          <section class="sec">
+            <h2>Control Plane &amp; Node</h2>
+            <ul class="ol">
+              <li><b>kube-apiserver</b> &mdash; front door: authN/authZ/admission, persists to etcd</li>
+              <li><b>etcd</b> &mdash; consistent HA key-value store; cluster's single source of truth</li>
+              <li><b>kube-scheduler</b> &mdash; picks a node for each unbound Pod</li>
+              <li><b>kube-controller-manager</b> &mdash; bundled control loops (ReplicaSet, Node, Job...)</li>
+              <li><b>cloud-controller-manager</b> &mdash; cloud integration: LB provisioning, Node labels/IPs</li>
+              <li><b>kubelet</b> &mdash; runs on every node; starts/stops containers via CRI, runs static Pods</li>
+              <li><b>kube-proxy</b> &mdash; programs per-node Service dataplane (iptables or IPVS)</li>
+            </ul>
+          </section>
+
+          <section class="sec">
+            <h2>RBAC</h2>
+            <ul class="ol">
+              <li><b>Role</b> &mdash; namespaced rules only; can't touch Nodes/PVs or cluster-wide scope</li>
+              <li><b>ClusterRole</b> &mdash; needed for cluster-scoped resources, non-resource paths, or one rule set applied across every namespace</li>
+              <li><b>RoleBinding</b> &mdash; grants a Role or ClusterRole, scoped to its own namespace only</li>
+              <li><b>ClusterRoleBinding</b> &mdash; grants a ClusterRole cluster-wide, no namespace boundary</li>
+              <li>Rules are purely additive &mdash; no deny rule exists</li>
+              <li>Creating a broader role/binding needs <span class="mono">escalate</span>/<span class="mono">bind</span> verbs or already holding those perms</li>
+            </ul>
+          </section>
+
+          <section class="sec">
+            <h2>CNI / CRI / CSI</h2>
+            <ul class="ol">
+              <li><b>CRI</b> &mdash; gRPC iface kubelet&rarr;runtime (containerd, CRI-O); no default runtime shipped</li>
+              <li><b>CNI</b> &mdash; Pod networking plugin; no default shipped, CoreDNS stays Pending without one</li>
+              <li><b>CSI</b> &mdash; out-of-tree storage driver interface; replaced in-tree volume plugins</li>
+            </ul>
+          </section>
+        </div>
+
+        <!-- ============ COLUMN B ============ -->
+        <div class="col">
+          <section class="sec">
+            <h2>Workload Kinds</h2>
+            <table class="t">
+              <tr><th>Kind</th><th>Identity / use</th></tr>
+              <tr><td>Deployment</td><td>stateless; owns ReplicaSets, rollout/rollback</td></tr>
+              <tr><td>StatefulSet</td><td>stable ordinal name+PVC per Pod; needs headless Svc</td></tr>
+              <tr><td>DaemonSet</td><td>1 Pod per matching node; HPA can't target it</td></tr>
+              <tr><td>Job</td><td>runs Pods to completion; restartPolicy Never/OnFailure</td></tr>
+              <tr><td>CronJob</td><td>creates Jobs on a schedule; Allow/Forbid/Replace</td></tr>
+            </table>
+          </section>
+
+          <section class="sec">
+            <h2>Services</h2>
+            <ul class="ol">
+              <li><b>ClusterIP</b> (default) &mdash; internal VIP; <span class="mono">clusterIP: None</span> = headless, DNS returns Pod IPs directly</li>
+              <li><b>NodePort</b> &mdash; every node listens on one port, range <span class="mono">30000&ndash;32767</span> by default</li>
+              <li><b>LoadBalancer</b> &mdash; cloud LB provisioned async, usually layers on a NodePort</li>
+              <li>EndpointSlices track ready backends; new slice auto-starts ~every 100 endpoints</li>
+              <li>Ingress needs a controller + IngressClass; TLS only on port 443; Gateway API is the recommended successor (GatewayClass/Gateway/HTTPRoute)</li>
+            </ul>
+          </section>
+
+          <section class="sec">
+            <h2>Storage</h2>
+            <ul class="ol">
+              <li><b>PV</b> &mdash; cluster-scoped real storage; <b>PVC</b> &mdash; namespaced request; <b>StorageClass</b> &mdash; named provisioner profile</li>
+              <li>Access modes: <span class="mono">RWO</span> one node r/w &middot; <span class="mono">ROX</span> many read-only &middot; <span class="mono">RWX</span> many r/w &middot; <span class="mono">RWOP</span> one Pod only</li>
+              <li>Reclaim: <b>Retain</b> keep PV+data (manual cleanup) &middot; <b>Delete</b> removes both (dynamic default) &middot; <b>Recycle</b> deprecated</li>
+              <li><span class="mono">volumeBindingMode: WaitForFirstConsumer</span> delays binding until a Pod is scheduled (vs. <span class="mono">Immediate</span> default)</li>
+              <li><span class="mono">allowVolumeExpansion: true</span> &mdash; grow only, never shrink</li>
+            </ul>
+          </section>
+
+          <section class="sec">
+            <h2>Probes</h2>
+            <ul class="ol">
+              <li><b>Liveness</b> &mdash; fail &rarr; container restarted (app hung/deadlocked)</li>
+              <li><b>Readiness</b> &mdash; fail &rarr; removed from Service endpoints, no restart</li>
+              <li><b>Startup</b> &mdash; holds off liveness/readiness until it first succeeds (slow boot)</li>
+            </ul>
+          </section>
+        </div>
+
+        <!-- ============ COLUMN C ============ -->
+        <div class="col">
+          <section class="sec">
+            <h2>Requests, Limits &amp; QoS</h2>
+            <ul class="ol">
+              <li><b>Request</b> &mdash; scheduler's placement floor; node must have that much unallocated</li>
+              <li><b>Limit</b> &mdash; CPU: throttled at ceiling &middot; Memory: OOMKilled by kernel at ceiling</li>
+              <li><b>Guaranteed</b> &mdash; every container sets request = limit for CPU &amp; memory</li>
+              <li><b>Burstable</b> &mdash; some request/limit set, doesn't meet Guaranteed bar</li>
+              <li><b>BestEffort</b> &mdash; no request/limit at all; first killed under memory pressure</li>
+            </ul>
+          </section>
+
+          <section class="sec">
+            <h2>Scheduling Controls</h2>
+            <ul class="ol">
+              <li><b>Taint</b> repels; <b>toleration</b> permits: <span class="mono">NoSchedule</span> blocks new &middot; <span class="mono">PreferNoSchedule</span> soft &middot; <span class="mono">NoExecute</span> also evicts running</li>
+              <li>Unreachable node auto-tainted <span class="mono">NoExecute</span>+<span class="mono">NoSchedule</span>; default 300s tolerance before eviction</li>
+              <li><b>nodeAffinity</b> ops: <span class="mono">In/NotIn/Exists/DoesNotExist/Gt/Lt</span></li>
+              <li><span class="mono">requiredDuringScheduling...</span> = hard &middot; <span class="mono">preferred...</span> = weighted 1&ndash;100 soft</li>
+              <li>Pod affinity/anti-affinity uses the same required/preferred vocabulary, relative to co-located Pods</li>
+            </ul>
+          </section>
+
+          <section class="sec">
+            <h2>Rollouts</h2>
+            <ul class="ol">
+              <li>RollingUpdate defaults: <span class="mono">maxUnavailable</span> 25% (rounds down), <span class="mono">maxSurge</span> 25% (rounds up)</li>
+              <li><b>Recreate</b> &mdash; kills all old Pods first, gap with zero running</li>
+              <li>Only Pod template changes trigger a rollout; scaling alone does not</li>
+              <li><span class="mono">progressDeadlineSeconds</span> 600s default &rarr; stalled rollout flagged</li>
+              <li><span class="mono">revisionHistoryLimit</span> 10 default caps how far back rollback can reach</li>
+            </ul>
+          </section>
+
+          <section class="sec">
+            <h2>kubectl Troubleshooting</h2>
+            <ul class="ol">
+              <li><span class="mono">describe</span> pod/node &mdash; Events section names the actual blocker</li>
+              <li><span class="mono">logs -c &lt;c&gt; --previous</span> &mdash; prior crashed container's output</li>
+              <li><span class="mono">exec</span> needs a shell in-image; <span class="mono">debug -it --target=</span> attaches an ephemeral container sharing the process namespace instead</li>
+              <li><span class="mono">debug node/&lt;n&gt;</span> &mdash; SSH-free node shell, host fs at <span class="mono">/host</span></li>
+              <li><span class="mono">top nodes/pods</span> needs metrics-server; describe node shows requested vs. top's actual usage</li>
+              <li><span class="mono">drain</span> (evict) &rarr; maintain &rarr; <span class="mono">uncordon</span>; never skip drain before reset/delete</li>
+            </ul>
+          </section>
+        </div>
+      </div>
+
+      <div class="sheet-footer">
+        toddcooke.github.io/learn/kubernetes &mdash; generated from the module's study content
+      </div>
+    </main>
+  </div>
+</body>
+</html>

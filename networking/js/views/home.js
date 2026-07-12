@@ -23,6 +23,7 @@ export function render(mount) {
         <li>Simulate exam day with the <a href="#/exam">mock exam</a>.</li>
         <li>Track improvement on the <a href="#/progress">progress dashboard</a>.</li>
       </ol>
+      <p><a href="cheatsheet.html">Printable cheatsheet</a> — a one-page, print-friendly summary of ports, addressing, wireless, and troubleshooting facts for last-minute review.</p>
     </section>
   `;
 }

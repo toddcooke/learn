@@ -25,6 +25,7 @@ The real CKA exam is 100% hands-on — you solve tasks in a live cluster via the
 - **Flashcards** — a cheat-sheet deck of core Kubernetes objects and concepts with known/unknown tracking.
 - **Mock exam** — a 60-question, 90-minute timed exam weighted by domain, scored against the real exam's 66% passing line.
 - **Progress dashboard** — quiz and mock exam history, flashcard mastery, all stored locally in your browser (`localStorage`, nothing sent anywhere).
+- **[Printable cheatsheet](cheatsheet.html)** — a standalone one-page (Letter/A4) print reference distilled from the study guide and flashcards, linked from Home.
 
 ## How the content was sourced
 

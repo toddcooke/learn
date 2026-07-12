@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AWS SAA-C03 Cheat Sheet — Printable</title>
+<style>
+  /* ============================================================
+     PRINT SCAFFOLDING — this block is the reusable skeleton.
+     Content-specific rules live below the "CONTENT" divider.
+     Contract: .sheet content box must stay <= 7.4in wide x 10.2in
+     tall so it prints on one page of both US Letter and A4 at
+     0.4in margins. Screen rendering mirrors print (fixed 7.4in
+     width). Chrome (header/back-link/print hint) is on-screen
+     only and is hidden under @media print.
+     ============================================================ */
+  @page {
+    size: letter portrait;
+    margin: 0.4in;
+  }
+
+  :root {
+    --color-text: #1a1a2e;
+    --color-muted: #5a6472;
+    --color-border: #d8dbe0;
+    --color-primary: #2563eb;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #eceff1;
+    font-family: var(--font-sans);
+    color: var(--color-text);
+  }
+
+  .screen-chrome {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 0.6rem 1rem;
+    background: #fff;
+    border-bottom: 1px solid var(--color-border);
+    position: sticky;
+    top: 0;
+    font-size: 0.85rem;
+  }
+
+  .screen-chrome a {
+    color: var(--color-primary);
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  .screen-chrome a:hover { text-decoration: underline; }
+
+  .screen-chrome .hint { color: var(--color-muted); }
+
+  .sheet-wrap {
+    display: flex;
+    justify-content: center;
+    padding: 1rem 0.5rem 2rem;
+  }
+
+  /* The one-page contract lives here: fixed 7.4in width mirrors
+     the print box exactly, so on-screen preview == what prints. */
+  .sheet {
+    box-sizing: border-box;
+    width: 7.4in;
+    max-height: 10.2in;
+    overflow: hidden;
+    background: #fff;
+    padding: 0.08in 0.12in;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.15);
+    font-size: 8.8px;
+    line-height: 1.3;
+  }
+
+  @media print {
+    body { background: #fff; }
+    .screen-chrome { display: none; }
+    /* .sheet keeps its exact screen dimensions (width, padding,
+       max-height) here so print output mirrors the screen preview
+       pixel-for-pixel; only the decorative wrapper chrome is stripped. */
+    .sheet-wrap {
+      display: block;
+      padding: 0;
+      margin: 0;
+      background: none;
+    }
+    .sheet {
+      box-shadow: none;
+      margin: 0;
+    }
+  }
+
+  .mono { font-family: var(--font-mono); }
+
+  /* ============================================================
+     CONTENT — module-specific below this line.
+     ============================================================ */
+
+  .sheet-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1.5px solid var(--color-text);
+    padding-bottom: 3px;
+    margin-bottom: 5px;
+  }
+
+  .sheet-title h1 {
+    font-size: 15px;
+    margin: 0;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+  }
+
+  .sheet-title .examid {
+    font-size: 9.5px;
+    color: var(--color-muted);
+    font-weight: 600;
+  }
+
+  .cols {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0 0.14in;
+  }
+
+  .col {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sec {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin-bottom: 5px;
+  }
+
+  .sec h2 {
+    font-size: 9.3px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 800;
+    margin: 0 0 1.5px;
+    padding-bottom: 1px;
+    border-bottom: 1px solid var(--color-text);
+  }
+
+  table.t {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 8.2px;
+    margin-bottom: 1px;
+  }
+
+  table.t th, table.t td {
+    text-align: left;
+    padding: 0.5px 3px 0.5px 0;
+    vertical-align: top;
+    border-bottom: 0.5px solid var(--color-border);
+  }
+
+  table.t th {
+    font-weight: 700;
+    border-bottom: 1px solid var(--color-text);
+  }
+
+  table.t tr:last-child td { border-bottom: none; }
+
+  ul.ol, ol.ol {
+    margin: 0;
+    padding: 0 0 0 0;
+    list-style: none;
+    font-size: 8.2px;
+  }
+
+  ul.ol li, ol.ol li {
+    margin: 0 0 1.5px;
+    padding-bottom: 1.5px;
+    border-bottom: 0.5px dotted var(--color-border);
+  }
+
+  ul.ol li:last-child, ol.ol li:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+  }
+
+  .ol b { font-weight: 700; }
+
+  p.note {
+    font-size: 7.8px;
+    color: var(--color-muted);
+    margin: 1px 0 0;
+  }
+
+  .sheet-footer {
+    border-top: 1px solid var(--color-border);
+    margin-top: 3px;
+    padding-top: 2px;
+    font-size: 7.2px;
+    color: var(--color-muted);
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+  <div class="screen-chrome">
+    <a href="index.html#/">&larr; AWS prep home</a>
+    <span class="hint">Print (Cmd/Ctrl+P) — fits one Letter/A4 page at default margins.</span>
+  </div>
+
+  <div class="sheet-wrap">
+    <main class="sheet" aria-label="AWS SAA-C03 printable cheat sheet">
+      <div class="sheet-title">
+        <h1>AWS Solutions Architect — Cheat Sheet</h1>
+        <span class="examid">SAA-C03</span>
+      </div>
+
+      <div class="cols">
+        <!-- ============ COLUMN A ============ -->
+        <div class="col">
+          <section class="sec">
+            <h2>Exam Domains</h2>
+            <table class="t">
+              <tr><th>Domain</th><th>Weight</th></tr>
+              <tr><td>Secure</td><td class="mono">30%</td></tr>
+              <tr><td>Resilient</td><td class="mono">26%</td></tr>
+              <tr><td>Performant</td><td class="mono">24%</td></tr>
+              <tr><td>Cost</td><td class="mono">20%</td></tr>
+            </table>
+            <p class="note"><span class="mono">65</span> questions (<span class="mono">50</span> scored + <span class="mono">15</span> unscored) &middot; <span class="mono">130</span> min &middot; pass <span class="mono">720</span>/<span class="mono">1000</span></p>
+          </section>
+
+          <section class="sec">
+            <h2>S3 &amp; Glacier</h2>
+            <table class="t">
+              <tr><th>Class</th><th>Retrieval</th></tr>
+              <tr><td>Standard</td><td class="mono">ms</td></tr>
+              <tr><td>Standard/One Zone-IA</td><td class="mono">ms</td></tr>
+              <tr><td>Intelligent-Tiering</td><td class="mono">ms</td></tr>
+              <tr><td>Glacier Instant Retr.</td><td class="mono">ms</td></tr>
+              <tr><td>Glacier Flexible Retr.</td><td class="mono">min&ndash;hrs</td></tr>
+              <tr><td>Glacier Deep Archive</td><td class="mono">hours</td></tr>
+            </table>
+            <p class="note">IA classes = retrieval fee/GB; One Zone = 1 AZ only. Intelligent-Tiering auto-shifts tiers, no retrieval fee. Deep Archive = cheapest, &lt;1&times;/yr access. Lifecycle rules automate Standard&rarr;IA&rarr;Glacier transitions + expiration by age.</p>
+          </section>
+
+          <section class="sec">
+            <h2>EBS Volumes</h2>
+            <ul class="ol">
+              <li><b>gp3</b> SSD &mdash; general purpose; IOPS/throughput set independently of size, flat price</li>
+              <li><b>io1/io2</b> SSD &mdash; Provisioned IOPS; guaranteed sustained IOPS for latency-sensitive DBs</li>
+              <li><b>st1</b> HDD &mdash; throughput-optimized; big data/log streaming, sequential</li>
+              <li><b>sc1</b> HDD &mdash; cold, lowest $/GB, rarely accessed</li>
+            </ul>
+            <p class="note">Neither HDD type (st1/sc1) can be a boot volume.</p>
+          </section>
+
+          <section class="sec">
+            <h2>Load Balancers</h2>
+            <ul class="ol">
+              <li><b>ALB</b> (L7, HTTP/S) &mdash; routes on path/host/header; one ALB, many target groups</li>
+              <li><b>NLB</b> (L4, TCP/UDP) &mdash; extreme throughput, lowest latency, static IP per AZ</li>
+              <li><b>GWLB</b> (L3) &mdash; transparently inserts 3rd-party firewall/IDS appliances</li>
+            </ul>
+          </section>
+
+          <section class="sec">
+            <h2>DR Strategies</h2>
+            <ul class="ol">
+              <li><b>Backup &amp; Restore</b> &mdash; nothing runs until declared; cheapest, slowest</li>
+              <li><b>Pilot Light</b> &mdash; data tier live; rest deployed but powered off</li>
+              <li><b>Warm Standby</b> &mdash; full stack running 24/7 at reduced size</li>
+              <li><b>Multi-site Active-Active</b> &mdash; full capacity live in 2+ Regions; ~zero downtime, priciest</li>
+            </ul>
+            <p class="note"><span class="mono">RPO</span> = max tolerable data loss (time) &middot; <span class="mono">RTO</span> = max tolerable downtime</p>
+          </section>
+
+          <section class="sec">
+            <h2>Security Tools</h2>
+            <ul class="ol">
+              <li><b>CloudTrail</b> &mdash; logs every API call: who, when, what</li>
+              <li><b>Config</b> &mdash; records resource config state over time; flags drift from rules</li>
+              <li><b>GuardDuty</b> &mdash; ML/threat-intel over CloudTrail, VPC Flow, DNS logs; finds compromised creds, cryptomining</li>
+              <li><b>Macie</b> &mdash; ML scan of S3 for PII/sensitive data + public-bucket exposure</li>
+              <li><b>WAF</b> &mdash; inspects HTTP(S) requests; allow/block/rate-limit on IP, header, or pattern (SQLi/XSS)</li>
+              <li><b>Shield Standard</b> (free, auto) vs <b>Advanced</b> (paid, DDoS response team)</li>
+            </ul>
+          </section>
+        </div>
+
+        <!-- ============ COLUMN B ============ -->
+        <div class="col">
+          <section class="sec">
+            <h2>Databases</h2>
+            <ul class="ol">
+              <li><b>RDS/Aurora</b> (relational) &mdash; tables, joins, multi-table transactions, fixed schema</li>
+              <li><b>Aurora</b> &mdash; MySQL/PostgreSQL-compatible; distributed auto-growing storage; Aurora Auto Scaling adds/removes replicas on CPU/connections</li>
+              <li><b>DynamoDB</b> (NoSQL) &mdash; key/value or document, no joins, single-digit-ms at any scale; on-demand or provisioned capacity</li>
+              <li><b>ElastiCache</b> (Redis/Memcached) &mdash; managed cache in front of a DB, &micro;s&ndash;ms</li>
+              <li><b>DAX</b> &mdash; DynamoDB-only cache, ms&rarr;&micro;s, auto invalidation</li>
+              <li><b>RDS Proxy</b> &mdash; pools/reuses connections; failover in seconds w/o dropping app connections; IAM or Secrets Manager auth</li>
+              <li><b>Read replica</b> (async) &mdash; read scaling; promotable for DR</li>
+              <li><b>Multi-AZ standby</b> (sync) &mdash; failover target only, no read traffic</li>
+            </ul>
+            <p class="note">RDS/Aurora automated backups: retention up to <span class="mono">35</span> days. DynamoDB PITR: rolling <span class="mono">35</span>-day window. Both also support on-demand/manual snapshots kept until deleted.</p>
+          </section>
+
+          <section class="sec">
+            <h2>VPC &amp; Networking</h2>
+            <ul class="ol">
+              <li><b>Security Group</b> &mdash; stateful, per-resource, allow rules only, return traffic auto-permitted</li>
+              <li><b>NACL</b> &mdash; stateless, per-subnet; numbered rules, first match wins; allow + deny needed both directions</li>
+              <li><b>NAT Gateway</b> &mdash; 1 shared = cheapest but cross-AZ charges + single point of failure; 1 per AZ removes both</li>
+              <li><b>VPC Peering</b> &mdash; free in-AZ traffic, non-transitive (no multi-hop)</li>
+              <li><b>Transit Gateway</b> &mdash; hub-and-spoke; hourly + per-GB; pays off past ~6 VPCs vs. mesh peering</li>
+              <li><b>Gateway Endpoint</b> &mdash; S3 &amp; DynamoDB only, free, route-table based</li>
+              <li><b>Interface Endpoint</b> (PrivateLink) &mdash; other services, hourly + per-GB, ENI-based</li>
+            </ul>
+          </section>
+
+          <section class="sec">
+            <h2>Connectivity</h2>
+            <ul class="ol">
+              <li><b>Site-to-Site VPN</b> &mdash; IPsec over public internet; up in minutes&ndash;hours; cheap, fast, or backup path</li>
+              <li><b>Direct Connect</b> &mdash; dedicated physical link, bypasses internet; longer lead time; steadier bandwidth/latency</li>
+              <li><b>CloudFront</b> &mdash; edge-caches HTTP(S) content; cuts latency + shields origin</li>
+              <li><b>Global Accelerator</b> &mdash; static anycast IPs; routes TCP/UDP over AWS backbone to nearest healthy endpoint; reroutes in seconds</li>
+              <li><b>Route 53</b> &mdash; DNS + health checks; routing: weighted, latency-based, geolocation/geoproximity, failover</li>
+            </ul>
+          </section>
+        </div>
+
+        <!-- ============ COLUMN C ============ -->
+        <div class="col">
+          <section class="sec">
+            <h2>IAM &amp; Access</h2>
+            <ul class="ol">
+              <li><b>Identity-based policy</b> &mdash; attached to a user/group/role</li>
+              <li><b>Resource-based policy</b> &mdash; attached to the resource (bucket/key policy); grants cross-account access without a role in that account</li>
+              <li><b>SCP</b> &mdash; org/OU ceiling on max permissions; never grants, only narrows what identity/resource policies can allow</li>
+              <li><b>STS</b> &mdash; temp credentials, minutes&ndash;hours; backs every IAM role; <span class="mono">AssumeRole</span> for cross-account</li>
+              <li><b>IAM Identity Center</b> &mdash; workforce SSO across many accounts + managed apps, one console</li>
+              <li><b>Cognito</b> user pools = app-user directory/auth/JWT; identity pools = swap identity for temp AWS creds via STS</li>
+            </ul>
+          </section>
+
+          <section class="sec">
+            <h2>KMS &amp; ACM</h2>
+            <ul class="ol">
+              <li><b>KMS</b> &mdash; default-deny even for root; 1 key policy per key; auto-rotation <span class="mono">1yr</span> default or on-demand; asymmetric keys = manual rotation only</li>
+              <li>ACM DNS-validated cert &mdash; auto-renews unattended if still attached/exported</li>
+              <li>ACM email-validated cert &mdash; needs human approval</li>
+              <li>Private-CA-issued cert (IssueCertificate API) &mdash; NOT auto-renewed</li>
+              <li>Imported/expired cert &mdash; never auto-renewed</li>
+              <li>CloudFront cert &mdash; must be requested in <span class="mono">us-east-1</span></li>
+            </ul>
+          </section>
+
+          <section class="sec">
+            <h2>EC2 Purchasing</h2>
+            <table class="t">
+              <tr><th>Option</th><th>Discount</th></tr>
+              <tr><td>On-Demand</td><td>none, no commit</td></tr>
+              <tr><td>Reserved Instances</td><td>1/3-yr, locked config</td></tr>
+              <tr><td>Savings Plans</td><td class="mono">~72%</td></tr>
+              <tr><td>Spot</td><td class="mono">~90%</td></tr>
+            </table>
+            <p class="note">Savings Plans = $/hr commit, flexes family/OS/Region + Fargate/Lambda. Spot = 2-min interruption warning; fault-tolerant workloads only.</p>
+          </section>
+
+          <section class="sec">
+            <h2>Scaling &amp; Decoupling</h2>
+            <ul class="ol">
+              <li><b>SQS</b> &mdash; point-to-point buffer; Standard = at-least-once; FIFO = exactly-once + ordered</li>
+              <li><b>SNS</b> &mdash; pub/sub; one topic fans out to many subscribers at once</li>
+              <li><b>EventBridge</b> &mdash; event-driven trigger source feeding Lambda alongside S3/SQS</li>
+              <li><b>Step Functions Standard</b> &mdash; exactly-once, full history, runs up to 1 yr</li>
+              <li><b>Step Functions Express</b> &mdash; at-least-once, &le;5 min, high throughput</li>
+              <li><b>Auto Scaling</b> &mdash; min/max/desired; target-tracking, step, scheduled, or predictive policies</li>
+            </ul>
+          </section>
+        </div>
+      </div>
+
+      <div class="sheet-footer">
+        toddcooke.github.io/learn/aws &mdash; generated from the module's study content
+      </div>
+    </main>
+  </div>
+</body>
+</html>

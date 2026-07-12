@@ -22,6 +22,7 @@ Then open http://localhost:8000/ in a browser. (A plain `file://` open won't wor
 - **Mock exam** — a 65-question, 130-minute timed exam weighted by domain, like the real thing.
 - **Progress dashboard** — quiz and mock exam history, flashcard mastery, all stored locally in your browser (`localStorage`, nothing sent anywhere).
 - **[VPC & Subnet Explorer](vpc-explorer.html)** — a standalone interactive page (linked from Home) for clicking through a worked 3-tier/3-AZ VPC's subnets, tracing packets through its route tables, and playing with CIDR math.
+- **[Printable cheatsheet](cheatsheet.html)** — a standalone one-page (Letter/A4) print reference distilled from the study guide and flashcards, linked from Home.
 
 ## How the content was sourced
 

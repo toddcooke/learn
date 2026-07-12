@@ -23,6 +23,7 @@ export function render(mount) {
         <li>Track improvement on the <a href="#/progress">progress dashboard</a>.</li>
       </ol>
       <p><a href="vpc-explorer.html">Interactive: VPC &amp; Subnet Explorer</a> — click through subnet tiers, route tables, and CIDR math.</p>
+      <p><a href="cheatsheet.html">Printable cheatsheet</a> — a one-page, print-friendly summary of storage, database, networking, IAM, and cost facts for last-minute review.</p>
     </section>
   `;
 }

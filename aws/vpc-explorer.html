@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VPC &amp; Subnet Explorer — AWS SAA-C03 Prep</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    /* Explorer-specific styles. Reuses css/style.css's variables/classes
+       (site-header, site-footer, button, history-table, visually-hidden)
+       so this standalone page still looks native to the site. */
+
+    #explorer-content {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    .explorer-intro {
+      color: var(--color-muted);
+      max-width: 70ch;
+    }
+
+    .explorer-panel {
+      border: 1px solid var(--color-border);
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .explorer-panel h2 {
+      margin-top: 0;
+    }
+
+    /* --- Panel 1: VPC map --- */
+
+    .edge-box {
+      border: 1px dashed var(--color-border);
+      border-radius: 8px;
+      padding: 0.6rem 1rem;
+      text-align: center;
+      color: var(--color-muted);
+      font-size: 0.9rem;
+      margin-bottom: 0.75rem;
+      transition: outline 0.15s ease, background-color 0.15s ease;
+    }
+
+    .vpc-map {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      overflow-x: auto;
+    }
+
+    .tier-row {
+      display: grid;
+      grid-template-columns: 140px repeat(3, minmax(140px, 1fr));
+      gap: 0.6rem;
+      align-items: stretch;
+    }
+
+    .tier-label {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .tier-label small {
+      font-weight: 400;
+      color: var(--color-muted);
+    }
+
+    .subnet-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.15rem;
+      background: #fff;
+      color: var(--color-text);
+      border: 2px solid var(--color-border);
+      border-radius: 8px;
+      padding: 0.75rem 0.5rem;
+      font-size: 0.9rem;
+      transition: outline 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+    }
+
+    .subnet-btn:hover {
+      background: #f3f4f6;
+    }
+
+    .subnet-btn.tier-public { border-left: 4px solid var(--color-primary); }
+    .subnet-btn.tier-app { border-left: 4px solid var(--color-success); }
+    .subnet-btn.tier-data { border-left: 4px solid var(--color-muted); }
+
+    .subnet-btn.selected {
+      border-color: var(--color-primary);
+      background: #eff6ff;
+    }
+
+    .subnet-cidr {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-weight: 600;
+    }
+
+    .subnet-az {
+      color: var(--color-muted);
+      font-size: 0.8rem;
+    }
+
+    .nat-badge {
+      margin-top: 0.25rem;
+      display: inline-block;
+      border-radius: 999px;
+      padding: 0.05rem 0.5rem;
+      font-size: 0.7rem;
+      background: #f3f4f6;
+      color: var(--color-muted);
+      transition: outline 0.15s ease, background-color 0.15s ease;
+    }
+
+    .unallocated-note {
+      color: var(--color-muted);
+      font-size: 0.85rem;
+      margin-top: 0.75rem;
+    }
+
+    /* focus + trace highlighting shared by subnet buttons, nat badges, igw, s3-endpoint */
+    .subnet-btn:focus-visible,
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible {
+      outline: 3px solid var(--color-primary-dark);
+      outline-offset: 2px;
+    }
+
+    .hop-active-ok {
+      outline: 3px solid var(--color-success);
+      outline-offset: 2px;
+      background: #ecfdf3;
+    }
+
+    .hop-active-fail {
+      outline: 3px solid var(--color-danger);
+      outline-offset: 2px;
+      background: #fef2f2;
+    }
+
+    /* --- Subnet inspector --- */
+
+    #subnet-inspector {
+      margin-top: 1.5rem;
+      border-top: 1px solid var(--color-border);
+      padding-top: 1.5rem;
+    }
+
+    #subnet-inspector h4 {
+      margin-bottom: 0.35rem;
+    }
+
+    .bit-diagram {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 1.1rem;
+      letter-spacing: 0.02em;
+      overflow-x: auto;
+    }
+
+    .octet-group {
+      display: inline-block;
+      margin-right: 0.6rem;
+      padding: 0.15rem 0.25rem;
+      border-radius: 4px;
+      background: #f9fafb;
+    }
+
+    .bit-fixed {
+      color: var(--color-primary-dark);
+      font-weight: 700;
+    }
+
+    .bit-free {
+      color: var(--color-muted);
+    }
+
+    .reserved-list {
+      margin: 0.25rem 0 1rem;
+      padding-left: 1.25rem;
+    }
+
+    .reserved-list code {
+      font-weight: 600;
+    }
+
+    .route-table td, .route-table th {
+      font-size: 0.9rem;
+    }
+
+    .route-row--winner td {
+      color: var(--color-success);
+      font-weight: 600;
+    }
+
+    .route-row--matched td {
+      color: var(--color-text);
+    }
+
+    .route-row--unmatched td {
+      color: var(--color-muted);
+      text-decoration: line-through;
+    }
+
+    /* --- Panel 2: packet tracer --- */
+
+    .tracer-controls {
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      margin-bottom: 1rem;
+    }
+
+    .tracer-controls label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 0.25rem;
+    }
+
+    .tracer-controls select {
+      font: inherit;
+      padding: 0.5rem;
+      border-radius: 6px;
+      border: 1px solid var(--color-border);
+      min-width: 20rem;
+    }
+
+    #tracer-result {
+      border-radius: 8px;
+      padding: 1rem;
+      border: 1px solid var(--color-border);
+    }
+
+    #tracer-result.trace-ok { border-color: var(--color-success); background: #f0fdf4; }
+    #tracer-result.trace-fail { border-color: var(--color-danger); background: #fef2f2; }
+    #tracer-result.trace-neutral { border-color: var(--color-border); background: #f9fafb; }
+
+    .trace-path {
+      font-size: 1.05rem;
+    }
+
+    .trace-explanation {
+      color: var(--color-muted);
+    }
+
+    .note {
+      font-style: italic;
+      color: var(--color-muted);
+    }
+
+    /* --- Panel 3: CIDR explorer --- */
+
+    .cidr-slider-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .cidr-slider-row label {
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    #cidr-slider-value {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-weight: 700;
+      color: var(--color-primary-dark);
+    }
+
+    #cidr-slider {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .cidr-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin: 1rem 0;
+    }
+
+    .cidr-stats dt {
+      color: var(--color-muted);
+      font-size: 0.85rem;
+    }
+
+    .cidr-stats dd {
+      margin: 0;
+      font-weight: 600;
+    }
+
+    .worked-example {
+      background: #eff6ff;
+      border-radius: 6px;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--color-border);
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <h1>VPC &amp; Subnet Explorer</h1>
+    <nav>
+      <a href="index.html#/">← AWS prep home</a>
+    </nav>
+  </header>
+
+  <main id="explorer-content">
+    <p class="explorer-intro">
+      A worked example built around one recurring SAA-C03 design pattern: a <code>10.0.0.0/16</code> VPC
+      spread across three Availability Zones, with public, application, and data subnet tiers each
+      routed differently. Click through the map, trace real packets against the route tables, and play
+      with the CIDR slider below.
+    </p>
+
+    <section id="panel-map" class="explorer-panel" aria-labelledby="panel-map-heading">
+      <h2 id="panel-map-heading">1. VPC map &amp; subnet inspector</h2>
+      <div id="vpc-map-container"></div>
+      <div id="subnet-inspector">
+        <p>Select a subnet above to inspect its CIDR math and route table.</p>
+      </div>
+    </section>
+
+    <section id="panel-tracer" class="explorer-panel" aria-labelledby="panel-tracer-heading">
+      <h2 id="panel-tracer-heading">2. Packet tracer</h2>
+      <p>
+        Pick a source and destination, then trace the packet against the source subnet's real route
+        table using longest-prefix match — the same algorithm a VPC router uses.
+      </p>
+      <form id="tracer-form">
+        <div class="tracer-controls">
+          <div>
+            <label for="tracer-source">Source</label>
+            <select id="tracer-source"></select>
+          </div>
+          <div>
+            <label for="tracer-dest">Destination</label>
+            <select id="tracer-dest"></select>
+          </div>
+          <button type="submit">Trace</button>
+        </div>
+      </form>
+      <div id="tracer-result" role="status">
+        <p>Choose a source and destination, then click Trace.</p>
+      </div>
+    </section>
+
+    <section id="panel-cidr" class="explorer-panel" aria-labelledby="panel-cidr-heading">
+      <h2 id="panel-cidr-heading">3. CIDR explorer</h2>
+      <p>Slide the prefix length and watch which octet becomes "interesting."</p>
+      <div class="cidr-slider-row">
+        <label for="cidr-slider">
+          Prefix length <output id="cidr-slider-value" for="cidr-slider">/20</output>
+        </label>
+        <input type="range" id="cidr-slider" min="16" max="28" step="1" value="20" />
+      </div>
+      <div id="cidr-explorer-output"></div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>Unofficial study aid. Not affiliated with or endorsed by AWS.</p>
+  </footer>
+
+  <script type="module" src="js/vpc-explorer.js"></script>
+</body>
+</html>

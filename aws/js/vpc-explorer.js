@@ -266,6 +266,15 @@ function renderMap(container) {
       ${unallocatedPct}% of the VPC (${unallocated.toLocaleString()} of ${vpcTotal.toLocaleString()} addresses) is unallocated,
       including the entire upper half of the range (<code>10.0.128.0/17</code>) &mdash; left free for future subnets or AZs.
     </p>
+    <p class="map-legend">
+      <strong>Reading the colors:</strong>
+      left edge = tier (<span class="legend-swatch legend-public"></span> public,
+      <span class="legend-swatch legend-app"></span> app,
+      <span class="legend-swatch legend-data"></span> data) &middot;
+      <span class="legend-box legend-selected">blue box</span> = subnet open in the inspector below &middot;
+      <span class="legend-box legend-hop-ok">green glow</span> = on the last packet trace's path &middot;
+      <span class="legend-box legend-hop-fail">red glow</span> = where a dropped packet stopped.
+    </p>
   `;
 
   container.querySelectorAll('.subnet-btn').forEach((btn) => {

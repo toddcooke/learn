@@ -99,6 +99,60 @@
       background: #eff6ff;
     }
 
+    .subnet-btn.selected::after {
+      content: 'inspecting';
+      display: block;
+      margin-top: 0.25rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--color-primary);
+    }
+
+    .map-legend {
+      margin-top: 0.75rem;
+      font-size: 0.85rem;
+      color: var(--color-muted);
+      line-height: 1.9;
+    }
+
+    .legend-swatch {
+      display: inline-block;
+      width: 4px;
+      height: 0.9em;
+      vertical-align: -0.12em;
+      margin-right: 0.2em;
+    }
+
+    .legend-public { background: var(--color-primary); }
+    .legend-app { background: var(--color-success); }
+    .legend-data { background: var(--color-muted); }
+
+    .legend-box {
+      display: inline-block;
+      padding: 0 0.35em;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+
+    .legend-selected {
+      border: 1.5px solid var(--color-primary);
+      background: #eff6ff;
+    }
+
+    .legend-hop-ok {
+      outline: 2px solid var(--color-success);
+      outline-offset: 1px;
+      background: #ecfdf3;
+    }
+
+    .legend-hop-fail {
+      outline: 2px solid var(--color-danger);
+      outline-offset: 1px;
+      background: #fef2f2;
+    }
+
     .subnet-cidr {
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       font-weight: 600;

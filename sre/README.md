@@ -25,6 +25,7 @@ There is no single, industry-wide Site Reliability Engineering certification the
 - **Flashcards** — a cheat-sheet deck of core SRE vocabulary and concepts with known/unknown tracking.
 - **Practice exam** — a 50-question, 75-minute timed self-test weighted by domain, scored on a 0-100 scale against an informal 70-point passing line.
 - **Progress dashboard** — quiz and practice exam history, flashcard mastery, all stored locally in your browser (`localStorage`, nothing sent anywhere).
+- **[Printable cheatsheet](cheatsheet.html)** — a standalone one-page (Letter/A4) print reference distilled from the study guide and flashcards, linked from Home.
 
 ## How the content was sourced
 

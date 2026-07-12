@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SRE Quick Reference — Printable</title>
+<style>
+  /* ============================================================
+     PRINT SCAFFOLDING — this block is the reusable skeleton.
+     Content-specific rules live below the "CONTENT" divider.
+     Contract: .sheet content box must stay <= 7.4in wide x 10.2in
+     tall so it prints on one page of both US Letter and A4 at
+     0.4in margins. Screen rendering mirrors print (fixed 7.4in
+     width). Chrome (header/back-link/print hint) is on-screen
+     only and is hidden under @media print.
+     ============================================================ */
+  @page {
+    size: letter portrait;
+    margin: 0.4in;
+  }
+
+  :root {
+    --color-text: #1a1a2e;
+    --color-muted: #5a6472;
+    --color-border: #d8dbe0;
+    --color-primary: #2563eb;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #eceff1;
+    font-family: var(--font-sans);
+    color: var(--color-text);
+  }
+
+  .screen-chrome {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 0.6rem 1rem;
+    background: #fff;
+    border-bottom: 1px solid var(--color-border);
+    position: sticky;
+    top: 0;
+    font-size: 0.85rem;
+  }
+
+  .screen-chrome a {
+    color: var(--color-primary);
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  .screen-chrome a:hover { text-decoration: underline; }
+
+  .screen-chrome .hint { color: var(--color-muted); }
+
+  .sheet-wrap {
+    display: flex;
+    justify-content: center;
+    padding: 1rem 0.5rem 2rem;
+  }
+
+  /* The one-page contract lives here: fixed 7.4in width mirrors
+     the print box exactly, so on-screen preview == what prints. */
+  .sheet {
+    box-sizing: border-box;
+    width: 7.4in;
+    max-height: 10.2in;
+    overflow: hidden;
+    background: #fff;
+    padding: 0.08in 0.12in;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.15);
+    font-size: 8.8px;
+    line-height: 1.3;
+  }
+
+  @media print {
+    body { background: #fff; }
+    .screen-chrome { display: none; }
+    /* .sheet keeps its exact screen dimensions (width, padding,
+       max-height) here so print output mirrors the screen preview
+       pixel-for-pixel; only the decorative wrapper chrome is stripped. */
+    .sheet-wrap {
+      display: block;
+      padding: 0;
+      margin: 0;
+      background: none;
+    }
+    .sheet {
+      box-shadow: none;
+      margin: 0;
+    }
+  }
+
+  .mono { font-family: var(--font-mono); }
+
+  /* ============================================================
+     CONTENT — module-specific below this line.
+     ============================================================ */
+
+  .sheet-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1.5px solid var(--color-text);
+    padding-bottom: 3px;
+    margin-bottom: 5px;
+  }
+
+  .sheet-title h1 {
+    font-size: 15px;
+    margin: 0;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+  }
+
+  .sheet-title .examid {
+    font-size: 9.5px;
+    color: var(--color-muted);
+    font-weight: 600;
+  }
+
+  .cols {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0 0.14in;
+  }
+
+  .col {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sec {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin-bottom: 5px;
+  }
+
+  .sec h2 {
+    font-size: 9.3px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 800;
+    margin: 0 0 1.5px;
+    padding-bottom: 1px;
+    border-bottom: 1px solid var(--color-text);
+  }
+
+  table.t {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 8.2px;
+    margin-bottom: 1px;
+  }
+
+  table.t th, table.t td {
+    text-align: left;
+    padding: 0.5px 3px 0.5px 0;
+    vertical-align: top;
+    border-bottom: 0.5px solid var(--color-border);
+  }
+
+  table.t th {
+    font-weight: 700;
+    border-bottom: 1px solid var(--color-text);
+  }
+
+  table.t tr:last-child td { border-bottom: none; }
+
+  ul.ol, ol.ol {
+    margin: 0;
+    padding: 0 0 0 0;
+    list-style: none;
+    font-size: 8.2px;
+  }
+
+  ul.ol li, ol.ol li {
+    margin: 0 0 1.5px;
+    padding-bottom: 1.5px;
+    border-bottom: 0.5px dotted var(--color-border);
+  }
+
+  ul.ol li:last-child, ol.ol li:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+  }
+
+  .ol b { font-weight: 700; }
+
+  p.note {
+    font-size: 7.8px;
+    color: var(--color-muted);
+    margin: 1px 0 0;
+  }
+
+  .sheet-footer {
+    border-top: 1px solid var(--color-border);
+    margin-top: 3px;
+    padding-top: 2px;
+    font-size: 7.2px;
+    color: var(--color-muted);
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+  <div class="screen-chrome">
+    <a href="index.html#/">&larr; SRE prep home</a>
+    <span class="hint">Print (Cmd/Ctrl+P) — fits one Letter/A4 page at default margins.</span>
+  </div>
+
+  <div class="sheet-wrap">
+    <main class="sheet" aria-label="SRE printable quick reference">
+      <div class="sheet-title">
+        <h1>SRE Quick Reference</h1>
+        <span class="examid">not exam-tied &middot; 6-domain self-study</span>
+      </div>
+
+      <div class="cols">
+        <!-- ============ COLUMN A ============ -->
+        <div class="col">
+          <section class="sec">
+            <h2>Study Domains</h2>
+            <table class="t">
+              <tr><th>Domain</th><th>Weight</th></tr>
+              <tr><td>SLIs, SLOs &amp; Error Budgets</td><td class="mono">20%</td></tr>
+              <tr><td>Monitoring &amp; Alerting</td><td class="mono">20%</td></tr>
+              <tr><td>Incidents, On-Call &amp; Postmortems</td><td class="mono">20%</td></tr>
+              <tr><td>Capacity Planning &amp; Load</td><td class="mono">15%</td></tr>
+              <tr><td>Release Engineering</td><td class="mono">15%</td></tr>
+              <tr><td>Reliability &amp; Toil</td><td class="mono">10%</td></tr>
+            </table>
+          </section>
+
+          <section class="sec">
+            <h2>SLI / SLO / SLA / Error Budget</h2>
+            <ul class="ol">
+              <li><b>SLI</b> &mdash; a precise, quantitative measurement (e.g. good events / total events), not a vague health sense</li>
+              <li><b>SLO</b> &mdash; a target attached to an SLI over a window, e.g. "99.9% of requests succeed over rolling 28 days"</li>
+              <li><b>SLA</b> &mdash; an SLO wrapped in a contract; missing it triggers a formal (often financial) consequence, unlike an internal SLO miss</li>
+              <li><b>Error budget = 100% &minus; SLO</b> &mdash; derived, not separately measured; a 99.9% SLO leaves a 0.1% budget</li>
+              <li>Error budget policy: while budget remains, ship normally; once exhausted, freeze non-critical releases until back within target</li>
+              <li>Treat the SLO as both a floor and a ceiling &mdash; running far above it just trains users/dependents to expect more than promised</li>
+            </ul>
+          </section>
+
+          <section class="sec">
+            <h2>Nines &amp; Availability</h2>
+            <table class="t">
+              <tr><th>Target</th><th>Shorthand</th></tr>
+              <tr><td>99%</td><td class="mono">2 nines</td></tr>
+              <tr><td>99.95%</td><td class="mono">3.5 nines</td></tr>
+              <tr><td>99.99%</td><td class="mono">4 nines</td></tr>
+            </table>
+            <p class="note">99.95% = Google Compute Engine's own published target. 99.99% allows ~52 min/yr (~13 min/quarter) downtime. Each extra nine costs disproportionately more for shrinking user-perceptible benefit &mdash; most users can't tell 99.99% from 99.999% apart. Aggregate (request-based) availability = successful / total requests over a window, not simple up/down time.</p>
+          </section>
+
+          <section class="sec">
+            <h2>Burn-Rate Alerting</h2>
+            <ul class="ol">
+              <li>Burn rate 1 = current error rate would exhaust the whole budget exactly at window's end; burn rate 10 = 10&times; faster (budget gone in 1/10 the window)</li>
+              <li>Multiwindow, multi-burn-rate catches fast <i>and</i> slow burns; a short-window confirmation (~1/12 the long window) clears the alert quickly once resolved</li>
+              <li>99.9% SLO starting thresholds: <span class="mono">14.4&times;</span> sustained over 1h (+5min confirm) &rarr; page; <span class="mono">6&times;</span> over 6h (+30min confirm) &rarr; page; <span class="mono">1&times;</span> over 3 days (+6h confirm) &rarr; ticket</li>
+              <li>Breaks down at both traffic extremes: very low traffic (one failure = huge % burn) and very high reliability targets (99.999% burns a month's budget in ~26s)</li>
+            </ul>
+          </section>
+        </div>
+
+        <!-- ============ COLUMN B ============ -->
+        <div class="col">
+          <section class="sec">
+            <h2>Four Golden Signals</h2>
+            <ul class="ol">
+              <li><b>Latency</b> &mdash; track failed-request latency separately from successful (a fast failure hides a slow, damaging one)</li>
+              <li><b>Traffic</b> &mdash; demand in whatever unit fits (req/s, sessions, tx/s)</li>
+              <li><b>Errors</b> &mdash; a 200 status isn't proof of success (wrong payload, blown latency bound)</li>
+              <li><b>Saturation</b> &mdash; how full the <i>tightest</i> constraining resource is, not a generic CPU%; forward-looking (e.g. disk fills in N hours)</li>
+            </ul>
+          </section>
+
+          <section class="sec">
+            <h2>Monitoring Types</h2>
+            <ul class="ol">
+              <li><b>Black-box</b> &mdash; tests externally visible behavior like a user would; symptom-oriented, only catches problems already happening &mdash; good for paging (low false positives)</li>
+              <li><b>White-box</b> &mdash; reads internals (logs, counters); can catch trouble before it's user-visible, including retries silently masking failures</li>
+              <li><b>Metrics</b> &mdash; compact numeric series, near-real-time &rarr; alerts &amp; dashboards</li>
+              <li><b>Logs</b> &mdash; rich per-event detail, batch-lag &rarr; root-cause investigation</li>
+            </ul>
+          </section>
+
+          <section class="sec">
+            <h2>MTTR / MTBF</h2>
+            <ul class="ol">
+              <li><b>MTTR</b> &mdash; mean time to repair: once broken, how long to detect, diagnose &amp; fully resolve. Playbooks cut MTTR ~3&times; vs. improvising</li>
+              <li><b>MTBF</b> &mdash; mean time between failures: the average stretch of working time between one failure and the next, i.e. how rarely a system breaks in the first place (not "before failing")</li>
+              <li>A system can have great MTBF and terrible MTTR, or vice versa &mdash; they describe different halves of an incident's timeline</li>
+            </ul>
+          </section>
+
+          <section class="sec">
+            <h2>Incident Roles (ICS-derived)</h2>
+            <ul class="ol">
+              <li><b>Incident Commander</b> &mdash; tracks overall state, delegates roles, defaults to covering any role nobody's claimed</li>
+              <li><b>Operations</b> lead &mdash; the only one meant to actually change the system live</li>
+              <li><b>Communications</b> lead &mdash; public face, keeps the living incident doc &amp; stakeholders updated on a cadence</li>
+              <li><b>Planning</b> lead &mdash; bugs, handoffs, tracking drift from normal state (SRE book's 4th role; the Workbook's own "3 Cs" framing names only 3 core roles)</li>
+              <li><b>Mitigate first, understand second</b> &mdash; assess impact &rarr; mitigate (e.g. "generic mitigation": rollback/reroute) &rarr; root-cause later in the postmortem</li>
+            </ul>
+          </section>
+        </div>
+
+        <!-- ============ COLUMN C ============ -->
+        <div class="col">
+          <section class="sec">
+            <h2>On-Call &amp; Escalation</h2>
+            <ul class="ol">
+              <li>Response-time target derives from the SLO's own error budget, not habit &mdash; typical: 5 min (user-facing/critical) vs. 30 min (looser systems)</li>
+              <li>~2 incidents/12h shift is a staffing heuristic (full incident lifecycle averages ~6h), not a refusal threshold; median incidents/shift should sit near zero</li>
+              <li>Shifts: keep to ~12h if paging at least daily &mdash; a full 24h stretch degrades judgment</li>
+              <li>Primary answers every page; secondary's job (fallback-only vs. ticket-absorbing) varies by team; escalation is normal, not failure</li>
+            </ul>
+          </section>
+
+          <section class="sec">
+            <h2>Postmortems</h2>
+            <ul class="ol">
+              <li><b>Blameless</b> = assume good faith, not "no consequences" &mdash; still needs owned, tracked action items (accountability moves to fixes, not people)</li>
+              <li>Required triggers: user-visible outage/degradation past a threshold, any data loss, a manual on-call intervention (rollback/reroute), overlong resolution, or a monitoring gap that let it go undetected</li>
+              <li>Strong action item = one named owner, a linked bug, a priority, and a checkable done-state &mdash; "train people to be careful" is a weak action item vs. fixing the system</li>
+            </ul>
+          </section>
+
+          <section class="sec">
+            <h2>Release Patterns</h2>
+            <ul class="ol">
+              <li><b>Canary</b> &mdash; a genuine A/B test: small treatment slice vs. control on the still-running old version, not just a safety net; needs traffic-split + an automated verdict + pipeline integration</li>
+              <li>A 20%-failure release confined to a 5% canary produces ~1% overall failure &mdash; canarying conserves error budget by scaling down blast radius</li>
+              <li>After canary passes: progressive rollout continues in stages (capacity, then region) &mdash; blast radius stays bounded the whole way, not just at the first stage</li>
+              <li><b>Blue/green</b> &mdash; two full environments, zero-downtime cutover, instant revert by flipping traffic back; roughly doubles infrastructure footprint</li>
+              <li>Rollback first, diagnose second &mdash; reverting to known-good is faster/safer than patching live under incident pressure; ~70% of outages trace to changes to a live system</li>
+            </ul>
+          </section>
+
+          <section class="sec">
+            <h2>Reliability Patterns &amp; Toil</h2>
+            <ul class="ol">
+              <li><b>Toil</b> = manual + repetitive + automatable + tactical + no enduring value + scales O(n) with the service &mdash; disliking work or doing it once doesn't make it toil</li>
+              <li><b>N+2</b> &mdash; survive your two largest deployments lost at once (one planned drain + one unplanned failure) at peak load</li>
+              <li><b>Quorum (2f+1)</b> &mdash; tolerates f simultaneous failures; 3 replicas tolerate 1, 5 tolerate 2 (the recommended floor for anything intolerant of an outage)</li>
+              <li><b>Cascading failure</b> &mdash; positive feedback where one failure raises the odds of the next (not just several things breaking at once)</li>
+              <li>Criticality tiers, most&rarr;least protected: <span class="mono">CRITICAL_PLUS</span> &gt; <span class="mono">CRITICAL</span> &gt; <span class="mono">SHEDDABLE_PLUS</span> &gt; <span class="mono">SHEDDABLE</span> &mdash; sheds lowest tiers first under overload</li>
+            </ul>
+          </section>
+        </div>
+      </div>
+
+      <div class="sheet-footer">
+        toddcooke.github.io/learn/sre &mdash; generated from the module's study content
+      </div>
+    </main>
+  </div>
+</body>
+</html>

@@ -22,6 +22,7 @@ export function render(mount) {
         <li>Take the <a href="#/exam">practice exam</a>.</li>
         <li>Track improvement on the <a href="#/progress">progress dashboard</a>.</li>
       </ol>
+      <p><a href="cheatsheet.html">Printable cheatsheet</a> — a one-page, print-friendly summary of MVCC, indexing, isolation levels, WAL, config knobs, and replication for last-minute review.</p>
     </section>
   `;
 }

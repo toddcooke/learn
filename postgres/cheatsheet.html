@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PostgreSQL Quick Reference — Printable</title>
+<style>
+  /* ============================================================
+     PRINT SCAFFOLDING — this block is the reusable skeleton.
+     Content-specific rules live below the "CONTENT" divider.
+     Contract: .sheet content box must stay <= 7.4in wide x 10.2in
+     tall so it prints on one page of both US Letter and A4 at
+     0.4in margins. Screen rendering mirrors print (fixed 7.4in
+     width). Chrome (header/back-link/print hint) is on-screen
+     only and is hidden under @media print.
+     ============================================================ */
+  @page {
+    size: letter portrait;
+    margin: 0.4in;
+  }
+
+  :root {
+    --color-text: #1a1a2e;
+    --color-muted: #5a6472;
+    --color-border: #d8dbe0;
+    --color-primary: #2563eb;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #eceff1;
+    font-family: var(--font-sans);
+    color: var(--color-text);
+  }
+
+  .screen-chrome {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 0.6rem 1rem;
+    background: #fff;
+    border-bottom: 1px solid var(--color-border);
+    position: sticky;
+    top: 0;
+    font-size: 0.85rem;
+  }
+
+  .screen-chrome a {
+    color: var(--color-primary);
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  .screen-chrome a:hover { text-decoration: underline; }
+
+  .screen-chrome .hint { color: var(--color-muted); }
+
+  .sheet-wrap {
+    display: flex;
+    justify-content: center;
+    padding: 1rem 0.5rem 2rem;
+  }
+
+  /* The one-page contract lives here: fixed 7.4in width mirrors
+     the print box exactly, so on-screen preview == what prints. */
+  .sheet {
+    box-sizing: border-box;
+    width: 7.4in;
+    max-height: 10.2in;
+    overflow: hidden;
+    background: #fff;
+    padding: 0.08in 0.12in;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.15);
+    font-size: 8.8px;
+    line-height: 1.3;
+  }
+
+  @media print {
+    body { background: #fff; }
+    .screen-chrome { display: none; }
+    /* .sheet keeps its exact screen dimensions (width, padding,
+       max-height) here so print output mirrors the screen preview
+       pixel-for-pixel; only the decorative wrapper chrome is stripped. */
+    .sheet-wrap {
+      display: block;
+      padding: 0;
+      margin: 0;
+      background: none;
+    }
+    .sheet {
+      box-shadow: none;
+      margin: 0;
+    }
+  }
+
+  .mono { font-family: var(--font-mono); }
+
+  /* ============================================================
+     CONTENT — module-specific below this line.
+     ============================================================ */
+
+  .sheet-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1.5px solid var(--color-text);
+    padding-bottom: 3px;
+    margin-bottom: 5px;
+  }
+
+  .sheet-title h1 {
+    font-size: 15px;
+    margin: 0;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+  }
+
+  .sheet-title .examid {
+    font-size: 9.5px;
+    color: var(--color-muted);
+    font-weight: 600;
+  }
+
+  .cols {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0 0.14in;
+  }
+
+  .col {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sec {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin-bottom: 5px;
+  }
+
+  .sec h2 {
+    font-size: 9.3px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 800;
+    margin: 0 0 1.5px;
+    padding-bottom: 1px;
+    border-bottom: 1px solid var(--color-text);
+  }
+
+  table.t {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 8.2px;
+    margin-bottom: 1px;
+  }
+
+  table.t th, table.t td {
+    text-align: left;
+    padding: 0.5px 3px 0.5px 0;
+    vertical-align: top;
+    border-bottom: 0.5px solid var(--color-border);
+  }
+
+  table.t th {
+    font-weight: 700;
+    border-bottom: 1px solid var(--color-text);
+  }
+
+  table.t tr:last-child td { border-bottom: none; }
+
+  ul.ol, ol.ol {
+    margin: 0;
+    padding: 0 0 0 0;
+    list-style: none;
+    font-size: 8.2px;
+  }
+
+  ul.ol li, ol.ol li {
+    margin: 0 0 1.5px;
+    padding-bottom: 1.5px;
+    border-bottom: 0.5px dotted var(--color-border);
+  }
+
+  ul.ol li:last-child, ol.ol li:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+  }
+
+  .ol b { font-weight: 700; }
+
+  p.note {
+    font-size: 7.8px;
+    color: var(--color-muted);
+    margin: 1px 0 0;
+  }
+
+  .sheet-footer {
+    border-top: 1px solid var(--color-border);
+    margin-top: 3px;
+    padding-top: 2px;
+    font-size: 7.2px;
+    color: var(--color-muted);
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+  <div class="screen-chrome">
+    <a href="index.html#/">&larr; PostgreSQL prep home</a>
+    <span class="hint">Print (Cmd/Ctrl+P) — fits one Letter/A4 page at default margins.</span>
+  </div>
+
+  <div class="sheet-wrap">
+    <main class="sheet" aria-label="PostgreSQL printable quick reference">
+      <div class="sheet-title">
+        <h1>PostgreSQL Quick Reference</h1>
+        <span class="examid">not exam-tied &middot; 6-domain self-study</span>
+      </div>
+
+      <div class="cols">
+        <!-- ============ COLUMN A ============ -->
+        <div class="col">
+          <section class="sec">
+            <h2>Study Domains</h2>
+            <table class="t">
+              <tr><th>Domain</th><th>Weight</th></tr>
+              <tr><td>Architecture &amp; Data Types</td><td class="mono">15%</td></tr>
+              <tr><td>Querying &amp; SQL</td><td class="mono">20%</td></tr>
+              <tr><td>Indexing &amp; Performance</td><td class="mono">20%</td></tr>
+              <tr><td>Transactions &amp; Concurrency</td><td class="mono">15%</td></tr>
+              <tr><td>Administration &amp; Maintenance</td><td class="mono">20%</td></tr>
+              <tr><td>Replication &amp; HA</td><td class="mono">10%</td></tr>
+            </table>
+          </section>
+
+          <section class="sec">
+            <h2>MVCC, VACUUM &amp; ANALYZE</h2>
+            <ul class="ol">
+              <li>Readers never block writers, writers never block readers — an UPDATE/DELETE adds a new row version instead of overwriting</li>
+              <li><b>Snapshot</b> = "committed as of" a moment; Read Committed takes one <b>per statement</b>, Repeatable Read/Serializable take one <b>per transaction</b></li>
+              <li><b>VACUUM</b> reclaims dead-tuple space for reuse but never shrinks the file</li>
+              <li><b>VACUUM FULL</b> rewrites the table (shrinks it); needs ACCESS EXCLUSIVE + ~2&times; disk space; autovacuum never runs it</li>
+              <li><b>ANALYZE</b> refreshes planner stats (pg_statistic/pg_stats) — a different job from VACUUM, neither substitutes for the other</li>
+              <li>Autovacuum fires when dead tuples &gt; <span class="mono">autovacuum_vacuum_threshold</span> (50) + <span class="mono">scale_factor</span> (20%) &times; table rows</li>
+              <li>TRUNCATE / rewriting ALTER TABLE bypass MVCC — a snapshot that never touched the table can see it go empty</li>
+            </ul>
+          </section>
+
+          <section class="sec">
+            <h2>Isolation Levels (3 in PG, 4 named)</h2>
+            <table class="t">
+              <tr><th>Level</th><th>Dirty</th><th>Nonrep.</th><th>Phantom</th><th>Serial.</th></tr>
+              <tr><td>Read Committed <span class="mono">(default)</span></td><td>no</td><td>yes</td><td>yes</td><td>yes</td></tr>
+              <tr><td>Repeatable Read</td><td>no</td><td>no</td><td>no*</td><td>yes</td></tr>
+              <tr><td>Serializable</td><td>no</td><td>no</td><td>no</td><td>no</td></tr>
+            </table>
+            <p class="note">Read Uncommitted is silently treated as Read Committed (no dirty reads possible under MVCC). *PG's Repeatable Read blocks phantoms too — stricter than the SQL standard requires. Repeatable Read/Serializable conflicts abort with SQLSTATE <span class="mono">40001</span> (retry the whole transaction).</p>
+          </section>
+
+          <section class="sec">
+            <h2>Locking</h2>
+            <ul class="ol">
+              <li>8 table lock modes, weakest&rarr;strongest: <span class="mono">ACCESS SHARE</span> (SELECT) &hellip; <span class="mono">ROW EXCLUSIVE</span> (INSERT/UPDATE/DELETE) &hellip; <span class="mono">ACCESS EXCLUSIVE</span> (DROP/TRUNCATE/VACUUM FULL) — only ACCESS EXCLUSIVE blocks a plain SELECT</li>
+              <li>Row locks, strongest&rarr;weakest: <span class="mono">FOR UPDATE</span> &gt; <span class="mono">FOR NO KEY UPDATE</span> &gt; <span class="mono">FOR SHARE</span> &gt; <span class="mono">FOR KEY SHARE</span></li>
+              <li>Deadlock: auto-detected after <span class="mono">deadlock_timeout</span> (1s default), aborts one transaction — SQLSTATE <span class="mono">40P01</span></li>
+              <li>Advisory locks: session-scoped (held until released or disconnect) vs transaction-scoped (auto-released at commit)</li>
+            </ul>
+          </section>
+        </div>
+
+        <!-- ============ COLUMN B ============ -->
+        <div class="col">
+          <section class="sec">
+            <h2>Index Types</h2>
+            <table class="t">
+              <tr><th>Type</th><th>Good for</th></tr>
+              <tr><td>B-tree <span class="mono">(default)</span></td><td>&lt; &le; = &ge; &gt;, BETWEEN, IN, IS [NOT] NULL, left-anchored LIKE, ORDER BY</td></tr>
+              <tr><td>Hash</td><td>equality only — no ranges, no sort, no multi-column</td></tr>
+              <tr><td>GiST</td><td>template: geometric overlap, range overlap, KNN <span class="mono">&lt;-&gt;</span>, EXCLUDE constraints</td></tr>
+              <tr><td>GIN</td><td>inverted index: arrays, jsonb <span class="mono">@&gt;</span>/<span class="mono">&lt;@</span> containment, full-text <span class="mono">@@</span></td></tr>
+              <tr><td>BRIN</td><td>tiny min/max per block range; only pays off when values correlate with physical order (e.g. append-only timestamp)</td></tr>
+            </table>
+          </section>
+
+          <section class="sec">
+            <h2>Partial &amp; Expression Indexes</h2>
+            <ul class="ol">
+              <li>Partial index only helps if the planner can prove the query's WHERE <b>implies</b> the index predicate at plan time — a parameterized clause (<span class="mono">x &lt; $1</span>) defeats this</li>
+              <li>Unique partial index enforces uniqueness over a subset of rows, or "at most one NULL" (ordinary UNIQUE never rejects a 2nd NULL)</li>
+              <li>Expression index (e.g. <span class="mono">lower(email)</span>) recomputes on every write, not at query time</li>
+              <li>Many category-specific partial indexes usually lose to one composite index, or to real partitioning at scale</li>
+            </ul>
+          </section>
+
+          <section class="sec">
+            <h2>EXPLAIN &amp; Scan Types</h2>
+            <ul class="ol">
+              <li>Plain EXPLAIN never executes the statement — zero side effects, even for INSERT/UPDATE/DELETE</li>
+              <li>EXPLAIN ANALYZE genuinely runs it (real writes happen); wrap in <span class="mono">BEGIN;&hellip;ROLLBACK;</span> to inspect without keeping effects</li>
+              <li>Selectivity ladder: <b>Seq Scan</b> (little/no filter) &rarr; <b>Bitmap Index/Heap Scan</b> (moderately selective) &rarr; <b>Index Scan</b> (highly selective / point lookup)</li>
+              <li><span class="mono">cost=startup..total rows=N width=W</span> — rows is estimated output, not rows examined</li>
+            </ul>
+          </section>
+
+          <section class="sec">
+            <h2>Planner Cost Constants</h2>
+            <table class="t">
+              <tr><th>Constant</th><th>Default</th></tr>
+              <tr><td>seq_page_cost</td><td class="mono">1.0</td></tr>
+              <tr><td>random_page_cost</td><td class="mono">4.0</td></tr>
+            </table>
+            <p class="note">Only the ratio drives planning. All-flash/cached workloads: lower random_page_cost toward 1.1&ndash;2 (or match seq_page_cost) so the planner stops overweighting sequential scans.</p>
+          </section>
+        </div>
+
+        <!-- ============ COLUMN C ============ -->
+        <div class="col">
+          <section class="sec">
+            <h2>WAL &amp; Checkpoints</h2>
+            <ul class="ol">
+              <li>A WAL record must be flushed before its data page is allowed to hit disk — durability backbone; crash recovery replays WAL forward (REDO) from the last checkpoint</li>
+              <li>Only the sequential WAL needs an fsync at commit, not every scattered data page</li>
+              <li>A checkpoint flushes all dirty pages; a small <span class="mono">max_wal_size</span> forces checkpoints more often</li>
+              <li>Archiving/PITR needs <span class="mono">wal_level &ge; replica</span> + <span class="mono">archive_mode on</span> + an <span class="mono">archive_command</span></li>
+            </ul>
+          </section>
+
+          <section class="sec">
+            <h2>Key Config Knobs</h2>
+            <ul class="ol">
+              <li><b>shared_buffers</b> &mdash; start ~25% of RAM; rarely helps much beyond ~40% of RAM (OS page cache does the rest)</li>
+              <li><b>work_mem</b> &mdash; PER-OPERATION, not per-connection; caps one sort/hash before it spills to disk; many ops &times; many sessions can multiply total use far past the configured value</li>
+              <li><b>max_connections</b> &mdash; each session is a full backend process, not a thread; raising it raises baseline memory reserved even before any query runs &mdash; use an external pooler (PgBouncer) instead</li>
+              <li><b>autovacuum_vacuum_threshold</b> 50 rows + <b>scale_factor</b> 20% of table rows</li>
+            </ul>
+          </section>
+
+          <section class="sec">
+            <h2>Replication Modes</h2>
+            <ul class="ol">
+              <li><b>Physical (streaming)</b> &mdash; byte-identical, whole-cluster, standby must match primary's version</li>
+              <li><b>Logical</b> &mdash; row-level pub/sub via replication identity; selective tables, cross-major-version OK</li>
+              <li>Default is <b>async</b>: commit doesn't wait for the standby. Opt-in <b>sync</b> via <span class="mono">synchronous_standby_names</span>; <span class="mono">synchronous_commit</span> levels: <span class="mono">remote_write</span> &lt; <span class="mono">on</span> (flushed) &lt; <span class="mono">remote_apply</span> (visible to queries)</li>
+              <li><b>Hot standby</b> replays WAL + serves read queries; <b>warm standby</b> replays only, no client connections</li>
+              <li>A cascading standby feeds further standbys downstream; always async regardless of the primary's sync settings</li>
+            </ul>
+          </section>
+
+          <section class="sec">
+            <h2>Backup &amp; Recovery</h2>
+            <ul class="ol">
+              <li><b>pg_dump</b> &mdash; one database, logical, plain SQL or archive format (pairs with pg_restore)</li>
+              <li><b>pg_dumpall</b> &mdash; adds cluster-wide roles/tablespaces/param grants pg_dump skips; plain-text only</li>
+              <li><b>pg_restore</b> &mdash; selective, reorderable, parallel (<span class="mono">-j</span>) restore from an archive-format dump</li>
+              <li><b>pg_basebackup</b> &mdash; whole-cluster physical copy over the replication protocol; <span class="mono">-R</span> preps a new standby automatically</li>
+              <li>Base backup + archived WAL = point-in-time recovery; a logical dump cannot be combined with WAL replay</li>
+            </ul>
+          </section>
+        </div>
+      </div>
+
+      <div class="sheet-footer">
+        toddcooke.github.io/learn/postgres &mdash; generated from the module's study content
+      </div>
+    </main>
+  </div>
+</body>
+</html>

@@ -81,12 +81,18 @@ node scripts/export-anki.mjs [module...]
     need the service name attached to stand alone; Anki also dedupes on
     the first field, so bare generic fronts would collapse on import).
   - `Back` = the card's `back` field verbatim.
-  - `Tags` = hierarchical tag formatted as `<module>::<service-slug>`,
-    where the service slug is the card's `service` field converted to a
+  - `Tags` = hierarchical tag formatted as `<module>::<domain-slug>`,
+    where the domain slug is the card's `domain` field (its section/topic
+    bucket, e.g. "Networking and Content Delivery" or "Storage" — a
+    coarser grouping than the per-card `service` field) converted to a
     valid Anki tag by: lowercasing, replacing every run of one or more
     characters that isn't a letter or digit with a single hyphen, then
-    trimming any leading/trailing hyphen. Example: module `aws`, service
-    `"SLI (Service Level Indicator)"` → tag `aws::sli-service-level-indicator`.
+    trimming any leading/trailing hyphen. Example: module `sre`, domain
+    `"SLIs, SLOs & Error Budgets"` → tag `sre::slis-slos-error-budgets`.
+    Tagging by domain instead of by service keeps each deck's tag list to
+    a handful of browsable buckets (5-8 per deck) instead of one
+    near-unique tag per card (the service field is almost 1:1 with card
+    count, so it made Anki's tag browser useless for filtering).
   - `Front`/`Back` text is sanitized only to the extent required for
     TSV correctness: any literal tab or newline character inside a
     field is replaced with a single space (none are expected in current
@@ -122,8 +128,12 @@ correctly regardless of which directory it's invoked from.
 - No export of `QUESTIONS` (see Scope above).
 - No new module-level script — this lives only at the repo root.
 - No changes to any module's own `flashcards.js`, `validate-content.mjs`,
-  or other existing tooling.
-- No deck-name or sub-deck-by-domain logic — flashcards don't currently
-  carry a `domain` field (only `service`, a concept label), so grouping
-  by domain isn't reliably derivable from existing data; out of scope
-  for this change.
+  or other existing tooling. (True as of this spec's original design; a
+  later change added a required `domain` field to every card and its
+  validator, which this export script now reads — see Tags below.)
+- No deck-name or sub-deck-by-domain logic — every card now carries a
+  `domain` field (added after this spec was first written) and that
+  value drives the per-card tag (see Tags above), but the script still
+  writes one flat file per module rather than splitting into separate
+  decks or sub-decks by domain; that split, if ever wanted, is still out
+  of scope for this change.

@@ -9,8 +9,8 @@ const ALL_MODULES = readdirSync(new URL('..', import.meta.url), { withFileTypes:
   .map((e) => e.name)
   .sort();
 
-function toTag(service) {
-  return service
+function toTag(label) {
+  return label
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
@@ -38,7 +38,7 @@ async function exportModule(name) {
     const front = sanitizeField(`${card.service} — ${card.front}`);
     const back = sanitizeField(card.back);
     const id = `${name}-${card.id}`;
-    const tag = `${name}::${toTag(card.service)}`;
+    const tag = `${name}::${toTag(card.domain)}`;
     lines.push(`${id}\t${front}\t${back}\t${tag}`);
   }
   return { name, lines, cardCount: FLASHCARDS.length };

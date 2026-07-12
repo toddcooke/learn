@@ -60,7 +60,7 @@ Each `.txt` file contains a 4-column tab-separated format:
 - **ID** (col 1): stable module-qualified identifier (`<module>-<card-id>`), required for Anki to match and update notes on re-import
 - **Front** (col 2): `<service> — <front>` (service name + question)
 - **Back** (col 3): the answer/explanation
-- **Tags** (col 4): hierarchical tags (`<module>::<service-slug>`)
+- **Tags** (col 4): hierarchical tags (`<module>::<domain-slug>`), where the domain is the card's section/topic bucket (5-8 per deck), not the per-card service name
 
 ### One-time Anki setup
 

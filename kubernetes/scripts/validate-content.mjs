@@ -97,6 +97,7 @@ async function validateFlashcards() {
     check(!seenIds.has(c.id), `duplicate flashcard id: ${c.id}`);
     seenIds.add(c.id);
     check(typeof c.service === 'string' && c.service.length > 0, `flashcard ${c.id} missing service`);
+    check(typeof c.domain === 'string' && c.domain.length > 0, `flashcard ${c.id} missing domain`);
     check(typeof c.front === 'string' && c.front.length > 0, `flashcard ${c.id} missing front`);
     check(typeof c.back === 'string' && c.back.length >= 20, `flashcard ${c.id} missing back`);
   }

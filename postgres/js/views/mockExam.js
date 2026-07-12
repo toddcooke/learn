@@ -2,6 +2,7 @@ import { DOMAINS, EXAM_FORMAT, EXAM_UI } from '../data/examInfo.js';
 import { QUESTIONS } from '../data/questions.js';
 import { drawMockExam, isCorrect, estimateScaledScore, shuffle } from '../lib/scoring.js';
 import { createStore } from '../lib/storage.js';
+import { runReviewRound } from './quiz.js';
 
 const store = createStore();
 const QUESTIONS_BY_ID = new Map(QUESTIONS.map((q) => [q.id, q]));
@@ -292,6 +293,7 @@ function finishExam(mount, exam, state) {
     correct: isCorrect(q, state.answers[i] ?? []),
   }));
   const correctCount = results.filter((r) => r.correct).length;
+  const missedCount = results.length - correctCount;
   const score = estimateScaledScore(correctCount, exam.length, {
     minScore: EXAM_FORMAT.minScore,
     maxScore: EXAM_FORMAT.maxScore,
@@ -320,6 +322,7 @@ function finishExam(mount, exam, state) {
         <p>${r.correct ? 'Correct' : 'Incorrect'} — ${r.question.explanation}</p>
       </article>
     `).join('')}
+    ${missedCount > 0 ? `<p><a href="#" id="exam-practice-missed">Practice the ${missedCount} missed questions</a></p>` : ''}
     <p><a href="#/exam" id="exam-retake">Take another ${EXAM_UI.examLabel.toLowerCase()}</a> · <a href="#/progress">View progress</a></p>
   `;
   store.clearExamCheckpoint();
@@ -341,6 +344,34 @@ function finishExam(mount, exam, state) {
   // the "Start Mock Exam" landing screen — matching what a real hash-triggered
   // navigation to #/exam would do (render, not startExam).
   document.getElementById('exam-retake').addEventListener('click', (e) => {
+    e.preventDefault();
+    render(mount);
+  });
+  if (missedCount > 0) {
+    document.getElementById('exam-practice-missed').addEventListener('click', (e) => {
+      e.preventDefault();
+      const missedQuestions = results.filter((r) => !r.correct).map((r) => r.question);
+      runReviewRound(mount, `${EXAM_UI.examLabel} Practice`, missedQuestions, {
+        onDone: (result) => renderPracticeComplete(mount, result),
+      });
+    });
+  }
+}
+
+// Completion screen for the missed-questions practice round kicked off from
+// finishExam(). Deliberately does nothing exam-specific: no timer, no
+// scoring record, no checkpoint interaction — the checkpoint was already
+// cleared when the real exam finished, and this round never persists one.
+function renderPracticeComplete(mount, result) {
+  mount.innerHTML = `
+    <h2>${EXAM_UI.examLabel} Practice</h2>
+    <p class="quiz-score">Review complete — ${result.correctCount} / ${result.total} this round</p>
+    <p><a href="#/exam" id="exam-practice-done">Back to ${EXAM_UI.examLabel}</a> · <a href="#/progress">View progress</a></p>
+  `;
+  // Same same-hash caveat as exam-retake above: #/exam is already the active
+  // hash, so this needs a direct re-invocation of render() rather than
+  // relying on a hashchange that won't fire.
+  document.getElementById('exam-practice-done').addEventListener('click', (e) => {
     e.preventDefault();
     render(mount);
   });

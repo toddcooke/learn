@@ -295,8 +295,8 @@ export const FLASHCARDS = [
     id: 'advisory-lock',
     service: 'Advisory Lock',
     domain: 'Transactions',
-    front: 'What makes an advisory lock "advisory"?',
-    back: 'It has an application-defined meaning that PostgreSQL itself never enforces — cooperating sessions simply agree to check it.',
+    front: 'A session holds pg_advisory_lock(42). What stops another session from writing the rows that lock is meant to protect?',
+    back: 'Nothing — an advisory lock has an application-defined meaning that PostgreSQL itself never enforces; cooperating sessions simply agree to check it.',
   },
   {
     id: 'advisory-lock-scopes',

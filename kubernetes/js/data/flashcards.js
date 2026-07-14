@@ -155,7 +155,7 @@ export const FLASHCARDS = [
     id: 'coredns',
     service: 'CoreDNS',
     domain: 'Services & Networking',
-    front: 'What does CoreDNS provide in a cluster?',
+    front: 'How does CoreDNS end up running in a cluster, and what DNS name format does a Pod typically use to reach a Service through it?',
     back: "Cluster-wide DNS resolution: it runs as the default cluster add-on and answers name lookups so a Pod can reach a Service by name (typically <service>.<namespace>.svc.cluster.local) instead of tracking its virtual IP directly.",
   },
   {
@@ -293,7 +293,7 @@ export const FLASHCARDS = [
   },
   {
     id: 'serviceaccount',
-    service: 'ServiceAccount',
+    service: 'Pod Identity',
     domain: 'Cluster Architecture',
     front: 'What identity does a Pod use to call the Kubernetes API?',
     back: "A ServiceAccount, not a human user account — every Pod runs under one, falling back to its namespace's 'default' ServiceAccount if none is specified. By default a ServiceAccount outside kube-system has no permissions beyond basic discovery, so anything a workload needs must be granted through an explicit RoleBinding or ClusterRoleBinding, ideally one dedicated ServiceAccount per application rather than a shared default."

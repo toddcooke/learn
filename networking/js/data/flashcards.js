@@ -21,23 +21,23 @@ export const FLASHCARDS = [
   },
   {
     id: 'osi-layer3-network',
-    service: 'OSI Layer 3 (Network)',
+    service: 'OSI Model',
     domain: 'Networking Concepts',
     front: 'Which OSI layer is responsible for choosing a path across networks based on IP addresses rather than MAC addresses?',
     back: 'Layer 3, the Network layer, where a router directs each packet using its destination IP address.',
   },
   {
     id: 'osi-layer5-session',
-    service: 'OSI Layer 5 (Session)',
+    service: 'OSI Model',
     domain: 'Networking Concepts',
     front: 'Which OSI layer is responsible for opening, maintaining, and tearing down the dialogue between two communicating hosts?',
     back: 'Layer 5, the Session layer, it manages that ongoing conversation, distinct from Transport below it (moving the data) and Presentation above it (formatting it).',
   },
   {
     id: 'osi-layer6-presentation',
-    service: 'OSI Layer 6 (Presentation)',
+    service: 'OSI Model',
     domain: 'Networking Concepts',
-    front: 'Which OSI layer translates and formats data, such as encryption or compression, between the Session layer and the Application layer?',
+    front: 'Which OSI layer translates and formats data, such as encryption or compression?',
     back: 'Layer 6, the Presentation layer, it converts data into a common format so the Application layer above can actually use it.',
   },
   {
@@ -309,7 +309,7 @@ export const FLASHCARDS = [
   },
   {
     id: 'mtd',
-    service: 'Maximum Tolerable Downtime (MTD)',
+    service: 'MTD vs. RTO',
     domain: 'Network Operations',
     front: 'Why does RTO have to be a smaller number than MTD?',
     back: "RTO has to come in smaller than MTD. MTD (NIST SP 800-34) is the absolute ceiling on how long a whole business process can tolerate being down, counting every downstream consequence; RTO is the narrower, resource-specific recovery target that's supposed to land safely inside that larger ceiling, not exceed it.",
@@ -318,7 +318,7 @@ export const FLASHCARDS = [
     id: 'hot-warm-cold-site',
     service: 'Hot, Warm & Cold Sites',
     domain: 'Network Operations',
-    front: 'Rank cold, warm, and hot DR sites by how much hardware is already sitting there waiting.',
+    front: 'What does a cold DR site actually contain before a disaster, and what do warm and hot sites add on top of it?',
     back: "A cold site has essentially none — just space, power, and connectivity, with equipment acquired only after disaster strikes, making it cheap but slow. A warm site has some systems already installed. A hot site is fully built out and staffed, ready to take over almost immediately, at the highest ongoing cost.",
   },
   {
@@ -360,7 +360,7 @@ export const FLASHCARDS = [
     id: 'change-vs-config-management',
     service: 'Change Management vs. Configuration Management',
     domain: 'Network Operations',
-    front: 'Which discipline decides whether a change is allowed to happen, and which one records what actually happened afterward?',
+    front: 'What does change management require before a change is implemented, and what does configuration management record afterward?',
     back: "Change management is the gate beforehand — a submitted request, a risk assessment, CAB sign-off, a maintenance window, a rollback plan. Configuration management (NIST SP 800-128) is what happens after: tracking and verifying the resulting device state against a known-good baseline so drift gets caught.",
   },
 
@@ -541,7 +541,7 @@ export const FLASHCARDS = [
   },
   {
     id: 'duplex-mismatch',
-    service: 'Duplex Mismatch',
+    service: 'Late Collisions',
     domain: 'Network Troubleshooting',
     front: 'Late collisions are the textbook symptom of what physical-layer misconfiguration?',
     back: "Duplex mismatch — one side of the link is set to full duplex and just transmits without checking whether the wire is busy, colliding with the other side's still-outgoing half-duplex frame partway through, so the collision is only noticed after a meaningful chunk of data has already gone out rather than immediately.",
@@ -583,7 +583,7 @@ export const FLASHCARDS = [
   },
   {
     id: 'nslookup',
-    service: 'nslookup',
+    service: 'DNS Troubleshooting',
     domain: 'Network Troubleshooting',
     front: 'A host is reachable by ping, but a specific hostname won\'t resolve. Which tool isolates that, and why not just use ping?',
     back: "nslookup (or dig), because it queries DNS directly instead of testing reachability. ping and traceroute only confirm whether a path or a host responds — they say nothing about whether a name maps to the right address, which is exactly the gap nslookup is built to check.",
@@ -597,7 +597,7 @@ export const FLASHCARDS = [
   },
   {
     id: 'tcpdump-troubleshoot',
-    service: 'tcpdump',
+    service: 'Troubleshooting Tools',
     domain: 'Network Troubleshooting',
     front: "A connectivity test says a path is up, but something is still wrong with one specific conversation. What's the next tool?",
     back: "tcpdump. Basic reachability tools like ping only confirm a path exists; tcpdump captures the actual packet contents of a conversation, which is what's needed to spot a malformed request, a handshake that never finishes, or a retransmission pattern that ping alone would never reveal.",

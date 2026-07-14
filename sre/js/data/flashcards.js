@@ -89,7 +89,7 @@ export const FLASHCARDS = [
   },
   {
     id: 'cost-of-the-next-nine',
-    service: 'The nonlinear cost of the next nine',
+    service: 'Choosing a reliability target',
     domain: 'SLIs, SLOs & Error Budgets',
     front: 'Why is chasing an extra nine of reliability usually a bad default goal?',
     back: 'Each additional nine costs disproportionately more than the last one, both in engineering effort and in redundant infrastructure, while for most consumer-facing products users cannot even perceive the difference between, say, 99.99% and 99.999% availability. The SRE approach is to pick a target that matches what users actually need and can perceive, not the highest number achievable.',
@@ -177,14 +177,14 @@ export const FLASHCARDS = [
   },
   {
     id: 'mttr',
-    service: 'MTTR (mean time to repair)',
+    service: 'MTTR',
     domain: 'Monitoring, Observability & Alerting',
     front: 'What is MTTR, and what is one of the most effective levers for shortening it?',
     back: "MTTR is the mean time to repair (sometimes 'recovery'): the average time from when a problem starts affecting users to when it is fully resolved. Well-maintained, alert-specific playbooks are one of the more reliable levers for shortening it, since they replace improvised debugging with a known-good sequence of steps.",
   },
   {
     id: 'mtbf',
-    service: 'MTBF (mean time between failures)',
+    service: 'MTBF',
     domain: 'Monitoring, Observability & Alerting',
     front: 'What does MTBF measure, and how is that different from what MTTR measures?',
     back: "MTBF is the average stretch of working time between one failure and the next — a measure of how rarely a system breaks in the first place. MTTR measures something else: once a failure has happened, how long it takes to detect, diagnose, and fully resolve it. A system can have a great MTBF but a terrible MTTR, or the reverse, because the two describe different halves of an incident's timeline — how often it happens, and how fast it's handled once it does.",
@@ -420,7 +420,7 @@ export const FLASHCARDS = [
   },
   {
     id: 'progressive-rollout',
-    service: 'Progressive rollout',
+    service: 'Release rollout',
     domain: 'Release Engineering & Change Management',
     front: 'What happens after a canary stage passes?',
     back: 'A progressive rollout continues expanding a release in a sequence of increasingly larger stages beyond the initial canary — for example, one datacenter, then one region, then everywhere — checking health at each step before proceeding further. It keeps the blast radius of any newly discovered problem bounded all the way through the rollout, not just at the very first, smallest stage.',

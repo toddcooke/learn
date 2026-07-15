@@ -8,6 +8,17 @@
 // source. The field is still named `service` for schema/validator
 // compatibility with the copied validate-content.mjs, even though these
 // are networking concepts rather than AWS services.
+// Canonical domain buckets for this deck. Every card's `domain` must be one
+// of these (enforced by scripts/validate-content.mjs); the Anki export
+// derives its hierarchical tags from them.
+export const FLASHCARD_DOMAINS = [
+  'Networking Concepts',
+  'Network Implementation',
+  'Network Operations',
+  'Network Security',
+  'Network Troubleshooting',
+];
+
 export const FLASHCARDS = [
   // ---------------------------------------------------------------------
   // Networking Concepts

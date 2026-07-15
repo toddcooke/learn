@@ -64,6 +64,8 @@ Each `.txt` file contains a 4-column tab-separated format:
 - **Back** (col 3): the answer/explanation
 - **Tags** (col 4): hierarchical tags (`<module>::<domain-slug>`), where the domain is the card's section/topic bucket (5-8 per deck), not the per-card service name
 
+Each module's domain buckets are canonicalized as `FLASHCARD_DOMAINS` in its `js/data/flashcards.js`, and `scripts/validate-content.mjs` rejects any card whose domain isn't on that list — so the tag set stays stable across exports.
+
 ### One-time Anki setup
 
 To import these decks, set up a custom note type once:

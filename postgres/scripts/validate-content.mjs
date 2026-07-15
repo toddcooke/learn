@@ -100,14 +100,21 @@ async function validateFlashcards() {
     console.log('flashcards.js not present yet, skipping');
     return;
   }
-  const { FLASHCARDS } = await import('../js/data/flashcards.js');
+  const { FLASHCARDS, FLASHCARD_DOMAINS } = await import('../js/data/flashcards.js');
   check(Array.isArray(FLASHCARDS) && FLASHCARDS.length > 0, 'FLASHCARDS must be a non-empty array');
+  check(Array.isArray(FLASHCARD_DOMAINS) && FLASHCARD_DOMAINS.length > 0,
+    'FLASHCARD_DOMAINS must be a non-empty array');
+  const cardDomains = Array.isArray(FLASHCARD_DOMAINS) ? FLASHCARD_DOMAINS : [];
+  check(new Set(cardDomains).size === cardDomains.length,
+    `FLASHCARD_DOMAINS has duplicate entries: ${cardDomains.join(', ')}`);
   const seenIds = new Set();
   for (const c of FLASHCARDS) {
     check(!seenIds.has(c.id), `duplicate flashcard id: ${c.id}`);
     seenIds.add(c.id);
     check(typeof c.service === 'string' && c.service.length > 0, `flashcard ${c.id} missing service`);
     check(typeof c.domain === 'string' && c.domain.length > 0, `flashcard ${c.id} missing domain`);
+    check(cardDomains.includes(c.domain),
+      `flashcard ${c.id} domain not in FLASHCARD_DOMAINS: ${c.domain}`);
     check(typeof c.front === 'string' && c.front.length > 0, `flashcard ${c.id} missing front`);
     check(typeof c.back === 'string' && c.back.length >= 20, `flashcard ${c.id} missing back`);
   }

@@ -4,10 +4,14 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>PostgreSQL Quick Reference — Printable</title>
+<!-- shared-scaffold:start -->
 <style>
   /* ============================================================
-     PRINT SCAFFOLDING — this block is the reusable skeleton.
-     Content-specific rules live below the "CONTENT" divider.
+     PRINT SCAFFOLDING — the reusable skeleton shared by every
+     module's cheatsheet. Everything between the shared-scaffold
+     markers must stay byte-identical across all modules (enforced
+     by scripts/check-drift.mjs); module-specific rules belong in
+     a separate <style> block after the end marker.
      Contract: .sheet content box must stay <= 7.4in wide x 10.2in
      tall so it prints on one page of both US Letter and A4 at
      0.4in margins. Screen rendering mirrors print (fixed 7.4in
@@ -103,7 +107,8 @@
   .mono { font-family: var(--font-mono); }
 
   /* ============================================================
-     CONTENT — module-specific below this line.
+     SHEET COMPONENTS — shared building blocks for the content
+     (title bar, columns, sections, tables, lists, notes, footer).
      ============================================================ */
 
   .sheet-title {
@@ -211,14 +216,19 @@
     text-align: center;
   }
 </style>
+<!-- shared-scaffold:end -->
 </head>
+<!-- shared-scaffold:start -->
 <body>
   <div class="screen-chrome">
+<!-- shared-scaffold:end -->
     <a href="index.html#/">&larr; PostgreSQL prep home</a>
+<!-- shared-scaffold:start -->
     <span class="hint">Print (Cmd/Ctrl+P) — fits one Letter/A4 page at default margins.</span>
   </div>
 
   <div class="sheet-wrap">
+<!-- shared-scaffold:end -->
     <main class="sheet" aria-label="PostgreSQL printable quick reference">
       <div class="sheet-title">
         <h1>PostgreSQL Quick Reference</h1>
@@ -370,7 +380,9 @@
       <div class="sheet-footer">
         toddcooke.github.io/learn/postgres &mdash; hand-maintained, cross-checked against the module's study content
       </div>
+<!-- shared-scaffold:start -->
     </main>
   </div>
 </body>
 </html>
+<!-- shared-scaffold:end -->

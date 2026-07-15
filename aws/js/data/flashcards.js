@@ -5,6 +5,20 @@
 // .cache/aws-docs/ (see scripts/fetch-doc.mjs). Written in the author's own
 // words, not copied verbatim from AWS's docs.
 
+// Canonical domain buckets for this deck. Every card's `domain` must be one
+// of these (enforced by scripts/validate-content.mjs); the Anki export
+// derives its hierarchical tags from them.
+export const FLASHCARD_DOMAINS = [
+  'Security, Identity, and Compliance',
+  'Networking and Content Delivery',
+  'Compute, Containers, and Serverless',
+  'Storage',
+  'Database',
+  'Analytics',
+  'Management, Governance, and Cost',
+  'Best-Fit Scenarios',
+];
+
 export const FLASHCARDS = [
   // ---------------------------------------------------------------------
   // Security, Identity, and Compliance

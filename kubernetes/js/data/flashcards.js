@@ -3,6 +3,17 @@
 // `service` for schema/validator compatibility with the copied
 // validate-content.mjs, even though these are Kubernetes objects and
 // concepts rather than AWS services.
+// Canonical domain buckets for this deck. Every card's `domain` must be one
+// of these (enforced by scripts/validate-content.mjs); the Anki export
+// derives its hierarchical tags from them.
+export const FLASHCARD_DOMAINS = [
+  'Workloads & Scheduling',
+  'Cluster Architecture',
+  'Services & Networking',
+  'Storage',
+  'Troubleshooting',
+];
+
 export const FLASHCARDS = [
   {
     id: 'pod',

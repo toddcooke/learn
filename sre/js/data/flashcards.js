@@ -6,6 +6,18 @@
 // original prose, not copied verbatim. The field is still named `service`
 // for schema/validator compatibility with the copied validate-content.mjs,
 // even though these are SRE concepts rather than AWS services.
+// Canonical domain buckets for this deck. Every card's `domain` must be one
+// of these (enforced by scripts/validate-content.mjs); the Anki export
+// derives its hierarchical tags from them.
+export const FLASHCARD_DOMAINS = [
+  'SLIs, SLOs & Error Budgets',
+  'Monitoring, Observability & Alerting',
+  'Incident Response, On-Call & Postmortems',
+  'Capacity Planning & Managing Load',
+  'Release Engineering & Change Management',
+  'Reliability Patterns & Toil Reduction',
+];
+
 export const FLASHCARDS = [
   // ---------------------------------------------------------------------
   // SLIs, SLOs & Error Budgets

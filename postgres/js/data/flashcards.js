@@ -3,6 +3,18 @@
 // `service` for schema/validator compatibility with the copied
 // validate-content.mjs, even though these are PostgreSQL objects and
 // concepts rather than AWS services.
+// Canonical domain buckets for this deck. Every card's `domain` must be one
+// of these (enforced by scripts/validate-content.mjs); the Anki export
+// derives its hierarchical tags from them.
+export const FLASHCARD_DOMAINS = [
+  'Architecture',
+  'Querying',
+  'Indexing',
+  'Transactions',
+  'Administration',
+  'Replication',
+];
+
 export const FLASHCARDS = [
   // --- Architecture & Data Types ---
   {

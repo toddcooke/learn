@@ -23,13 +23,42 @@ function save(backend, key, value) {
   }
 }
 
+// Single module-scoped in-memory fallback. Every view module calls
+// createStore() separately; when localStorage is unavailable they must all
+// land on the SAME backend, or each view would get its own private Map and
+// cross-view features (e.g. Progress reading quiz history written by Quiz)
+// would silently see nothing for the whole session.
+let sharedMemoryBackend = null;
+
 function memoryBackend() {
-  const map = new Map();
-  return {
-    getItem: (k) => (map.has(k) ? map.get(k) : null),
-    setItem: (k, v) => { map.set(k, v); },
-    removeItem: (k) => { map.delete(k); },
-  };
+  if (sharedMemoryBackend === null) {
+    const map = new Map();
+    sharedMemoryBackend = {
+      getItem: (k) => (map.has(k) ? map.get(k) : null),
+      setItem: (k, v) => { map.set(k, v); },
+      removeItem: (k) => { map.delete(k); },
+    };
+  }
+  return sharedMemoryBackend;
+}
+
+// Stored values can be valid JSON but the wrong shape (a hand-edited key, or
+// a value written by an older/newer format). Each getter validates the parsed
+// shape and returns its fallback instead of handing views a value they can't
+// iterate — an unguarded wrong shape would throw mid-render and leave the
+// view permanently blank until storage is manually cleared.
+function isPlainObject(value) {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function loadArray(backend, key) {
+  const value = load(backend, key, []);
+  return Array.isArray(value) ? value : [];
+}
+
+function loadObject(backend, key) {
+  const value = load(backend, key, {});
+  return isPlainObject(value) ? value : {};
 }
 
 export function createStore(backend) {
@@ -50,31 +79,32 @@ export function createStore(backend) {
   }
   return {
     getQuizHistory() {
-      return load(b, 'quiz-history', []);
+      return loadArray(b, 'quiz-history');
     },
     recordQuizAttempt(attempt) {
-      const history = load(b, 'quiz-history', []);
+      const history = loadArray(b, 'quiz-history');
       history.push(attempt);
       save(b, 'quiz-history', history);
     },
     getFlashcardState() {
-      return load(b, 'flashcard-state', {});
+      return loadObject(b, 'flashcard-state');
     },
     setFlashcardKnown(cardId, known) {
-      const state = load(b, 'flashcard-state', {});
+      const state = loadObject(b, 'flashcard-state');
       state[cardId] = known;
       save(b, 'flashcard-state', state);
     },
     getMockExamHistory() {
-      return load(b, 'mock-exam-history', []);
+      return loadArray(b, 'mock-exam-history');
     },
     recordMockExamAttempt(attempt) {
-      const history = load(b, 'mock-exam-history', []);
+      const history = loadArray(b, 'mock-exam-history');
       history.push(attempt);
       save(b, 'mock-exam-history', history);
     },
     getExamCheckpoint() {
-      return load(b, 'exam-checkpoint', null);
+      const value = load(b, 'exam-checkpoint', null);
+      return isPlainObject(value) ? value : null;
     },
     setExamCheckpoint(checkpoint) {
       save(b, 'exam-checkpoint', checkpoint);

@@ -39,6 +39,13 @@ function renderRoute(focusMount) {
   const { view, params } = parseHash();
   const mount = document.getElementById('app-content');
   const renderFn = VIEWS[view] || renderHome;
+  if (!VIEWS[view]) {
+    // Unknown/typo'd hash: Home is rendered, so rewrite the address bar to
+    // match instead of leaving a bogus hash to be bookmarked or shared.
+    // replaceState changes the URL without firing a second hashchange and
+    // without adding a history entry.
+    history.replaceState(null, '', '#/');
+  }
   mount.innerHTML = '';
   renderFn(mount, ...params);
   highlightNav(VIEWS[view] ? view : 'home');

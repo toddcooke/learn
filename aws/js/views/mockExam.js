@@ -2,6 +2,7 @@ import { DOMAINS, EXAM_FORMAT, EXAM_UI } from '../data/examInfo.js';
 import { QUESTIONS } from '../data/questions.js';
 import { drawMockExam, isCorrect, estimateScaledScore, shuffle } from '../lib/scoring.js';
 import { createStore } from '../lib/storage.js';
+import { escapeHtml } from '../lib/html.js';
 import { runReviewRound } from './quiz.js';
 
 const store = createStore();
@@ -52,9 +53,11 @@ function formatClock(totalSeconds) {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-// Reads and validates the persisted checkpoint (if any). A checkpoint that
-// has expired or whose question ids no longer resolve (e.g. the question
-// bank changed) is discarded rather than offered for resume.
+// Reads and validates the persisted checkpoint (if any). A checkpoint whose
+// question ids no longer resolve (e.g. the question bank changed) is
+// discarded. A well-formed checkpoint whose deadline has passed is NOT
+// discarded — it's returned with `expired: true` so render() can score the
+// saved answers instead of silently throwing them away.
 function readResumableCheckpoint() {
   const checkpoint = store.getExamCheckpoint();
   if (!checkpoint) {
@@ -69,7 +72,7 @@ function readResumableCheckpoint() {
     && Array.isArray(answers)
     && Number.isInteger(index) && index >= 0
     && typeof deadline === 'number';
-  if (!isWellFormed || deadline <= Date.now()) {
+  if (!isWellFormed) {
     store.clearExamCheckpoint();
     return null;
   }
@@ -91,6 +94,7 @@ function readResumableCheckpoint() {
     deadline,
     answeredCount,
     timeLeftLabel: formatClock(secondsLeft),
+    expired: deadline <= Date.now(),
   };
 }
 
@@ -102,12 +106,20 @@ export function render(mount) {
   // sweep it up before that finished exam's leftovers accumulate.
   removeLiveRegion();
   const checkpoint = readResumableCheckpoint();
+  // Time ran out while the user was away: a deadline-expired checkpoint is a
+  // finished exam, not a discardable one. Score the saved answers, record the
+  // attempt, and show the results screen (finishExam also clears the
+  // checkpoint) with a note explaining what happened.
+  if (checkpoint && checkpoint.expired) {
+    finishExam(mount, checkpoint.exam, { index: checkpoint.index, answers: checkpoint.answers }, { expiredWhileAway: true });
+    return;
+  }
   mount.innerHTML = `
-    <h2>${EXAM_UI.examLabel}</h2>
-    <p>${EXAM_UI.startBlurb}</p>
-    ${EXAM_UI.startNote ? `<p class="exam-note">${EXAM_UI.startNote}</p>` : ''}
-    <button type="button" id="start-exam">Start ${EXAM_UI.examLabel}</button>
-    ${checkpoint ? `<button type="button" id="resume-exam">Resume ${EXAM_UI.examLabel} (${checkpoint.answeredCount} answered, ${checkpoint.timeLeftLabel} left)</button>` : ''}
+    <h2>${escapeHtml(EXAM_UI.examLabel)}</h2>
+    <p>${escapeHtml(EXAM_UI.startBlurb)}</p>
+    ${EXAM_UI.startNote ? `<p class="exam-note">${escapeHtml(EXAM_UI.startNote)}</p>` : ''}
+    <button type="button" id="start-exam">Start ${escapeHtml(EXAM_UI.examLabel)}</button>
+    ${checkpoint ? `<button type="button" id="resume-exam">Resume ${escapeHtml(EXAM_UI.examLabel)} (${checkpoint.answeredCount} answered, ${checkpoint.timeLeftLabel} left)</button>` : ''}
   `;
   document.getElementById('start-exam').addEventListener('click', () => startExam(mount));
   if (checkpoint) {
@@ -142,6 +154,12 @@ function startExam(mount) {
 // genuinely elapsed time instead of resetting the clock.
 function runExam(mount, exam, state, deadline) {
   const questionIds = exam.map((q) => q.id);
+  // Each question's option order is shuffled ONCE per exam run (here, which
+  // also covers resume) and reused on every re-render, so revisiting a
+  // question via Previous/Next shows its options in a stable order instead
+  // of reshuffling on each visit. Answers are stored by original option
+  // index, so the display order never affects scoring.
+  const optionOrders = exam.map((q) => shuffle(q.options.map((_, i) => i)));
 
   function persistCheckpoint() {
     store.setExamCheckpoint({
@@ -170,7 +188,12 @@ function runExam(mount, exam, state, deadline) {
   // Refresh/close while an exam is in flight loses nothing thanks to the
   // checkpoint, but still ask for confirmation via the browser's native
   // leave-confirmation prompt so an accidental refresh isn't the default.
-  const onBeforeUnload = (e) => { e.preventDefault(); };
+  // Some browsers require returnValue to be set (not just preventDefault)
+  // before they show the confirmation dialog.
+  const onBeforeUnload = (e) => {
+    e.preventDefault();
+    e.returnValue = '';
+  };
   activeBeforeUnloadHandler = onBeforeUnload;
   window.addEventListener('beforeunload', onBeforeUnload);
 
@@ -205,11 +228,15 @@ function runExam(mount, exam, state, deadline) {
   // starts at the current value, not above the threshold.
   let prevSecondsLeft = currentSecondsLeft();
 
+  // Checked lowest-threshold-first: a throttled background tab can jump many
+  // minutes in one tick and cross BOTH thresholds at once, and announcing
+  // "10 minutes remaining" when under a minute actually remains would be
+  // affirmatively wrong. Only the lowest crossed threshold is announced.
   function announceThresholds(secondsLeft) {
-    if (prevSecondsLeft > 600 && secondsLeft <= 600) {
-      liveRegion.textContent = '10 minutes remaining';
-    } else if (prevSecondsLeft > 60 && secondsLeft <= 60) {
+    if (prevSecondsLeft > 60 && secondsLeft <= 60) {
       liveRegion.textContent = '1 minute remaining';
+    } else if (prevSecondsLeft > 600 && secondsLeft <= 600) {
+      liveRegion.textContent = '10 minutes remaining';
     }
     prevSecondsLeft = secondsLeft;
   }
@@ -230,7 +257,7 @@ function runExam(mount, exam, state, deadline) {
     const q = exam[state.index];
     const isMulti = q.questionType === 'multiple-response';
     const selected = state.answers[state.index] ?? [];
-    const shuffledOptions = shuffle(q.options.map((opt, i) => ({ opt, i })));
+    const orderedOptions = optionOrders[state.index].map((i) => ({ opt: q.options[i], i }));
     mount.innerHTML = `
       <div class="exam-header">
         <span id="exam-question-counter">Question ${state.index + 1} of ${exam.length}</span>
@@ -238,18 +265,18 @@ function runExam(mount, exam, state, deadline) {
       </div>
       <form id="exam-form">
         <fieldset>
-          <legend class="quiz-question">${q.question}</legend>
-          ${shuffledOptions.map(({ opt, i }) => `
+          <legend class="quiz-question">${escapeHtml(q.question)}</legend>
+          ${orderedOptions.map(({ opt, i }) => `
             <label class="quiz-option">
               <input type="${isMulti ? 'checkbox' : 'radio'}" name="answer" value="${i}" ${selected.includes(i) ? 'checked' : ''} />
-              ${opt}
+              ${escapeHtml(opt)}
             </label>
           `).join('')}
         </fieldset>
       </form>
       <div class="exam-nav">
         <button type="button" id="exam-prev" ${state.index === 0 ? 'disabled' : ''}>Previous</button>
-        <button type="button" id="exam-next">${state.index + 1 < exam.length ? 'Next' : 'Review & Submit'}</button>
+        <button type="button" id="exam-next">${state.index + 1 < exam.length ? 'Next' : 'Submit Exam'}</button>
       </div>
     `;
     updateTimerDisplay();
@@ -286,7 +313,10 @@ function runExam(mount, exam, state, deadline) {
   renderQuestion();
 }
 
-function finishExam(mount, exam, state) {
+// `expiredWhileAway` marks the case where render() found a checkpoint whose
+// deadline passed while the user wasn't on the exam view — the results are
+// the same, but the screen explains that time ran out in their absence.
+function finishExam(mount, exam, state, { expiredWhileAway = false } = {}) {
   const results = exam.map((q, i) => ({
     question: q,
     selected: state.answers[i] ?? [],
@@ -307,35 +337,48 @@ function finishExam(mount, exam, state) {
   });
 
   mount.innerHTML = `
-    <h2>${EXAM_UI.examLabel} Results</h2>
+    <h2>${escapeHtml(EXAM_UI.examLabel)} Results</h2>
+    ${expiredWhileAway ? '<p class="exam-note">Time expired while you were away — this exam was scored from your saved answers.</p>' : ''}
     <p class="quiz-score">Estimated scaled score: ${score} / ${EXAM_FORMAT.maxScore} — ${passed ? 'PASS' : 'Below passing score'}</p>
-    <p class="exam-note">${EXAM_UI.resultsNote}</p>
+    <p class="exam-note">${escapeHtml(EXAM_UI.resultsNote)}</p>
     <p>${correctCount} / ${exam.length} correct</p>
     <h3>By Domain</h3>
     <ul>
-      ${byDomain.map((d) => `<li>${d.domain.name}: ${d.correct} / ${d.total}</li>`).join('')}
+      ${byDomain.map((d) => `<li>${escapeHtml(d.domain.name)}: ${d.correct} / ${d.total}</li>`).join('')}
     </ul>
     <h3>Review</h3>
     ${results.map((r, i) => `
       <article class="review-item ${r.correct ? 'feedback-correct' : 'feedback-incorrect'}">
-        <p><strong>Q${i + 1}.</strong> ${r.question.question}</p>
-        <p>${r.correct ? 'Correct' : 'Incorrect'} — ${r.question.explanation}</p>
+        <p><strong>Q${i + 1}.</strong> ${escapeHtml(r.question.question)}</p>
+        <p>${r.correct ? 'Correct' : 'Incorrect'} — ${escapeHtml(r.question.explanation)}</p>
       </article>
     `).join('')}
     ${missedCount > 0 ? `<p><a href="#" id="exam-practice-missed">Practice the ${missedCount} missed questions</a></p>` : ''}
-    <p><a href="#/exam" id="exam-retake">Take another ${EXAM_UI.examLabel.toLowerCase()}</a> · <a href="#/progress">View progress</a></p>
+    <p><a href="#/exam" id="exam-retake">Take another ${escapeHtml(EXAM_UI.examLabel.toLowerCase())}</a> · <a href="#/progress">View progress</a></p>
   `;
   store.clearExamCheckpoint();
-  try {
-    store.recordMockExamAttempt({
-      score,
-      correct: correctCount,
-      total: exam.length,
-      passed,
-      timestamp: new Date().toISOString(),
-    });
-  } catch {
-    mount.insertAdjacentHTML('beforeend', '<p class="exam-note">Could not save this attempt to history.</p>');
+  // No try/catch here: storage.save() already swallows write failures
+  // (quota, blocked storage), so recordMockExamAttempt never throws.
+  store.recordMockExamAttempt({
+    score,
+    correct: correctCount,
+    total: exam.length,
+    passed,
+    timestamp: new Date().toISOString(),
+  });
+  // The in-exam hashchange teardown was already consumed by stopActiveTimer()
+  // before finishExam ran, so without a fresh listener the live region would
+  // linger in the DOM through every later view. Install a one-shot listener
+  // whose only job is sweeping it up when the user navigates away from this
+  // results screen. It reuses the activeHashchangeHandler slot so a new exam
+  // start (stopActiveTimer) also clears it.
+  if (activeLiveRegion !== null) {
+    const onLeaveResults = () => {
+      if (activeHashchangeHandler === onLeaveResults) activeHashchangeHandler = null;
+      removeLiveRegion();
+    };
+    activeHashchangeHandler = onLeaveResults;
+    window.addEventListener('hashchange', onLeaveResults, { once: true });
   }
   // The hash (#/exam) is already active on this results screen, so a click
   // on "Take another mock exam" doesn't change the URL fragment and the
@@ -364,9 +407,9 @@ function finishExam(mount, exam, state) {
 // cleared when the real exam finished, and this round never persists one.
 function renderPracticeComplete(mount, result) {
   mount.innerHTML = `
-    <h2>${EXAM_UI.examLabel} Practice</h2>
+    <h2>${escapeHtml(EXAM_UI.examLabel)} Practice</h2>
     <p class="quiz-score">Review complete — ${result.correctCount} / ${result.total} this round</p>
-    <p><a href="#/exam" id="exam-practice-done">Back to ${EXAM_UI.examLabel}</a> · <a href="#/progress">View progress</a></p>
+    <p><a href="#/exam" id="exam-practice-done">Back to ${escapeHtml(EXAM_UI.examLabel)}</a> · <a href="#/progress">View progress</a></p>
   `;
   // Same same-hash caveat as exam-retake above: #/exam is already the active
   // hash, so this needs a direct re-invocation of render() rather than

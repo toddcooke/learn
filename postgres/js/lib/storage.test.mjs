@@ -43,10 +43,59 @@ test('save failures are swallowed, not thrown', () => {
   assert.deepEqual(store.getQuizHistory(), []);
 });
 
+// The in-memory fallback is deliberately shared across every createStore()
+// call (see storage.js), so these fallback tests assert relative growth
+// rather than absolute lengths — earlier tests may already have written to
+// the shared backend.
 test('unavailable localStorage falls back to in-memory store', () => {
   const store = createStore(null);
+  const before = store.getQuizHistory().length;
   store.recordQuizAttempt({ score: 2 });
-  assert.equal(store.getQuizHistory().length, 1);
+  const history = store.getQuizHistory();
+  assert.equal(history.length, before + 1);
+  assert.equal(history[history.length - 1].score, 2);
+});
+
+test('every fallback store shares the same in-memory backend', () => {
+  const writer = createStore(null);
+  const reader = createStore(null);
+  const before = reader.getQuizHistory().length;
+  writer.recordQuizAttempt({ score: 7 });
+  const history = reader.getQuizHistory();
+  assert.equal(history.length, before + 1);
+  assert.equal(history[history.length - 1].score, 7);
+});
+
+// The namespace prefix differs per module, so seed wrong-shape values with a
+// backend that returns the same raw string for every key instead of
+// hard-coding namespaced keys.
+function storeWithRaw(raw) {
+  return createStore({
+    getItem: () => raw,
+    setItem: () => {},
+    removeItem: () => {},
+  });
+}
+
+test('valid-JSON-but-wrong-shape values fall back per getter', () => {
+  assert.deepEqual(storeWithRaw('{}').getQuizHistory(), []);
+  assert.deepEqual(storeWithRaw('null').getQuizHistory(), []);
+  assert.deepEqual(storeWithRaw('"oops"').getMockExamHistory(), []);
+  assert.deepEqual(storeWithRaw('[]').getFlashcardState(), {});
+  assert.deepEqual(storeWithRaw('null').getFlashcardState(), {});
+  assert.equal(storeWithRaw('[1,2]').getExamCheckpoint(), null);
+  assert.equal(storeWithRaw('42').getExamCheckpoint(), null);
+});
+
+test('recording over a wrong-shape history starts a fresh array instead of throwing', () => {
+  let written;
+  const store = createStore({
+    getItem: () => '{}',
+    setItem: (k, v) => { written = v; },
+    removeItem: () => {},
+  });
+  assert.doesNotThrow(() => store.recordQuizAttempt({ score: 5 }));
+  assert.deepEqual(JSON.parse(written), [{ score: 5 }]);
 });
 
 test('exam checkpoint set/get/clear round-trips', () => {
@@ -66,9 +115,11 @@ test('backend whose getItem throws during probe falls back to in-memory store', 
     removeItem: () => { throw new Error('SecurityError'); },
   };
   const store = createStore(throwingProbe);
+  const before = store.getQuizHistory().length;
   assert.doesNotThrow(() => store.recordQuizAttempt({ score: 3 }));
-  assert.equal(store.getQuizHistory().length, 1);
-  assert.equal(store.getQuizHistory()[0].score, 3);
+  const history = store.getQuizHistory();
+  assert.equal(history.length, before + 1);
+  assert.equal(history[history.length - 1].score, 3);
 });
 
 test('globalThis.localStorage access throwing does not crash zero-arg createStore', () => {
@@ -80,9 +131,11 @@ test('globalThis.localStorage access throwing does not crash zero-arg createStor
   try {
     let store;
     assert.doesNotThrow(() => { store = createStore(); });
+    const before = store.getQuizHistory().length;
     store.recordQuizAttempt({ score: 4 });
-    assert.equal(store.getQuizHistory().length, 1);
-    assert.equal(store.getQuizHistory()[0].score, 4);
+    const history = store.getQuizHistory();
+    assert.equal(history.length, before + 1);
+    assert.equal(history[history.length - 1].score, 4);
   } finally {
     if (original) {
       Object.defineProperty(globalThis, 'localStorage', original);

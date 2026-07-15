@@ -1,6 +1,7 @@
 import { DOMAINS, EXAM_UI } from '../data/examInfo.js';
 import { FLASHCARDS } from '../data/flashcards.js';
 import { createStore } from '../lib/storage.js';
+import { escapeHtml } from '../lib/html.js';
 
 const store = createStore();
 
@@ -19,13 +20,19 @@ export function render(mount) {
       id: d.id,
       name: d.name,
       attemptCount: attempts.length,
+      // Unrounded fraction for comparisons; the rounded percent is display-only
+      // (two domains that round to the same percent can still differ).
+      accuracy: total > 0 ? correct / total : null,
       accuracyPct: total > 0 ? Math.round((correct / total) * 100) : null,
     };
   });
   const attemptedDomains = domainStats.filter((d) => d.attemptCount > 0);
-  const weakestId = attemptedDomains.length >= 2
-    ? attemptedDomains.reduce((min, d) => (d.accuracyPct < min.accuracyPct ? d : min)).id
-    : (attemptedDomains.length === 1 && attemptedDomains[0].accuracyPct < 100 ? attemptedDomains[0].id : null);
+  // Flag the lowest-accuracy attempted domain, but never when it's perfect —
+  // there is nothing to "focus on" if every attempted domain is at 100%.
+  const weakest = attemptedDomains.length > 0
+    ? attemptedDomains.reduce((min, d) => (d.accuracy < min.accuracy ? d : min))
+    : null;
+  const weakestId = weakest !== null && weakest.accuracy < 1 ? weakest.id : null;
 
   mount.innerHTML = `
     <h2>Progress</h2>
@@ -40,7 +47,7 @@ export function render(mount) {
         <tbody>
           ${domainStats.map((d) => `
             <tr>
-              <td>${d.name}${d.id === weakestId ? ' <span class="feedback-incorrect">— weakest, focus here</span>' : ''}</td>
+              <td>${escapeHtml(d.name)}${d.id === weakestId ? ' <span class="feedback-incorrect">— weakest, focus here</span>' : ''}</td>
               <td>${d.attemptCount}</td>
               <td>${d.accuracyPct === null ? 'no attempts yet' : `${d.accuracyPct}%`}</td>
             </tr>
@@ -56,7 +63,7 @@ export function render(mount) {
           <tbody>
             ${quizHistory.slice().reverse().map((a) => `
               <tr>
-                <td>${DOMAINS.find((d) => d.id === a.domain)?.name ?? a.domain}</td>
+                <td>${escapeHtml(DOMAINS.find((d) => d.id === a.domain)?.name ?? a.domain)}</td>
                 <td>${a.score} / ${a.total}</td>
                 <td>${new Date(a.timestamp).toLocaleDateString()}</td>
               </tr>
@@ -66,8 +73,8 @@ export function render(mount) {
       `}
     </section>
     <section>
-      <h3>${EXAM_UI.examLabel} History</h3>
-      ${mockHistory.length === 0 ? `<p>No ${EXAM_UI.examLabel.toLowerCase()}s taken yet.</p>` : `
+      <h3>${escapeHtml(EXAM_UI.examLabel)} History</h3>
+      ${mockHistory.length === 0 ? `<p>No ${escapeHtml(EXAM_UI.examLabel.toLowerCase())}s taken yet.</p>` : `
         <table class="history-table">
           <thead><tr><th>Score</th><th>Correct</th><th>Result</th><th>Date</th></tr></thead>
           <tbody>

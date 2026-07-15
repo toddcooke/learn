@@ -224,6 +224,20 @@ button.danger:hover { background: #b91c1c; }
 
 .skip-link:focus { transform: none; }
 
+/* Services at a glance: definition lists grouped under domain headings. */
+.services-list { margin: 0 0 1.5rem; }
+
+.services-entry {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--color-border);
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.services-entry dt { font-weight: 600; }
+
+.services-entry dd { margin: 0.15rem 0 0; }
+
 @media (max-width: 640px) {
   .site-header { padding: 0.75rem 1rem; }
   #nav { gap: 0.5rem 1rem; }

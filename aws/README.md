@@ -17,6 +17,7 @@ Then open http://localhost:8000/ in a browser. (A plain `file://` open won't wor
 ## What's here
 
 - **Study guide** — organized by the exam's 4 official domains and their task statements.
+- **Services at a glance** — every covered service with a one-sentence description, grouped by domain.
 - **Domain quizzes** — 100+ practice questions with instant feedback and explanations.
 - **Flashcards** — a service-by-service cheat-sheet deck with known/unknown tracking.
 - **Mock exam** — a 65-question, 130-minute timed exam weighted by domain, like the real thing.

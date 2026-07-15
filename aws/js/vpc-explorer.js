@@ -37,7 +37,9 @@ function totalAddresses(prefixLen) {
 }
 
 function usableAddresses(prefixLen) {
-  return totalAddresses(prefixLen) - 5;
+  // Blocks at /30 and longer hold fewer than the 5 AWS-reserved addresses
+  // (AWS's real subnet minimum is /28), so clamp instead of going negative.
+  return Math.max(0, totalAddresses(prefixLen) - 5);
 }
 
 // AWS reserves 5 addresses in every VPC subnet: network, VPC router, DNS,
@@ -203,7 +205,7 @@ function evaluateRouteTable(routeTable, destInput) {
     } else {
       const { network, mask, prefixLen: pl } = parseCidr(route.dest);
       if (destInput.type === 'ip') {
-        matched = (ipToInt(destInput.value) & mask) >>> 0 === network;
+        matched = ((ipToInt(destInput.value) & mask) >>> 0) === network;
       } else {
         // S3 destination: we don't model a concrete IP for it (it's really
         // a whole prefix list of public AWS ranges), so a CIDR route can

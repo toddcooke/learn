@@ -2,67 +2,36 @@
 //
 // Standalone page logic for vpc-explorer.html. Not part of the hash-router
 // SPA and not in scripts/check-drift.mjs's SHARED list, so it's free to be
-// aws-specific. All CIDR math below is computed from first principles
-// (32-bit integer masking) — nothing here is a hardcoded lookup table of
-// "if prefix is 20 show these numbers" style facts.
+// aws-specific. All CIDR/routing math and the reference-VPC data model live
+// in js/lib/vpcMath.js (pure functions, covered by vpcMath.test.mjs); this
+// file only renders and wires up the DOM.
 
-// ---------------------------------------------------------------------------
-// Core CIDR math (uint32-based)
-// ---------------------------------------------------------------------------
-
-function ipToInt(ip) {
-  const parts = ip.split('.').map(Number);
-  return ((parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3]) >>> 0;
-}
-
-function intToIp(int) {
-  return [24, 16, 8, 0].map((shift) => (int >>> shift) & 0xff).join('.');
-}
-
-function maskForPrefix(prefixLen) {
-  return prefixLen === 0 ? 0 : (0xffffffff << (32 - prefixLen)) >>> 0;
-}
-
-function parseCidr(cidr) {
-  const [ip, lenStr] = cidr.split('/');
-  const prefixLen = Number(lenStr);
-  const mask = maskForPrefix(prefixLen);
-  const network = (ipToInt(ip) & mask) >>> 0;
-  const broadcast = (network | (~mask >>> 0)) >>> 0;
-  return { network, broadcast, mask, prefixLen };
-}
-
-function totalAddresses(prefixLen) {
-  return 2 ** (32 - prefixLen);
-}
-
-function usableAddresses(prefixLen) {
-  // Blocks at /30 and longer hold fewer than the 5 AWS-reserved addresses
-  // (AWS's real subnet minimum is /28), so clamp instead of going negative.
-  return Math.max(0, totalAddresses(prefixLen) - 5);
-}
-
-// AWS reserves 5 addresses in every VPC subnet: network, VPC router, DNS,
-// a future-use reservation, and broadcast (unused but still reserved).
-function reservedAddresses(cidr) {
-  const { network, broadcast, prefixLen } = parseCidr(cidr);
-  return [
-    { ip: intToIp(network), label: 'Network address' },
-    { ip: intToIp(network + 1), label: 'VPC router' },
-    { ip: intToIp(network + 2), label: 'DNS (Amazon-provided, .2 resolver)' },
-    { ip: intToIp(network + 3), label: 'Reserved for future use' },
-    { ip: intToIp(broadcast), label: 'Broadcast (AWS VPCs don’t support broadcast, still reserved)' },
-  ];
-}
+import { escapeHtml } from './lib/html.js';
+import {
+  ipToInt,
+  intToIp,
+  maskForPrefix,
+  parseCidr,
+  totalAddresses,
+  usableAddresses,
+  reservedAddresses,
+  describeBoundary,
+  evaluateRouteTable,
+  pickWinner,
+  AZS,
+  TIER_DEFS,
+  SUBNETS,
+  SUBNETS_BY_ID,
+  subnetElId,
+  natElId,
+  IGW_ID,
+  S3_ENDPOINT_ID,
+  ALL_HIGHLIGHTABLE_IDS,
+} from './lib/vpcMath.js';
 
 const ORDINALS = ['zeroth', 'first', 'second', 'third', 'fourth'];
 function ordinal(n) {
   return ORDINALS[n] || `${n}th`;
-}
-
-function octetOf(int, octetIndexFrom1) {
-  const shift = 32 - octetIndexFrom1 * 8;
-  return (int >>> shift) & 0xff;
 }
 
 // Renders the 32-bit representation of ipInt as four octet groups of
@@ -85,149 +54,6 @@ function bitDiagramHtml(ipInt, prefixLen) {
   return html;
 }
 
-// Describes which octet the fixed/free boundary falls in for a given
-// prefix length, and (given a concrete network address) what value that
-// octet has, its block width, and the block's start/end within that octet.
-// Works uniformly for /16 (VPC-sized, degenerate) through /28.
-function describeBoundary(prefixLen, networkInt) {
-  if (prefixLen <= 16) {
-    return {
-      interestingOctetIndex: null,
-      degenerate: true,
-    };
-  }
-  const interestingOctetIndex = Math.ceil(prefixLen / 8); // 3 or 4 for prefixLen in 17..28
-  const fixedBitsInOctet = prefixLen - 8 * (interestingOctetIndex - 1); // 1..8
-  const freeBitsInOctet = 8 - fixedBitsInOctet;
-  const blockWidth = 2 ** freeBitsInOctet;
-  const val = octetOf(networkInt, interestingOctetIndex);
-  const fixedBitsStr = val.toString(2).padStart(8, '0').slice(0, fixedBitsInOctet);
-  const freeBitsStr = 'x'.repeat(freeBitsInOctet);
-  const blockStart = Math.floor(val / blockWidth) * blockWidth;
-  const blockEnd = blockStart + blockWidth - 1;
-  return {
-    degenerate: false,
-    interestingOctetIndex,
-    fixedBitsInOctet,
-    freeBitsInOctet,
-    blockWidth,
-    val,
-    fixedBitsStr,
-    freeBitsStr,
-    blockStart,
-    blockEnd,
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Reference VPC data model — 10.0.0.0/16, 3 AZs, 3 tiers
-// ---------------------------------------------------------------------------
-
-const AZS = ['a', 'b', 'c'];
-
-const TIER_DEFS = [
-  {
-    id: 'public',
-    label: 'Public',
-    cidrs: { a: '10.0.0.0/24', b: '10.0.1.0/24', c: '10.0.2.0/24' },
-    contents: 'ALB node + NAT gateway',
-  },
-  {
-    id: 'app',
-    label: 'App',
-    cidrs: { a: '10.0.16.0/20', b: '10.0.32.0/20', c: '10.0.48.0/20' },
-    contents: 'ECS / EC2 application instances',
-  },
-  {
-    id: 'data',
-    label: 'Data',
-    cidrs: { a: '10.0.4.0/24', b: '10.0.5.0/24', c: '10.0.6.0/24' },
-    contents: 'RDS primary / standby / replica',
-  },
-];
-
-// S3's real AWS-managed prefix list holds many CIDR ranges, each more
-// specific than the 0.0.0.0/0 default route. We can't enumerate AWS's
-// actual list client-side, so we use a representative prefix length (24)
-// purely so the longest-prefix-match comparison below picks it over /0,
-// which mirrors how AWS itself evaluates it.
-const S3_PREFIX_LIST_NOMINAL_PREFIXLEN = 24;
-
-function buildRouteTable(tierId, az) {
-  if (tierId === 'public') {
-    return [
-      { dest: '10.0.0.0/16', target: 'local', type: 'cidr' },
-      { dest: '0.0.0.0/0', target: 'igw', type: 'cidr' },
-    ];
-  }
-  if (tierId === 'app') {
-    return [
-      { dest: '10.0.0.0/16', target: 'local', type: 'cidr' },
-      { dest: '0.0.0.0/0', target: `nat-${az}`, type: 'cidr' },
-      { dest: 'pl-xxxxxxxx (Amazon S3)', target: 'vpce-s3', type: 'prefix-list' },
-    ];
-  }
-  // data tier: local only, deliberately isolated
-  return [{ dest: '10.0.0.0/16', target: 'local', type: 'cidr' }];
-}
-
-const SUBNETS = [];
-for (const tier of TIER_DEFS) {
-  for (const az of AZS) {
-    SUBNETS.push({
-      id: `${tier.id}-${az}`,
-      tier: tier.id,
-      tierLabel: tier.label,
-      az,
-      cidr: tier.cidrs[az],
-      contents: tier.contents,
-      routeTable: buildRouteTable(tier.id, az),
-    });
-  }
-}
-const SUBNETS_BY_ID = Object.fromEntries(SUBNETS.map((s) => [s.id, s]));
-
-// ---------------------------------------------------------------------------
-// Route evaluation (real longest-prefix match)
-// ---------------------------------------------------------------------------
-
-function routeDestLabel(route) {
-  return route.dest;
-}
-
-function evaluateRouteTable(routeTable, destInput) {
-  return routeTable.map((route) => {
-    let matched;
-    let prefixLen;
-    if (route.type === 'prefix-list') {
-      matched = destInput.type === 's3';
-      prefixLen = S3_PREFIX_LIST_NOMINAL_PREFIXLEN;
-    } else {
-      const { network, mask, prefixLen: pl } = parseCidr(route.dest);
-      if (destInput.type === 'ip') {
-        matched = ((ipToInt(destInput.value) & mask) >>> 0) === network;
-      } else {
-        // S3 destination: we don't model a concrete IP for it (it's really
-        // a whole prefix list of public AWS ranges), so a CIDR route can
-        // only match it if that CIDR covers all possible addresses — i.e.
-        // the 0.0.0.0/0 default route. A VPC-local route like 10.0.0.0/16
-        // never matches, since S3's ranges are outside the VPC.
-        matched = pl === 0;
-      }
-      prefixLen = pl;
-    }
-    return { ...route, matched, prefixLen };
-  });
-}
-
-function pickWinner(evaluated) {
-  return evaluated.reduce((best, r) => {
-    if (!r.matched) return best;
-    if (!best || r.prefixLen > best.prefixLen) return r;
-    return best;
-  }, null);
-}
-
 // ---------------------------------------------------------------------------
 // Panel 1 — VPC map + subnet inspector
 // ---------------------------------------------------------------------------
@@ -242,28 +68,28 @@ function renderMap(container) {
     const buttons = AZS.map((az) => {
       const subnet = SUBNETS_BY_ID[`${tier.id}-${az}`];
       const natBadge = tier.id === 'public'
-        ? `<span class="nat-badge" id="nat-${az}">NAT-${az}</span>`
+        ? `<span class="nat-badge" id="${natElId(az)}">NAT-${escapeHtml(az)}</span>`
         : '';
       return `
-        <button type="button" class="subnet-btn tier-${tier.id}" id="subnet-${subnet.id}" data-subnet-id="${subnet.id}" aria-pressed="false">
-          <span class="subnet-cidr">${subnet.cidr}</span>
-          <span class="subnet-az">AZ ${az}</span>
+        <button type="button" class="subnet-btn tier-${tier.id}" id="${subnetElId(subnet.id)}" data-subnet-id="${subnet.id}" aria-pressed="false">
+          <span class="subnet-cidr">${escapeHtml(subnet.cidr)}</span>
+          <span class="subnet-az">AZ ${escapeHtml(az)}</span>
           ${natBadge}
         </button>`;
     }).join('');
     return `
       <div class="tier-row">
-        <div class="tier-label">${tier.label}<br /><small>${tier.contents}</small></div>
+        <div class="tier-label">${escapeHtml(tier.label)}<br /><small>${escapeHtml(tier.contents)}</small></div>
         ${buttons}
       </div>`;
   }).join('');
 
   container.innerHTML = `
-    <div class="edge-box" id="igw">Internet Gateway (igw) &mdash; VPC edge</div>
+    <div class="edge-box" id="${IGW_ID}">Internet Gateway (igw) &mdash; VPC edge</div>
     <div class="vpc-map">
       ${rows}
     </div>
-    <div class="edge-box edge-box--endpoint" id="s3-endpoint">S3 Gateway Endpoint (vpce-s3) &mdash; private AWS network, not a subnet</div>
+    <div class="edge-box edge-box--endpoint" id="${S3_ENDPOINT_ID}">S3 Gateway Endpoint (vpce-s3) &mdash; private AWS network, not a subnet</div>
     <p class="unallocated-note">
       ${unallocatedPct}% of the VPC (${unallocated.toLocaleString()} of ${vpcTotal.toLocaleString()} addresses) is unallocated,
       including the entire upper half of the range (<code>10.0.128.0/17</code>) &mdash; left free for future subnets or AZs.
@@ -290,12 +116,16 @@ function renderMap(container) {
   });
 }
 
+function routeDestLabel(route) {
+  return route.dest;
+}
+
 function routeTableHtml(rows) {
   return `
     <table class="history-table route-table">
       <thead><tr><th>Destination</th><th>Target</th></tr></thead>
       <tbody>
-        ${rows.map((r) => `<tr><td>${routeDestLabel(r)}</td><td>${r.target}</td></tr>`).join('')}
+        ${rows.map((r) => `<tr><td>${escapeHtml(routeDestLabel(r))}</td><td>${escapeHtml(r.target)}</td></tr>`).join('')}
       </tbody>
     </table>`;
 }
@@ -312,26 +142,26 @@ function renderInspector(subnet) {
   if (boundary.degenerate) {
     breakdownText = `/${prefixLen} is the VPC's own prefix &mdash; no further octets are fixed beyond it.`;
   } else if (boundary.freeBitsInOctet === 0) {
-    breakdownText = `The ${ordinal(boundary.interestingOctetIndex)} octet is fully fixed (<code>${boundary.fixedBitsStr}</code>); the ${ordinal(boundary.interestingOctetIndex + 1)} octet is fully free.`;
+    breakdownText = `The ${ordinal(boundary.interestingOctetIndex)} octet is fully fixed (<code>${escapeHtml(boundary.fixedBitsStr)}</code>); the ${ordinal(boundary.interestingOctetIndex + 1)} octet is fully free.`;
   } else {
-    breakdownText = `The ${ordinal(boundary.interestingOctetIndex)} octet is <code>${boundary.fixedBitsStr} | ${boundary.freeBitsStr}</code> (fixed | free) &mdash; covers ${boundary.blockStart}&ndash;${boundary.blockEnd}.`;
+    breakdownText = `The ${ordinal(boundary.interestingOctetIndex)} octet is <code>${escapeHtml(boundary.fixedBitsStr)} | ${escapeHtml(boundary.freeBitsStr)}</code> (fixed | free) &mdash; covers ${boundary.blockStart}&ndash;${boundary.blockEnd}.`;
   }
 
   inspector.innerHTML = `
-    <h3><code>${subnet.cidr}</code> &mdash; ${subnet.tierLabel} tier, AZ ${subnet.az}</h3>
-    <p>${subnet.contents}</p>
+    <h3><code>${escapeHtml(subnet.cidr)}</code> &mdash; ${escapeHtml(subnet.tierLabel)} tier, AZ ${escapeHtml(subnet.az)}</h3>
+    <p>${escapeHtml(subnet.contents)}</p>
 
     <h4>Binary breakdown</h4>
     <p class="bit-diagram">${bitDiagramHtml(network, prefixLen)}</p>
     <p>${breakdownText}</p>
 
     <h4>Address range</h4>
-    <p><code>${intToIp(network)}</code> &ndash; <code>${intToIp(broadcast)}</code></p>
+    <p><code>${escapeHtml(intToIp(network))}</code> &ndash; <code>${escapeHtml(intToIp(broadcast))}</code></p>
 
     <h4>Capacity</h4>
     <p>${total.toLocaleString()} total addresses (2<sup>32&minus;${prefixLen}</sup>), ${usable.toLocaleString()} usable (total &minus; 5 AWS-reserved).</p>
     <ul class="reserved-list">
-      ${reserved.map((r) => `<li><code>${r.ip}</code> &mdash; ${r.label}</li>`).join('')}
+      ${reserved.map((r) => `<li><code>${escapeHtml(r.ip)}</code> &mdash; ${escapeHtml(r.label)}</li>`).join('')}
     </ul>
 
     <h4>Route table</h4>
@@ -356,13 +186,6 @@ const TRACE_DESTS = [
   { value: 's3', label: 'Amazon S3 (prefix-list destination)', ip: null, subnetId: null, kind: 's3' },
 ];
 
-const ALL_HIGHLIGHTABLE_IDS = [
-  ...SUBNETS.map((s) => `subnet-${s.id}`),
-  ...AZS.map((az) => `nat-${az}`),
-  'igw',
-  's3-endpoint',
-];
-
 function clearHighlights() {
   ALL_HIGHLIGHTABLE_IDS.forEach((id) => {
     const el = document.getElementById(id);
@@ -381,7 +204,7 @@ function tierLabelFor(subnetId) {
 
 function natIdForSource(source) {
   const az = source.subnetId.split('-')[1];
-  return `nat-${az}`;
+  return natElId(az);
 }
 
 function runTrace(sourceKey, destKey) {
@@ -407,7 +230,7 @@ function describeOutcome(result) {
       ok: true,
       pathText: `${result.source.label} → (same host as destination)`,
       explanation: 'Source and destination are the same address, so there is no network hop to trace — the packet never leaves the host.',
-      hops: [`subnet-${result.subnet.id}`],
+      hops: [subnetElId(result.subnet.id)],
     };
   }
 
@@ -418,7 +241,7 @@ function describeOutcome(result) {
       ok: false,
       pathText: `${source.label} → ✕ NO MATCHING ROUTE — packet dropped`,
       explanation: `The ${tierLabelFor(source.subnetId)} tier's route table only has a local route for 10.0.0.0/16. ${dest.label} is outside the VPC's CIDR block, no route matches, and there is no default route to fall back on — so the packet is dropped before it ever leaves the subnet. This is exactly why the data tier is isolated: with no NAT gateway, internet gateway, or VPC endpoint route, it cannot reach anything outside the VPC.`,
-      hops: [`subnet-${subnet.id}`],
+      hops: [subnetElId(subnet.id)],
     };
   }
 
@@ -429,7 +252,7 @@ function describeOutcome(result) {
       explanation: matched.length > 1
         ? 'Both the 10.0.0.0/16 local route and the 0.0.0.0/0 default route matched, but route tables always prefer the most specific (longest-prefix) match, so the /16 local route wins over the /0 default. Traffic to another address inside the VPC never needs to leave through a gateway, even when it crosses an Availability Zone boundary.'
         : "Only the 10.0.0.0/16 local route matched — this tier's route table has no default route at all, so addresses inside the VPC are the only destinations it can reach. Traffic to another address inside the VPC never needs to leave through a gateway, even when it crosses an Availability Zone boundary.",
-      hops: [`subnet-${subnet.id}`, dest.subnetId ? `subnet-${dest.subnetId}` : null].filter(Boolean),
+      hops: [subnetElId(subnet.id), dest.subnetId ? subnetElId(dest.subnetId) : null].filter(Boolean),
     };
   }
 
@@ -439,7 +262,7 @@ function describeOutcome(result) {
       ok: true,
       pathText: `${source.label} → NAT gateway ${natId} (same AZ) → Internet Gateway → ${dest.label}`,
       explanation: `No local or endpoint route matched, so the 0.0.0.0/0 default route wins and sends the packet to this AZ's own NAT gateway, which forwards it out through the internet gateway. Each AZ gets its own NAT gateway so that one AZ's outage can't cut off another AZ's outbound path.`,
-      hops: [`subnet-${subnet.id}`, natId, 'igw'],
+      hops: [subnetElId(subnet.id), natId, IGW_ID],
     };
   }
 
@@ -448,7 +271,7 @@ function describeOutcome(result) {
     ok: true,
     pathText: `${source.label} → S3 gateway endpoint (vpce-s3) → Amazon S3`,
     explanation: 'The S3 prefix-list route is more specific than the 0.0.0.0/0 default, so it wins even though both matched: traffic to S3 goes over the gateway endpoint on the AWS network instead of through the NAT gateway, avoiding NAT processing charges and never touching the internet gateway.',
-    hops: [`subnet-${subnet.id}`, 's3-endpoint'],
+    hops: [subnetElId(subnet.id), S3_ENDPOINT_ID],
   };
 }
 
@@ -458,7 +281,7 @@ function evaluatedRouteTableHtml(result) {
   const rows = evaluated.map((r) => {
     const state = r === winner ? 'winner' : r.matched ? 'matched' : 'unmatched';
     const stateLabel = r === winner ? 'Matched — winner' : r.matched ? 'Matched' : 'Not matched';
-    return `<tr class="route-row route-row--${state}"><td>${routeDestLabel(r)}</td><td>${r.target}</td><td>${stateLabel}</td></tr>`;
+    return `<tr class="route-row route-row--${state}"><td>${escapeHtml(routeDestLabel(r))}</td><td>${escapeHtml(r.target)}</td><td>${stateLabel}</td></tr>`;
   }).join('');
   const note = result.matched.length > 1
     ? '<p class="note">More than one route matched — the most specific (longest-prefix) route wins.</p>'
@@ -484,14 +307,14 @@ function renderTraceResult(result) {
   out.classList.toggle('trace-neutral', !!result.sameHost);
 
   out.innerHTML = `
-    <p class="trace-path"><strong>${outcome.pathText}</strong></p>
+    <p class="trace-path"><strong>${escapeHtml(outcome.pathText)}</strong></p>
     ${evaluatedRouteTableHtml(result)}
-    <p class="trace-explanation">${outcome.explanation}</p>
+    <p class="trace-explanation">${escapeHtml(outcome.explanation)}</p>
   `;
 }
 
 function populateSelect(select, options) {
-  select.innerHTML = options.map((o) => `<option value="${o.value}">${o.label}</option>`).join('');
+  select.innerHTML = options.map((o) => `<option value="${o.value}">${escapeHtml(o.label)}</option>`).join('');
 }
 
 function initTracer() {
@@ -556,7 +379,7 @@ function renderCidrExplorer(prefixLen) {
     </dl>
     <p>${interestingOctetText}</p>
     <p><strong>Valid block-start increments in that octet:</strong> ${incrementsHtml}</p>
-    <p class="worked-example">Worked example: <code>${CIDR_PROBE_IP}</code> falls in block <code>${blockCidr}</code>.</p>
+    <p class="worked-example">Worked example: <code>${escapeHtml(CIDR_PROBE_IP)}</code> falls in block <code>${escapeHtml(blockCidr)}</code>.</p>
   `;
 }
 

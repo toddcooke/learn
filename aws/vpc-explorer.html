@@ -10,6 +10,52 @@
        (site-header, site-footer, button, history-table, visually-hidden)
        so this standalone page still looks native to the site. */
 
+    /* Explorer palette. Light values match the page's original hardcoded
+       hexes exactly; the dark block below re-maps them (and, page-locally,
+       the site palette from css/style.css, which is light-only) so the map,
+       legend swatches, and trace highlight states stay legible on a dark
+       background. */
+    :root {
+      --explorer-surface: #fff;
+      --explorer-surface-muted: #f3f4f6;
+      --explorer-surface-soft: #f9fafb;
+      --explorer-selected-bg: #eff6ff;
+      --explorer-selected-text: var(--color-primary);
+      --explorer-accent-text: var(--color-primary-dark);
+      --explorer-ok-glow-bg: #ecfdf3;
+      --explorer-ok-panel-bg: #f0fdf4;
+      --explorer-fail-bg: #fef2f2;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        color-scheme: dark;
+        /* Page-local override of the site palette (css/style.css only
+           defines light values). Accents shift toward the lighter end of
+           each hue so borders, swatches, and route-table state text keep
+           contrast against the dark surfaces. */
+        --color-bg: #0f172a;
+        --color-text: #e2e8f0;
+        --color-muted: #94a3b8;
+        --color-border: #334155;
+        --color-primary: #3b82f6;
+        --color-primary-dark: #2563eb; /* stays a deep blue: it's the button hover *background* under white text */
+        --color-success: #4ade80;
+        --color-danger: #f87171;
+        /* Explorer surfaces and highlight fills: dark bases under the
+           green/red hop outlines and the blue "inspecting" selection. */
+        --explorer-surface: #1e293b;
+        --explorer-surface-muted: #334155;
+        --explorer-surface-soft: #1e293b;
+        --explorer-selected-bg: #172554;
+        --explorer-selected-text: #93c5fd;
+        --explorer-accent-text: #93c5fd;
+        --explorer-ok-glow-bg: #14532d;
+        --explorer-ok-panel-bg: #052e16;
+        --explorer-fail-bg: #450a0a;
+      }
+    }
+
     #explorer-content {
       max-width: 1080px;
       margin: 0 auto;
@@ -77,7 +123,7 @@
       flex-direction: column;
       align-items: center;
       gap: 0.15rem;
-      background: #fff;
+      background: var(--explorer-surface);
       color: var(--color-text);
       border: 2px solid var(--color-border);
       border-radius: 8px;
@@ -87,7 +133,7 @@
     }
 
     .subnet-btn:hover {
-      background: #f3f4f6;
+      background: var(--explorer-surface-muted);
     }
 
     .subnet-btn.tier-public { border-left: 4px solid var(--color-primary); }
@@ -96,7 +142,7 @@
 
     .subnet-btn.selected {
       border-color: var(--color-primary);
-      background: #eff6ff;
+      background: var(--explorer-selected-bg);
     }
 
     .subnet-btn.selected::after {
@@ -107,7 +153,7 @@
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.04em;
-      color: var(--color-primary);
+      color: var(--explorer-selected-text);
     }
 
     .map-legend {
@@ -138,19 +184,19 @@
 
     .legend-selected {
       border: 1.5px solid var(--color-primary);
-      background: #eff6ff;
+      background: var(--explorer-selected-bg);
     }
 
     .legend-hop-ok {
       outline: 2px solid var(--color-success);
       outline-offset: 1px;
-      background: #ecfdf3;
+      background: var(--explorer-ok-glow-bg);
     }
 
     .legend-hop-fail {
       outline: 2px solid var(--color-danger);
       outline-offset: 1px;
-      background: #fef2f2;
+      background: var(--explorer-fail-bg);
     }
 
     .subnet-cidr {
@@ -169,7 +215,7 @@
       border-radius: 999px;
       padding: 0.05rem 0.5rem;
       font-size: 0.7rem;
-      background: #f3f4f6;
+      background: var(--explorer-surface-muted);
       color: var(--color-muted);
       transition: outline 0.15s ease, background-color 0.15s ease;
     }
@@ -185,20 +231,20 @@
     button:focus-visible,
     input:focus-visible,
     select:focus-visible {
-      outline: 3px solid var(--color-primary-dark);
+      outline: 3px solid var(--explorer-accent-text);
       outline-offset: 2px;
     }
 
     .hop-active-ok {
       outline: 3px solid var(--color-success);
       outline-offset: 2px;
-      background: #ecfdf3;
+      background: var(--explorer-ok-glow-bg);
     }
 
     .hop-active-fail {
       outline: 3px solid var(--color-danger);
       outline-offset: 2px;
-      background: #fef2f2;
+      background: var(--explorer-fail-bg);
     }
 
     /* --- Subnet inspector --- */
@@ -225,11 +271,11 @@
       margin-right: 0.6rem;
       padding: 0.15rem 0.25rem;
       border-radius: 4px;
-      background: #f9fafb;
+      background: var(--explorer-surface-soft);
     }
 
     .bit-fixed {
-      color: var(--color-primary-dark);
+      color: var(--explorer-accent-text);
       font-weight: 700;
     }
 
@@ -294,9 +340,9 @@
       border: 1px solid var(--color-border);
     }
 
-    #tracer-result.trace-ok { border-color: var(--color-success); background: #f0fdf4; }
-    #tracer-result.trace-fail { border-color: var(--color-danger); background: #fef2f2; }
-    #tracer-result.trace-neutral { border-color: var(--color-border); background: #f9fafb; }
+    #tracer-result.trace-ok { border-color: var(--color-success); background: var(--explorer-ok-panel-bg); }
+    #tracer-result.trace-fail { border-color: var(--color-danger); background: var(--explorer-fail-bg); }
+    #tracer-result.trace-neutral { border-color: var(--color-border); background: var(--explorer-surface-soft); }
 
     .trace-path {
       font-size: 1.05rem;
@@ -331,7 +377,7 @@
     #cidr-slider-value {
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       font-weight: 700;
-      color: var(--color-primary-dark);
+      color: var(--explorer-accent-text);
     }
 
     #cidr-slider {
@@ -357,7 +403,7 @@
     }
 
     .worked-example {
-      background: #eff6ff;
+      background: var(--explorer-selected-bg);
       border-radius: 6px;
       padding: 0.75rem 1rem;
       border: 1px solid var(--color-border);

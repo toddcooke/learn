@@ -14,16 +14,29 @@ jobs:
         with:
           node-version: 22
 
+      # Modules are discovered the same way the repo scripts do: any
+      # top-level directory containing js/app.js. New modules are picked
+      # up automatically — no workflow edits needed.
+      - name: Syntax check (all module JS)
+        run: |
+          for app in */js/app.js; do
+            m="${app%%/*}"
+            echo "--- $m ---"
+            find "$m/js" -name '*.js' -print0 | xargs -0 -n1 node --check
+          done
+
       - name: Unit tests (all modules)
         run: |
-          for m in aws kubernetes postgres sre networking; do
+          for app in */js/app.js; do
+            m="${app%%/*}"
             echo "--- $m ---"
             (cd "$m" && node --test "js/lib/"*.test.mjs)
           done
 
       - name: Content validation (all modules)
         run: |
-          for m in aws kubernetes postgres sre networking; do
+          for app in */js/app.js; do
+            m="${app%%/*}"
             echo "--- $m ---"
             (cd "$m" && node scripts/validate-content.mjs)
           done

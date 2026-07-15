@@ -6,6 +6,7 @@
 // network again.
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 
 const CACHE_DIR = '.cache/docs';
@@ -58,7 +59,10 @@ async function main() {
 
   await mkdir(CACHE_DIR, { recursive: true });
   const index = await loadIndex();
-  const slug = slugify(url);
+  // The slug is lossy (case and punctuation collapse), so distinct URLs can
+  // share one — a short hash of the full URL keeps cache files distinct.
+  const hash = createHash('sha256').update(url).digest('hex').slice(0, 8);
+  const slug = `${slugify(url)}-${hash}`;
   const filePath = path.join(CACHE_DIR, `${slug}.md`);
 
   if (index[url] && existsSync(filePath)) {

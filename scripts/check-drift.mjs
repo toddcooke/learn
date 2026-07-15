@@ -11,7 +11,8 @@ const MODULES = readdirSync(root, { withFileTypes: true })
   .sort();
 
 const SHARED = [
-  'js/app.js', 'js/lib/scoring.js', 'js/lib/scoring.test.mjs', 'js/lib/storage.test.mjs',
+  'js/app.js', 'js/lib/html.js', 'js/lib/scoring.js', 'js/lib/scoring.test.mjs',
+  'js/lib/storage.test.mjs',
   'js/views/quiz.js', 'js/views/flashcards.js', 'js/views/progress.js',
   'js/views/studyGuide.js', 'js/views/mockExam.js', 'css/style.css',
   'scripts/fetch-doc.mjs', 'scripts/validate-content.mjs',
@@ -37,6 +38,27 @@ for (const m of MODULES.slice(1)) {
     console.error(`DRIFT: ${m}/js/lib/storage.js differs beyond the NAMESPACE line`);
     failed = true;
   }
+}
+
+// The sanctioned line-1 exception is still constrained: it must be exactly
+// a NAMESPACE constant, and the namespace must be unique per module (all
+// modules share one localStorage origin, so a duplicate would silently
+// cross-contaminate saved progress).
+const namespaceOwner = new Map();
+for (const m of MODULES) {
+  const line1 = read(m, 'js/lib/storage.js').split('\n')[0];
+  const match = line1.match(/^const NAMESPACE = '([^']+)';$/);
+  if (!match) {
+    console.error(`DRIFT: ${m}/js/lib/storage.js line 1 must be "const NAMESPACE = '<name>';", got: ${line1}`);
+    failed = true;
+    continue;
+  }
+  const owner = namespaceOwner.get(match[1]);
+  if (owner) {
+    console.error(`DRIFT: ${m} reuses NAMESPACE '${match[1]}' already used by ${owner}`);
+    failed = true;
+  }
+  namespaceOwner.set(match[1], m);
 }
 
 if (failed) process.exit(1);

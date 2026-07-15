@@ -17,7 +17,11 @@ function toTag(label) {
 }
 
 function sanitizeField(text) {
-  return text.replace(/[\t\r\n]+/g, ' ');
+  // Collapse TSV-breaking whitespace. A field that BEGINS with a double
+  // quote would be parsed as csv-quoted by Anki's importer (swallowing
+  // separators and corrupting the row), so prefix a space to keep it plain.
+  const flat = text.replace(/[\t\r\n]+/g, ' ');
+  return flat.startsWith('"') ? ` ${flat}` : flat;
 }
 
 async function exportModule(name) {
@@ -32,9 +36,9 @@ async function exportModule(name) {
   for (const card of FLASHCARDS) {
     // The site renders card.service as a heading above card.front, so some
     // decks (aws especially) use generic fronts like "What is it for?" that
-    // only make sense with the service name attached. Anki also dedupes on
-    // the first field, so a bare generic front would silently collapse
-    // cards on import. service + front is unique in every deck.
+    // only make sense with the service name attached. (Anki matches and
+    // updates notes by the ID column — the composite front is for
+    // readability, and stays unique in every deck.)
     const front = sanitizeField(`${card.service} — ${card.front}`);
     const back = sanitizeField(card.back);
     const id = `${name}-${card.id}`;

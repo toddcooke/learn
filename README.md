@@ -27,6 +27,8 @@ unmodified at whatever path it's nested under. Then:
 - run `node scripts/check-drift.mjs` to confirm the copied app layer
   matches the other modules (`scripts/export-anki.mjs` discovers modules
   automatically — no registration needed);
+- CI needs no edits either: it auto-discovers modules the same way the
+  scripts do (any top-level directory containing `js/app.js`);
 - link to it from `toddcooke.github.io`'s `content/learn.md` page (that
   repo owns the `/learn/` landing page; this repo only supplies the module
   content under it).

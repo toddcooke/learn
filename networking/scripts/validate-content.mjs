@@ -52,11 +52,12 @@ async function validateStudyContent(domainIds) {
   }
 }
 
-async function validateQuestions(domainIds) {
+async function validateQuestions(domains) {
   if (!existsSync(new URL('../js/data/questions.js', import.meta.url))) {
     console.log('questions.js not present yet, skipping');
     return;
   }
+  const domainIds = domains.map((d) => d.id);
   const { QUESTIONS } = await import('../js/data/questions.js');
   check(Array.isArray(QUESTIONS) && QUESTIONS.length > 0, 'QUESTIONS must be a non-empty array');
   const seenIds = new Set();
@@ -70,6 +71,8 @@ async function validateQuestions(domainIds) {
     check(Array.isArray(q.options) && q.options.length >= 4, `question ${q.id} must have at least 4 options`);
     check(Array.isArray(q.correctIndexes) && q.correctIndexes.length > 0,
       `question ${q.id} must have at least 1 correct index`);
+    check(new Set(q.correctIndexes).size === q.correctIndexes.length,
+      `question ${q.id} has duplicate correctIndexes: ${q.correctIndexes}`);
     for (const idx of q.correctIndexes) {
       check(Number.isInteger(idx) && idx >= 0 && idx < q.options.length,
         `question ${q.id} has out-of-range correctIndex: ${idx}`);
@@ -82,6 +85,13 @@ async function validateQuestions(domainIds) {
       check(q.options.length >= 5, `multiple-response question ${q.id} must have at least 5 options`);
     }
     check(typeof q.explanation === 'string' && q.explanation.length >= 20, `question ${q.id} missing explanation`);
+  }
+  // drawMockExam takes pool.slice(0, d.mockExamCount) per domain, so a pool
+  // smaller than mockExamCount silently shortens the mock exam.
+  for (const d of domains) {
+    const supply = QUESTIONS.filter((q) => q.domain === d.id).length;
+    check(supply >= d.mockExamCount,
+      `domain ${d.id} has ${supply} questions but mockExamCount is ${d.mockExamCount}`);
   }
 }
 
@@ -107,7 +117,7 @@ async function main() {
   const domains = await validateExamInfo();
   const domainIds = domains.map((d) => d.id);
   await validateStudyContent(domainIds);
-  await validateQuestions(domainIds);
+  await validateQuestions(domains);
   await validateFlashcards();
 
   if (errors.length > 0) {

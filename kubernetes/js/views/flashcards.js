@@ -5,14 +5,51 @@ import { escapeHtml } from '../lib/html.js';
 
 const store = createStore();
 
+// Restores the persisted flashcard session (deck order, position, filter)
+// — but only when the stored order is exactly a permutation of the current
+// deck's ids (same length, no duplicates, every id resolves). Anything else
+// (wrong shape, a deck that changed since the session was saved, an
+// out-of-range index) returns null so the caller falls back to a fresh
+// shuffle instead of presenting a broken deck.
+function restoreSession() {
+  const session = store.getFlashcardSession();
+  if (session === null) return null;
+  const { order, index, filterUnknown } = session;
+  if (!Array.isArray(order) || order.length !== FLASHCARDS.length) return null;
+  if (new Set(order).size !== order.length) return null;
+  const byId = new Map(FLASHCARDS.map((c) => [c.id, c]));
+  const cards = order.map((id) => byId.get(id));
+  if (cards.some((c) => !c)) return null;
+  if (!Number.isInteger(index) || index < 0 || index >= cards.length) return null;
+  return { cards, index, filterUnknown: filterUnknown === true };
+}
+
 export function render(mount) {
-  const shuffledCards = shuffle(FLASHCARDS);
-  const state = { index: 0, showBack: false, filterUnknown: false };
+  const restored = restoreSession();
+  let deck = restored ? restored.cards : shuffle(FLASHCARDS);
+  const state = {
+    index: restored ? restored.index : 0,
+    showBack: false,
+    filterUnknown: restored ? restored.filterUnknown : false,
+  };
+
+  // Persisted on every action so leaving and coming back lands on the same
+  // card in the same deck order. `showBack` is deliberately not persisted —
+  // a restored session should never open answer-first.
+  function persistSession() {
+    store.setFlashcardSession({
+      order: deck.map((c) => c.id),
+      index: state.index,
+      filterUnknown: state.filterUnknown,
+    });
+  }
+  // A fresh shuffle replaces whatever stale/wrong-shape value was stored.
+  persistSession();
 
   function visibleCards() {
-    if (!state.filterUnknown) return shuffledCards;
+    if (!state.filterUnknown) return deck;
     const known = store.getFlashcardState();
-    return shuffledCards.filter((c) => !known[c.id]);
+    return deck.filter((c) => !known[c.id]);
   }
 
   // `focusId` is the id of the control that triggered this re-render (the
@@ -34,6 +71,7 @@ export function render(mount) {
         state.filterUnknown = false;
         state.index = 0;
         state.showBack = false;
+        persistSession();
         renderCard('fc-filter');
       });
       if (focusId) document.getElementById('fc-reset').focus();
@@ -59,12 +97,14 @@ export function render(mount) {
         <button type="button" id="fc-prev">Previous</button>
         <button type="button" id="fc-next">Next</button>
         <button type="button" id="fc-known" class="secondary">${known[card.id] ? 'Marked Known ✓' : 'Mark Known'}</button>
+        <button type="button" id="fc-shuffle" class="secondary">Shuffle</button>
       </div>
     `;
     document.getElementById('fc-filter').addEventListener('change', (e) => {
       state.filterUnknown = e.target.checked;
       state.index = 0;
       state.showBack = false;
+      persistSession();
       renderCard('fc-filter');
     });
     document.getElementById('fc-flip').addEventListener('click', () => {
@@ -78,11 +118,13 @@ export function render(mount) {
     document.getElementById('fc-prev').addEventListener('click', () => {
       state.index = (state.index - 1 + cards.length) % cards.length;
       state.showBack = false;
+      persistSession();
       renderCard('fc-prev');
     });
     document.getElementById('fc-next').addEventListener('click', () => {
       state.index = (state.index + 1) % cards.length;
       state.showBack = false;
+      persistSession();
       renderCard('fc-next');
     });
     document.getElementById('fc-known').addEventListener('click', () => {
@@ -91,7 +133,15 @@ export function render(mount) {
       // from the visible set, so a different card is about to be shown —
       // never present that new card answer-first.
       if (state.filterUnknown) state.showBack = false;
+      persistSession();
       renderCard('fc-known');
+    });
+    document.getElementById('fc-shuffle').addEventListener('click', () => {
+      deck = shuffle(deck);
+      state.index = 0;
+      state.showBack = false;
+      persistSession();
+      renderCard('fc-shuffle');
     });
     restoreFocus(focusId);
   }

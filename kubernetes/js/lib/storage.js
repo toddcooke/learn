@@ -116,5 +116,54 @@ export function createStore(backend) {
         /* ignore */
       }
     },
+    getQuizCheckpoint() {
+      const value = load(b, 'quiz-checkpoint', null);
+      return isPlainObject(value) ? value : null;
+    },
+    setQuizCheckpoint(checkpoint) {
+      save(b, 'quiz-checkpoint', checkpoint);
+    },
+    clearQuizCheckpoint() {
+      try {
+        b.removeItem(`${NAMESPACE}:quiz-checkpoint`);
+      } catch {
+        /* ignore */
+      }
+    },
+    getFlashcardSession() {
+      const value = load(b, 'flashcard-session', null);
+      return isPlainObject(value) ? value : null;
+    },
+    setFlashcardSession(session) {
+      save(b, 'flashcard-session', session);
+    },
+    clearFlashcardSession() {
+      try {
+        b.removeItem(`${NAMESPACE}:flashcard-session`);
+      } catch {
+        /* ignore */
+      }
+    },
+    clearQuizHistory() {
+      try {
+        b.removeItem(`${NAMESPACE}:quiz-history`);
+      } catch {
+        /* ignore */
+      }
+    },
+    clearMockExamHistory() {
+      try {
+        b.removeItem(`${NAMESPACE}:mock-exam-history`);
+      } catch {
+        /* ignore */
+      }
+    },
+    clearFlashcardState() {
+      try {
+        b.removeItem(`${NAMESPACE}:flashcard-state`);
+      } catch {
+        /* ignore */
+      }
+    },
   };
 }

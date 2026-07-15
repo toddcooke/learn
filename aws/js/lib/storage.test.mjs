@@ -108,6 +108,73 @@ test('exam checkpoint set/get/clear round-trips', () => {
   assert.equal(store.getExamCheckpoint(), null);
 });
 
+test('quiz checkpoint set/get/clear round-trips', () => {
+  const store = createStore(fakeBackend());
+  assert.equal(store.getQuizCheckpoint(), null);
+  store.setQuizCheckpoint({ domainId: 'secure', questionIds: ['a', 'b'], index: 1, answers: [{ questionId: 'a', selected: [0], correct: true }] });
+  assert.equal(store.getQuizCheckpoint().domainId, 'secure');
+  assert.equal(store.getQuizCheckpoint().index, 1);
+  store.clearQuizCheckpoint();
+  assert.equal(store.getQuizCheckpoint(), null);
+});
+
+test('flashcard session set/get/clear round-trips', () => {
+  const store = createStore(fakeBackend());
+  assert.equal(store.getFlashcardSession(), null);
+  store.setFlashcardSession({ order: ['ec2', 's3'], index: 1, filterUnknown: true });
+  assert.deepEqual(store.getFlashcardSession().order, ['ec2', 's3']);
+  assert.equal(store.getFlashcardSession().filterUnknown, true);
+  store.clearFlashcardSession();
+  assert.equal(store.getFlashcardSession(), null);
+});
+
+test('wrong-shape quiz checkpoint and flashcard session fall back to null', () => {
+  assert.equal(storeWithRaw('[1,2]').getQuizCheckpoint(), null);
+  assert.equal(storeWithRaw('"oops"').getQuizCheckpoint(), null);
+  assert.equal(storeWithRaw('null').getQuizCheckpoint(), null);
+  assert.equal(storeWithRaw('[]').getFlashcardSession(), null);
+  assert.equal(storeWithRaw('42').getFlashcardSession(), null);
+  assert.equal(storeWithRaw('null').getFlashcardSession(), null);
+});
+
+test('clearQuizHistory empties recorded quiz attempts', () => {
+  const store = createStore(fakeBackend());
+  store.recordQuizAttempt({ domain: 'secure', score: 8, total: 10 });
+  assert.equal(store.getQuizHistory().length, 1);
+  store.clearQuizHistory();
+  assert.deepEqual(store.getQuizHistory(), []);
+});
+
+test('clearMockExamHistory empties recorded exam attempts', () => {
+  const store = createStore(fakeBackend());
+  store.recordMockExamAttempt({ score: 780, correct: 50, total: 65 });
+  assert.equal(store.getMockExamHistory().length, 1);
+  store.clearMockExamHistory();
+  assert.deepEqual(store.getMockExamHistory(), []);
+});
+
+test('clearFlashcardState empties known-card state', () => {
+  const store = createStore(fakeBackend());
+  store.setFlashcardKnown('ec2', true);
+  assert.equal(store.getFlashcardState().ec2, true);
+  store.clearFlashcardState();
+  assert.deepEqual(store.getFlashcardState(), {});
+});
+
+test('clear methods swallow removeItem failures instead of throwing', () => {
+  const store = createStore({
+    getItem: () => null,
+    setItem: () => {},
+    removeItem: () => { throw new Error('SecurityError'); },
+  });
+  assert.doesNotThrow(() => store.clearExamCheckpoint());
+  assert.doesNotThrow(() => store.clearQuizCheckpoint());
+  assert.doesNotThrow(() => store.clearFlashcardSession());
+  assert.doesNotThrow(() => store.clearQuizHistory());
+  assert.doesNotThrow(() => store.clearMockExamHistory());
+  assert.doesNotThrow(() => store.clearFlashcardState());
+});
+
 test('backend whose getItem throws during probe falls back to in-memory store', () => {
   const throwingProbe = {
     getItem: () => { throw new Error('SecurityError'); },

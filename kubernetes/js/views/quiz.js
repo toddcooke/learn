@@ -17,7 +17,74 @@ export function render(mount, domainId) {
     mount.innerHTML = '<p>Unknown quiz domain. <a href="#/quiz">Back to Quizzes</a></p>';
     return;
   }
-  runQuiz(mount, domain, questions);
+  const checkpoint = readResumableQuizCheckpoint(domain, questions);
+  if (checkpoint) {
+    renderResumePrompt(mount, domain, questions, checkpoint);
+  } else {
+    runQuiz(mount, domain, questions);
+  }
+}
+
+// Reads and validates the single-slot quiz checkpoint for `domain`. Returns
+// `{ questions, index, answers, correctCount }` when the stored value is a
+// resumable in-progress run of THIS domain's quiz, or null otherwise. A
+// checkpoint for a different domain is left untouched (starting any quiz
+// overwrites the slot anyway); a matching-domain checkpoint that is
+// malformed, has question ids that no longer resolve, or is out of range is
+// cleared so it can't offer a broken resume again. Question order is
+// restored from the stored ids, so a resumed quiz continues in the exact
+// order it started with.
+function readResumableQuizCheckpoint(domain, questions) {
+  const raw = store.getQuizCheckpoint();
+  if (raw === null) return null;
+  if (raw.domainId !== domain.id) return null;
+  const byId = new Map(questions.map((q) => [q.id, q]));
+  const { questionIds, index, answers } = raw;
+  const isWellFormed = Array.isArray(questionIds) && questionIds.length > 0
+    && Array.isArray(answers)
+    && Number.isInteger(index) && index > 0 && index < questionIds.length
+    && answers.length === index;
+  if (!isWellFormed) {
+    // Covers a fresh unanswered slot (index 0 — nothing to resume) as well
+    // as genuinely broken values; clearing is harmless in both cases.
+    store.clearQuizCheckpoint();
+    return null;
+  }
+  const ordered = questionIds.map((id) => byId.get(id));
+  if (ordered.some((q) => !q)) {
+    store.clearQuizCheckpoint();
+    return null;
+  }
+  return {
+    questions: ordered,
+    index,
+    answers,
+    correctCount: answers.filter((a) => a && a.correct === true).length,
+  };
+}
+
+// Offers Resume / Start over when entering a domain quiz that has an
+// in-progress checkpoint. Resume continues the saved run (stored question
+// order, saved answers, next unanswered question); Start over discards it.
+function renderResumePrompt(mount, domain, questions, checkpoint) {
+  mount.innerHTML = `
+    <p><a href="#/quiz">&larr; All quizzes</a></p>
+    <h2>${escapeHtml(domain.name)} Quiz</h2>
+    <p>You have a quiz in progress — ${checkpoint.index} of ${checkpoint.questions.length} answered.</p>
+    <button type="button" id="quiz-resume">Resume quiz</button>
+    <button type="button" id="quiz-start-over" class="secondary">Start over</button>
+  `;
+  document.getElementById('quiz-resume').addEventListener('click', () => {
+    runQuiz(mount, domain, checkpoint.questions, {
+      index: checkpoint.index,
+      answers: checkpoint.answers,
+      correctCount: checkpoint.correctCount,
+    });
+  });
+  document.getElementById('quiz-start-over').addEventListener('click', () => {
+    store.clearQuizCheckpoint();
+    runQuiz(mount, domain, questions);
+  });
 }
 
 function renderDomainPicker(mount) {
@@ -41,8 +108,17 @@ function renderDomainPicker(mount) {
 // practice-complete screen), which is what lets those three screens differ
 // while the question mechanics (shuffle, fieldset/legend, role=status
 // feedback, focus-on-change) stay identical everywhere.
-function runQuestionLoop(mount, { headerHtml, questions, onDone }) {
-  const state = { index: 0, correctCount: 0, answers: [] };
+//
+// `initialState` (optional) seeds `{ index, correctCount, answers }` so a
+// checkpointed quiz can resume mid-run; `onAnswered` (optional) fires with
+// the loop state after every recorded answer, which is the checkpointing
+// hook. Review rounds pass neither, so they are never checkpointed.
+function runQuestionLoop(mount, { headerHtml, questions, onDone, onAnswered, initialState }) {
+  const state = {
+    index: initialState?.index ?? 0,
+    correctCount: initialState?.correctCount ?? 0,
+    answers: initialState?.answers ?? [],
+  };
 
   function renderQuestion(focusLegend) {
     const q = questions[state.index];
@@ -89,12 +165,16 @@ function runQuestionLoop(mount, { headerHtml, questions, onDone }) {
     const correct = isCorrect(q, selected);
     if (correct) state.correctCount += 1;
     state.answers.push({ questionId: q.id, selected, correct });
+    if (onAnswered) onAnswered(state);
 
     // Only the announcement text lives inside the role=status region; the
     // "Next Question" control goes in its own slot so AT doesn't read the
     // button as part of the announcement (or re-announce on its insertion).
+    // The ✓/✗ marker is aria-hidden decoration — the adjacent word already
+    // says Correct/Incorrect — so pass/fail never rides on color alone.
     feedback.innerHTML = `
       <p class="${correct ? 'feedback-correct' : 'feedback-incorrect'}">
+        <span class="feedback-marker" aria-hidden="true">${correct ? '✓' : '✗'}</span>
         ${correct ? 'Correct!' : 'Incorrect.'} ${escapeHtml(q.explanation)}
       </p>
     `;
@@ -131,14 +211,35 @@ export function runReviewRound(mount, label, questions, { onDone }) {
   runQuestionLoop(mount, { headerHtml: `<h2>${escapeHtml(label)}</h2>`, questions, onDone });
 }
 
-function runQuiz(mount, domain, questions) {
+function runQuiz(mount, domain, questions, initialState) {
+  const questionIds = questions.map((q) => q.id);
+  // A fresh start claims the single checkpoint slot immediately (index 0,
+  // nothing answered), so whatever quiz was previously in progress can no
+  // longer offer a stale resume. A resumed run keeps its existing slot.
+  if (!initialState) {
+    store.setQuizCheckpoint({ domainId: domain.id, questionIds, index: 0, answers: [] });
+  }
   runQuestionLoop(mount, {
     headerHtml: `
       <p><a href="#/quiz">&larr; All quizzes</a></p>
       <h2>${escapeHtml(domain.name)} Quiz</h2>
     `,
     questions,
-    onDone: (result) => renderResults(mount, domain, questions, result),
+    initialState,
+    // `index` is the next question to present — answers accumulate strictly
+    // in question order, so it's always answers.length.
+    onAnswered: (state) => {
+      store.setQuizCheckpoint({
+        domainId: domain.id,
+        questionIds,
+        index: state.answers.length,
+        answers: state.answers,
+      });
+    },
+    onDone: (result) => {
+      store.clearQuizCheckpoint();
+      renderResults(mount, domain, questions, result);
+    },
   });
 }
 

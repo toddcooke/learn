@@ -131,16 +131,114 @@ fieldset { border: 0; padding: 0; margin: 0; }
 
 .flashcard-controls { display: flex; gap: 0.75rem; margin-top: 1rem; flex-wrap: wrap; }
 
-.exam-header { display: flex; justify-content: space-between; margin-bottom: 1rem; font-weight: 600; }
+.exam-header { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem 1rem; flex-wrap: wrap; margin-bottom: 1rem; font-weight: 600; }
+
+/* The counter is a real heading for AT, but visually it stays the compact
+   label the header row was designed around — undo h2 sizing/margins. */
+.exam-question-counter { font-size: 1rem; font-weight: 600; margin: 0; }
 
 .exam-timer { font-variant-numeric: tabular-nums; }
 
 .exam-note { color: var(--color-muted); font-size: 0.9rem; }
 
-.exam-nav { display: flex; gap: 0.75rem; margin-top: 1rem; }
+/* Question navigator: a tight wrapping grid of numbered jump buttons. */
+.exam-nav { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 1.5rem; }
+
+.exam-nav-item {
+  min-width: 2.25rem;
+  padding: 0.25rem 0.35rem;
+  background: #fff;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  font-variant-numeric: tabular-nums;
+}
+
+.exam-nav-item:hover { background: #f3f4f6; }
+
+.exam-nav-item.is-answered { background: #eff6ff; border-color: var(--color-primary); color: var(--color-primary-dark); }
+
+/* Flagged is marked by an underbar (plus the aria-label), answered by the
+   filled tint — the two states combine without relying on color alone. */
+.exam-nav-item.is-flagged { box-shadow: inset 0 -3px 0 var(--color-danger); }
+
+.exam-nav-item.is-current { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
+
+.exam-nav-item.is-current:hover { background: var(--color-primary-dark); }
+
+/* Previous / Next-or-Submit row (previously carried the .exam-nav class). */
+.exam-controls { display: flex; align-items: center; gap: 0.75rem; margin-top: 1rem; flex-wrap: wrap; }
+
+.exam-flag { background: #fff; color: var(--color-text); margin-top: 1rem; }
+
+.exam-flag:hover { background: #f3f4f6; }
+
+.exam-flag[aria-pressed="true"] { border-color: var(--color-danger); color: var(--color-danger); }
+
+.exam-flag-marker { color: var(--color-danger); }
+
+.exam-unanswered { color: var(--color-muted); font-size: 0.9rem; }
+
+.exam-unanswered-badge { border: 1px solid var(--color-border); border-radius: 999px; padding: 0.15rem 0.65rem; }
+
+.exam-domain-table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; }
+
+.exam-domain-table th, .exam-domain-table td { text-align: left; padding: 0.5rem; border-bottom: 1px solid var(--color-border); }
+
+.exam-domain-table th[scope="row"] { font-weight: 500; }
 
 .review-item { border-left: 3px solid var(--color-border); padding-left: 1rem; margin-bottom: 1rem; }
 
 .history-table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; }
 
 .history-table th, .history-table td { text-align: left; padding: 0.5rem; border-bottom: 1px solid var(--color-border); }
+
+/* Wide tables scroll inside their wrapper instead of stretching the page —
+   this is what keeps a 375px viewport free of horizontal body scroll. */
+.table-scroll { overflow-x: auto; }
+
+/* aria-hidden ✓/✗ glyph next to the Correct/Incorrect words; inherits the
+   feedback color from its parent. */
+.feedback-marker { font-weight: 700; }
+
+/* Destructive actions on the progress view. */
+.progress-reset { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+
+button.danger { background: var(--color-danger); border-color: var(--color-danger); }
+
+button.danger:hover { background: #b91c1c; }
+
+/* Skip link: visually hidden until keyboard focus reveals it. */
+.skip-link {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 100;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  background: var(--color-primary);
+  color: #fff;
+  text-decoration: none;
+  font-weight: 500;
+  transform: translateY(-250%);
+}
+
+.skip-link:focus { transform: none; }
+
+@media (max-width: 640px) {
+  .site-header { padding: 0.75rem 1rem; }
+  #nav { gap: 0.5rem 1rem; }
+  #app-content { padding: 1.25rem 1rem; }
+  .flashcard { padding: 2rem 1rem; }
+  .flashcard-controls, .exam-controls { gap: 0.5rem; }
+  .exam-nav { gap: 0.25rem; }
+  .exam-nav-item { min-width: 2rem; padding: 0.2rem 0.25rem; }
+}
+
+@media print {
+  .site-header, .site-footer, .skip-link, .flashcard-controls, .exam-controls,
+  .exam-nav, .exam-flag, .progress-reset, button { display: none !important; }
+  #app-content { max-width: none; padding: 0; }
+  body { color: #000; background: #fff; }
+  .study-topic { break-inside: avoid; page-break-inside: avoid; }
+  a { color: inherit; text-decoration: none; }
+}

@@ -156,7 +156,7 @@ export const FLASHCARDS = [
     service: 'CoreDNS',
     domain: 'Services & Networking',
     front: 'How does CoreDNS end up running in a cluster, and what DNS name format does a Pod typically use to reach a Service through it?',
-    back: "Cluster-wide DNS resolution: it runs as the default cluster add-on and answers name lookups so a Pod can reach a Service by name (typically <service>.<namespace>.svc.cluster.local) instead of tracking its virtual IP directly.",
+    back: "It's installed by default as the cluster DNS add-on — kubeadm deploys it during init as a Deployment in kube-system — and it answers name lookups so a Pod can reach a Service by name (typically <service>.<namespace>.svc.cluster.local) instead of tracking its virtual IP directly.",
   },
   {
     id: 'pod-dns-policy',
@@ -260,7 +260,7 @@ export const FLASHCARDS = [
     id: 'image-pull-secrets',
     service: 'ImagePullSecrets',
     domain: 'Workloads & Scheduling',
-    front: "What is imagePullSecrets for, and how can it be applied cluster-wide for one workload?",
+    front: "What is imagePullSecrets for, and how can it be applied once to cover many Pods instead of being repeated on each one?",
     back: "It tells the kubelet which registry-credential Secret to use when pulling a private container image for a Pod. Rather than repeating the reference on every Pod, the same imagePullSecrets entry can be attached once to a ServiceAccount so every Pod created under that ServiceAccount inherits it automatically.",
   },
   {
@@ -422,7 +422,7 @@ export const FLASHCARDS = [
     service: 'Resource Limits',
     domain: 'Workloads & Scheduling',
     front: 'How are CPU limits enforced differently from memory limits?',
-    back: 'A CPU limit is enforced by throttling — the container is slowed down but keeps running when it hits the ceiling. A memory limit is enforced by the kernel killing the container outright (OOMKilled) once it exceeds the limit, since memory usage can\'t be throttled back the way CPU time can.',
+    back: 'A CPU limit is enforced proactively by throttling — a hard ceiling the container cannot exceed, though it keeps running when it hits it. A memory limit is enforced reactively: a container can transiently exceed it, and the kernel only steps in with an OOM kill (OOMKilled) once it actually detects memory pressure, since memory usage can\'t be throttled back the way CPU time can.',
   },
   {
     id: 'qos-classes',

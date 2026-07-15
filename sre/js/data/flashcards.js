@@ -328,7 +328,7 @@ export const FLASHCARDS = [
     service: 'DNS load balancing',
     domain: 'Capacity Planning & Managing Load',
     front: 'What size limit caps how many backend addresses a single DNS reply can advertise?',
-    back: "A DNS reply is bound by RFC 1035's 512-byte limit, which caps how many addresses can be squeezed into a single reply — almost always far fewer than the real number of backend servers — so DNS alone is never sufficient on its own.",
+    back: "As the SRE book's frontend load-balancing chapter points out, a classic DNS reply is bound by RFC 1035's 512-byte limit, which caps how many addresses can be squeezed into a single reply — almost always far fewer than the real number of backend servers — so DNS alone is never sufficient on its own.",
   },
   {
     id: 'demand-forecasting',
@@ -510,8 +510,8 @@ export const FLASHCARDS = [
     id: 'positive-feedback-cascading',
     service: 'Positive feedback (cascading failures)',
     domain: 'Reliability Patterns & Toil Reduction',
-    front: 'What role does positive feedback play in a cascading failure, and what breaks the loop?',
-    back: "Positive feedback is the mechanism that turns an isolated failure into a cascade: a failed part pushes more load onto the surviving parts, which makes more of them fail, feeding the same loop again. Breaking that loop typically requires actively shedding load, adding deadlines so failed work stops consuming resources, and building in jittered backoff so retries do not all pile back on at once — simply waiting for things to recover is often not enough.",
+    front: "Once a cascading failure's positive-feedback loop has started, what does it take to break it?",
+    back: "Waiting for the system to recover on its own rarely works, because every new failure keeps adding load to the survivors and feeding the loop. Breaking it takes active intervention: shedding load so overloaded tasks stop accepting work they are doomed to fail, propagating deadlines so abandoned requests stop consuming resources deep in the stack, and adding jittered exponential backoff so retries spread out instead of piling back on in synchronized waves.",
   },
   {
     id: 'redundancy-replica-pools',

@@ -1,5 +1,6 @@
 // js/data/questions.js
-// Quiz questions for the SLIs, SLOs & Error Budgets domain (20% exam weight).
+// Quiz questions covering all six exam domains (slos, monitoring, incidents,
+// capacity, release, reliability — see js/data/examInfo.js for weights).
 // Grounded in Google's Site Reliability Engineering book and the SRE
 // Workbook (docs cached under .cache/aws-docs/ during authoring); every
 // answer key re-verified against the cached source passage before being
@@ -157,9 +158,9 @@ export const QUESTIONS = [
     question: "Why does the SRE book note that correctness, while important to every system type, is often not something an SRE team is directly on the hook for?",
     options: [
       'Because correctness is often a property of the data itself, not of the serving infrastructure',
-      'Because correctness is fundamentally impossible to measure in any quantitative, numeric way at all',
-      'Because correctness SLOs, according to the book, are always set well below the 99.9% availability line',
-      'Because correctness, according to the book, only ever matters for storage systems, never serving or pipelines',
+      'Because correctness resists the kind of quantitative, numeric measurement that availability and latency lend themselves to',
+      'Because correctness targets tend to sit well below the 99.9% availability line, so they are rarely the binding constraint',
+      'Because correctness chiefly concerns storage systems rather than serving systems or data pipelines',
     ],
     correctIndexes: [0],
     explanation: "The book's reasoning is about ownership, not measurability: correctness often reflects the quality of the data passing through a system rather than a defect in the infrastructure serving it, so it can fall outside what the infrastructure-focused SRE team is accountable for. The book explicitly says correctness matters to all system types, not just storage, and it never claims correctness resists quantitative measurement or that its targets sit below availability's.",
@@ -678,10 +679,10 @@ export const QUESTIONS = [
       'Nothing happens, because burn-rate alerting is specifically defined to ignore any evaluation window that contains fewer than 100 total requests',
       'It automatically becomes a ticket rather than a page, since low-traffic services of this kind are exempted from ever paging anyone by definition',
       "The service's SLO is automatically and permanently recalculated down to 99% availability until its traffic volume eventually recovers on its own",
-      'That single failure alone produces roughly a 1,000x burn-rate spike, enough to trigger a page right away, since it works out to a 10% hourly error rate against a 0.1% budget',
+      'That single failure alone produces roughly a 100x burn-rate spike, enough to trigger a page right away, since it works out to a 10% hourly error rate against a 0.1% budget',
     ],
     correctIndexes: [3],
-    explanation: "A single failure out of ten requests in an hour is a 10% hourly error rate, which against a 99.9% SLO's 0.1% budget works out to roughly a 1,000x burn rate — enough to page immediately even though it might just be one client hitting a transient, uninteresting failure. There's no built-in request-count floor that suppresses burn-rate alerting, no automatic exemption routing low-traffic pages to tickets, and no automatic SLO recalculation described anywhere in this material.",
+    explanation: "A single failure out of ten requests in an hour is a 10% hourly error rate, which against a 99.9% SLO's 0.1% budget works out to roughly a 100x burn rate — far past the 14.4x paging threshold, enough to page immediately even though it might just be one client hitting a transient, uninteresting failure. There's no built-in request-count floor that suppresses burn-rate alerting, no automatic exemption routing low-traffic pages to tickets, and no automatic SLO recalculation described anywhere in this material.",
   },
   {
     id: 'monitoring-023',
@@ -992,7 +993,7 @@ export const QUESTIONS = [
       "Assessing the incident's impact comes before mitigating it",
       "Mitigation can be skipped entirely if responders are confident the root cause will be found quickly",
       'Mitigating the impact comes before performing root-cause analysis',
-      'Writing and publishing the postmortem happens only after the incident is over and the underlying cause has been fixed',
+      'Writing and publishing the postmortem happens only after the incident itself is over, not while responders are still mitigating',
     ],
     correctIndexes: [1, 3, 4],
     explanation: 'The chapter\'s own ordered list runs assess impact, mitigate impact, perform root-cause analysis, then — once the incident is over — fix the underlying cause and write the postmortem, with explicit emphasis that responders "must prioritize mitigation above all else." That directly rules out finishing root-cause analysis before any mitigation, and rules out treating mitigation as skippable: customers care that the errors stop, not whether the cause is already understood.',
@@ -1103,7 +1104,7 @@ export const QUESTIONS = [
     id: 'incidents-021',
     domain: 'incidents',
     questionType: 'multiple-choice',
-    question: "Ben Treynor Sloss is quoted in the workbook making the point that a postmortem which produces no follow-up is, to users, no different from never having written one, and that every user-affecting postmortem needs at least one tracking bug behind it. What does this best illustrate about \"blameless\" postmortems?",
+    question: "Ben Treynor Sloss is quoted in the workbook making the point that a postmortem which produces no follow-up is, to users, no different from never having written one at all. What does this best illustrate about \"blameless\" postmortems?",
     options: [
       'That being blameless means no specific person\'s actions are ever documented anywhere in a postmortem, even factually',
       'That blameless culture removes the need for any follow-up action at all, since simply documenting the incident is considered sufficient on its own',
@@ -1738,14 +1739,14 @@ export const QUESTIONS = [
     question:
       "Why does the Workbook caution against a 'before/after' canary evaluation, where the entire system is replaced and compared against its own prior behavior over time?",
     options: [
-      "Before/after evaluation is disallowed by definition because it doesn't use a control group at all",
-      'Before/after evaluation is described as always taking measurably longer to complete from start to finish than any population-based canary process, no matter how much traffic the service actually receives at the time',
+      "Before/after evaluation fails to qualify as canarying at all, since a canary requires a concurrently running control population",
+      "The Workbook's concern is speed: running the before and after windows sequentially stretches the evaluation out too long to be practical for frequent releases",
       "A system's behavior naturally shifts with time regardless of any release, so it's hard to tell whether a change is really caused by the deployment or by an unrelated shift, like weekday-versus-weekend traffic",
-      'Before/after evaluation cannot be combined with blue/green deployment under any circumstances',
+      'Before/after evaluation conflicts with blue/green deployment, which needs both environments serving live traffic simultaneously during the comparison',
     ],
     correctIndexes: [2],
     explanation:
-      "The chapter's concern with before/after evaluation is attribution: because a system's behavior naturally drifts over time for reasons that have nothing to do with the release, a degradation seen afterward might really be caused by something else that changed over that same window, like the difference between weekday and weekend traffic. It does treat a before/after comparison as a valid (if riskier) way to segment a canary, doesn't claim it's always slower, and explicitly discusses using blue/green in a before/after style.",
+      "The chapter's concern with before/after evaluation is attribution: because a system's behavior naturally drifts over time for reasons that have nothing to do with the release, a degradation seen afterward might really be caused by something else that changed over that same window, like the difference between weekday and weekend traffic. It does treat a before/after comparison as a valid (if riskier) way to segment a canary, its stated worry is attribution rather than evaluation speed, and it explicitly discusses using blue/green in a before/after style.",
   },
   {
     id: 'release-015',
@@ -1756,12 +1757,12 @@ export const QUESTIONS = [
     options: [
       'CPU usage cannot be measured separately for the canary and control populations',
       'HTTP return codes are the only metric type App Engine is capable of exporting',
-      'Response latency is claimed to be the one and only metric that this particular canary-evaluation chapter ever mentions anywhere in its entire discussion of the topic, from start to finish',
+      'Return codes and latency are the only metrics the chapter mentions as candidates for evaluating a canary',
       "Degradation in return codes and latency tracks real user problems, while a rise in CPU usage doesn't necessarily hurt the service and can make the signal noisy",
     ],
     correctIndexes: [3],
     explanation:
-      "The chapter favors HTTP return codes and latency because their degradation closely tracks real user-facing problems, whereas a rise in CPU usage doesn't necessarily hurt the service and risks producing a flaky, easily distrusted signal. It never claims CPU can't be measured per population, that App Engine only exports one metric type, or that latency is the chapter's only mentioned metric — it lists several others too, like queue depth and memory footprint.",
+      "The chapter favors HTTP return codes and latency because their degradation closely tracks real user-facing problems, whereas a rise in CPU usage doesn't necessarily hurt the service and risks producing a flaky, easily distrusted signal. It never claims CPU can't be measured per population, that App Engine only exports one metric type, or that return codes and latency are the only metrics it considers — it lists several others too, like queue depth and memory footprint.",
   },
   {
     id: 'release-016',
@@ -2066,7 +2067,7 @@ export const QUESTIONS = [
     ],
     correctIndexes: [2],
     explanation:
-      "A backend task only rejects requests of a given criticality once it is already rejecting all requests of every lower criticality — so SHEDDABLE, the lowest of the four tiers, gets cut first as utilization climbs, well before CRITICAL_PLUS (the default for production-serving traffic, the last tier to be shed). There's no FIFO-by-arrival-time rule and no proportional across-the-board shedding; rejection cascades strictly from least to most critical, which is also why CRITICAL_PLUS being shed first is backwards from how the mechanism actually works.",
+      "A backend task only rejects requests of a given criticality once it is already rejecting all requests of every lower criticality — so SHEDDABLE, the lowest of the four tiers, gets cut first as utilization climbs, well before CRITICAL_PLUS (the most-protected tier, reserved for requests whose failure causes serious user-visible impact, and the last to be shed — one step above CRITICAL, the default for production traffic). There's no FIFO-by-arrival-time rule and no proportional across-the-board shedding; rejection cascades strictly from least to most critical, which is also why CRITICAL_PLUS being shed first is backwards from how the mechanism actually works.",
   },
   {
     id: 'reliability-014',

@@ -63,7 +63,7 @@ export const FLASHCARDS = [
     service: 'AWS KMS',
     domain: 'Security, Identity, and Compliance',
     front: 'How often can a KMS key rotate its cryptographic material automatically?',
-    back: 'A key can optionally rotate its cryptographic material automatically once a year, or on demand, with no application changes required.',
+    back: 'A key can optionally rotate its cryptographic material automatically — yearly by default, or on a custom schedule anywhere from 90 to 2,560 days — and can also be rotated on demand, all with no application changes required.',
   },
   {
     id: 'acm',
@@ -302,7 +302,7 @@ export const FLASHCARDS = [
     service: 'Amazon EC2',
     domain: 'Compute, Containers, and Serverless',
     front: 'On-Demand vs. Reserved Instances vs. Spot vs. Savings Plans: how do you choose?',
-    back: 'On-Demand bills by the second with zero commitment, the default for unpredictable workloads. Reserved Instances and Savings Plans both trade a 1- or 3-year usage commitment for a lower rate — Reserved Instances lock in a specific instance configuration, while Savings Plans commit to a dollar-per-hour spend that flexes across instance families and even Fargate or Lambda usage. Spot Instances bid on spare capacity for steep discounts but can be reclaimed on short notice, so they suit interruption-tolerant work.',
+    back: 'On-Demand bills by the second with zero commitment, the default for unpredictable workloads. Reserved Instances and Savings Plans both trade a 1- or 3-year usage commitment for a lower rate — Reserved Instances lock in a specific instance configuration, while Savings Plans commit to a dollar-per-hour spend that flexes across instance families and even Fargate or Lambda usage. Spot Instances request spare capacity at steep discounts but can be reclaimed on short notice, so they suit interruption-tolerant work.',
   },
   {
     id: 'ec2-auto-scaling',
@@ -404,7 +404,7 @@ export const FLASHCARDS = [
     service: 'Amazon EFS',
     domain: 'Storage',
     front: 'How many compute instances can mount the same EFS file system at the same time?',
-    back: 'EFS is a managed NFS file system built to be mounted by a whole fleet of instances or containers at once, resizing itself up or down as data is written or deleted, with no storage size to pre-plan. EBS, by contrast, only ever attaches to one instance at a time — reach for EFS the moment several compute resources need shared, simultaneous access to the same files.',
+    back: 'EFS is a managed NFS file system built to be mounted by a whole fleet of instances or containers at once, resizing itself up or down as data is written or deleted, with no storage size to pre-plan. EBS, by contrast, attaches to only one instance at a time in the general case — reach for EFS the moment several compute resources need shared, simultaneous access to the same files.',
   },
   {
     id: 'fsx',
@@ -484,8 +484,8 @@ export const FLASHCARDS = [
     id: 'elasticache',
     service: 'Amazon ElastiCache',
     domain: 'Database',
-    front: 'Which two engines is ElastiCache compatible with, and roughly how much faster is a cache hit than a database round-trip?',
-    back: "It's a managed cache layer, compatible with Redis or Memcached, that you place in front of a slower backing database so frequently requested data can be served from memory in microseconds instead of the milliseconds a database round-trip would take. You can run it as a serverless cache or as node-based clusters, depending on how much manual capacity control you want.",
+    front: 'Which three engines is ElastiCache compatible with, and roughly how much faster is a cache hit than a database round-trip?',
+    back: "It's a managed cache layer, compatible with Valkey, Redis OSS, or Memcached, that you place in front of a slower backing database so frequently requested data can be served from memory in microseconds instead of the milliseconds a database round-trip would take. You can run it as a serverless cache or as node-based clusters, depending on how much manual capacity control you want.",
   },
   {
     id: 'redshift',
@@ -595,7 +595,7 @@ export const FLASHCARDS = [
     service: 'Best-Fit Scenario',
     domain: 'Best-Fit Scenarios',
     front: 'A fleet of EC2 instances needs a shared POSIX file system that many of them can mount and write to at the same time — which storage service fits?',
-    back: 'Amazon EFS: a managed, elastic NFS file system built to be mounted by many instances or containers at once, resizing itself automatically as data is written or deleted. EBS only ever attaches to one instance at a time, and FSx for Windows File Server speaks SMB rather than POSIX, so EFS is the one built for concurrent, POSIX-style access across a fleet.',
+    back: 'Amazon EFS: a managed, elastic NFS file system built to be mounted by many instances or containers at once, resizing itself automatically as data is written or deleted. EBS attaches to only one instance at a time in the general case, and FSx for Windows File Server speaks SMB rather than POSIX, so EFS is the one built for concurrent, POSIX-style access across a fleet.',
   },
   {
     id: 'scenario-microsecond-cache',

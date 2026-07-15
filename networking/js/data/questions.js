@@ -1,5 +1,5 @@
 // js/data/questions.js
-// Quiz questions for the Networking Concepts domain (23% exam weight).
+// Quiz questions covering all five CompTIA Network+ (N10-009) exam domains.
 // Grounded in docs cached under .cache/aws-docs/ during authoring (IETF
 // RFCs, Cisco Networking Academy / Learn articles, and NIST special
 // publications); every answer key re-verified against the cached source
@@ -10,15 +10,15 @@ export const QUESTIONS = [
     id: 'concepts-001',
     domain: 'concepts',
     questionType: 'multiple-choice',
-    question: 'Per the OSI reference model as taught in Cisco Networking Academy material, which layer is defined as containing the protocols responsible for process-to-process communication between applications?',
+    question: 'Per the OSI reference model as taught in Cisco Networking Academy material, which layer sits closest to the end user, holding protocols such as HTTP and SMTP that applications use directly to exchange data?',
     options: [
       'The presentation layer, which provides a common representation for data exchanged between application-layer services on either side of a session',
       'The session layer, which organizes dialogue and manages data exchange on behalf of the presentation layer',
-      'The application layer, the topmost of the seven layers, holding the protocols used for process-to-process communication',
-      'The transport layer, which segments, transfers, and reassembles data for individual communications between end devices',
+      'The application layer, the topmost of the seven layers, where those user-facing protocols themselves live',
+      'The transport layer, which provides host-to-host delivery, segmenting and reassembling data for individual communications between end devices',
     ],
     correctIndexes: [2],
-    explanation: 'The application layer sits at the top of the seven-layer model and is described as holding the process-to-process protocols. The layer that formats shared data between application services is the presentation layer, the layer that organizes dialogue and manages exchange is the session layer, and the layer that segments and reassembles data end-to-end is the transport layer — none of those three is where process-to-process protocols themselves live.',
+    explanation: 'The application layer sits at the top of the seven-layer model, closest to the end user, and is where the protocols applications rely on directly — HTTP, SMTP, and their peers — actually live. The layer that formats shared data between application services is the presentation layer, the layer that organizes dialogue and manages exchange is the session layer, and the layer that provides host-to-host delivery by segmenting and reassembling data end-to-end is the transport layer — none of those three holds the user-facing protocols themselves.',
   },
   {
     id: 'concepts-002',
@@ -130,7 +130,7 @@ export const QUESTIONS = [
       'UDP port 67',
       'UDP port 53, the same port used for DNS lookups',
       'TCP port 67, since DHCP requires a reliable, connection-oriented transport to guarantee lease delivery',
-      'UDP port 68, which is actually the client-side port rather than the server-side one',
+      'UDP port 68',
     ],
     correctIndexes: [0],
     explanation: 'RFC 2131 assigns the server-side listening port to UDP 67, with clients receiving offers on the adjacent UDP port 68. DHCP runs over UDP rather than TCP, so the option describing a TCP-based reliable connection is wrong on that basis alone, the DNS-port option confuses DHCP with an unrelated service, and port 68 belongs to the client rather than the server.',
@@ -187,11 +187,11 @@ export const QUESTIONS = [
       'Unicast describes an ordinary one-to-one delivery pattern between a single sender and one specific destination',
       'A host must join a multicast group before it is permitted to send any datagram addressed to that group',
       'Broadcast, as covered for IP networks in RFC 919, delivers a datagram to every host on the local network segment',
-      'Consolidating a network’s origin content onto a single central server, rather than caching it near end users, is what defines a content delivery network',
+      'A datagram addressed to 255.255.255.255 is forwarded by routers from network to network until it has reached every host everywhere, not just the hosts on the sender’s own segment',
       'Anycast, as defined for IPv6 in RFC 4291, delivers a packet to whichever member interface routing considers nearest to the sender',
     ],
     correctIndexes: [1, 3, 5],
-    explanation: "Unicast's one-to-one pattern, broadcast reaching every host on a local segment, and anycast routing to the single nearest member interface are all accurate. RFC 1112 explicitly states that group membership is not a prerequisite for transmitting to a group's address — a sender can transmit without ever having joined — which contradicts both the claim that a sender must first learn every member's identity and the claim that a host must join before it can send. The statement about consolidating content onto one central server actually describes the opposite of a CDN, which caches content on servers spread out near end users.",
+    explanation: "Unicast's one-to-one pattern, broadcast reaching every host on a local segment, and anycast routing to the single nearest member interface are all accurate. RFC 1112 explicitly states that group membership is not a prerequisite for transmitting to a group's address — a sender can transmit without ever having joined — which contradicts both the claim that a sender must first learn every member's identity and the claim that a host must join before it can send. And a datagram sent to 255.255.255.255 is a limited broadcast that routers never forward — RFC 919 confines it to the sender's own local segment rather than letting it spread from network to network.",
   },
   {
     id: 'concepts-014',
@@ -585,7 +585,7 @@ export const QUESTIONS = [
       "The native VLAN is the one exception 802.1Q allows to cross a trunk link completely untagged",
     ],
     correctIndexes: [0, 1, 3, 5],
-    explanation: "Trunk ports carrying multiple VLANs while access ports stay single-VLAN and untagged, RSTP's discarding state merging blocking and listening to speed convergence, jumbo frames only paying off once every device end-to-end supports the larger size, and the native VLAN being the one exception allowed to cross a trunk untagged are all accurate. A blocked STP port keeps discarding frames while leaving the physical link itself up and ready, rather than disabling it the way a shut-down interface would — that's precisely what lets it step in without delay the moment the active path goes down. And a static EtherChannel bundle is defined by having no negotiation at all; the negotiation behavior described belongs to LACP, not to a static bundle running under a different message format.",
+    explanation: "Trunk ports carrying multiple VLANs while access ports stay single-VLAN and untagged, RSTP's discarding state merging blocking and listening to speed convergence, jumbo frames only paying off once every device end-to-end supports the larger size, and the native VLAN being the one exception allowed to cross a trunk untagged are all accurate. A blocked STP port keeps discarding frames while leaving the physical link itself up and ready, rather than disabling it the way a shut-down interface would — that's what lets it be promoted to forwarding when the active path goes down without anyone re-enabling or re-cabling anything, even though classic STP still walks it through listening and learning on the way. And a static EtherChannel bundle is defined by having no negotiation at all; the negotiation behavior described belongs to LACP, not to a static bundle running under a different message format.",
   },
 
   // --- Sub-theme: Wireless Devices & Security (implementation-013..018) ---
@@ -637,10 +637,10 @@ export const QUESTIONS = [
     questionType: 'multiple-choice',
     question: "A technician is troubleshooting why a wireless controller can't reach its AAA server for 802.1X authentication, and wants to confirm the firewall allows the correct transport protocol and port pair. Per RFC 2865, which pair is correct for RADIUS authentication traffic, as opposed to TACACS+?",
     options: [
-      "TCP port 49, the same port pair TACACS+ actually uses",
+      "TCP port 49, carrying each authentication exchange over its own reliable connection",
       "UDP port 1812, with UDP port 1645 as the older port the same RFC describes as superseded",
       "TCP port 1812, since RADIUS requires a reliable, connection-oriented transport to guarantee delivery",
-      "UDP port 49, mixing TACACS+'s port number with RADIUS's transport protocol",
+      "UDP port 49",
     ],
     correctIndexes: [1],
     explanation: "RFC 2865 assigns RADIUS authentication traffic to UDP port 1812, while also noting that earlier deployments used UDP port 1645 before the conflict that led to standardizing on 1812. TACACS+ is the protocol that actually uses TCP port 49, so naming that pair here just describes the wrong protocol entirely; claiming RADIUS runs over TCP misstates its transport, since RADIUS runs over UDP rather than a connection-oriented protocol; and pairing UDP with port 49 mixes RADIUS's real transport with TACACS+'s real port number, taking each half from a different protocol.",
@@ -739,7 +739,7 @@ export const QUESTIONS = [
     questionType: 'multiple-response',
     question: "Which of the following statements about structured cabling and cable categories are accurate? (Select all that apply.)",
     options: [
-      "Cat 6a cabling supports 10 Gbps over the full standard distance and offers better shielding against interference between its twisted pairs than Cat 5e",
+      "Cat 6a cabling supports 10 Gbps over the full standard distance, thanks to added shielding that suppresses alien crosstalk leaking in from separate cables nearby",
       "Cat 5e cabling supports speeds of up to 1 Gbps",
       "A patch panel is the fixed point where every wall jack's cable run ends up inside the wiring closet, with a short patch cord then bridging each of its ports over to a switch",
       "Structured cabling standards leave the maximum length of a single horizontal cable run completely open-ended, with no defined ceiling before signal quality starts to suffer",
@@ -747,7 +747,7 @@ export const QUESTIONS = [
       "Vertical backbone cabling, in structured-cabling design, connects individual end-user wall jacks directly to one another, bypassing the MDF and IDFs entirely",
     ],
     correctIndexes: [0, 1, 2, 4],
-    explanation: "Cat 6a's full-distance 10 Gbps support with better inter-pair shielding, Cat 5e's up-to-1-Gbps rating, the patch panel's role as the wiring closet's termination point for jack cabling so a short cord can bridge over to a switch port, and Cat 6's shorter-distance ceiling for 10 Gbps compared to Cat 6a are all accurate. Structured cabling standards do define maximum run-length limits rather than leaving that distance open-ended, and vertical backbone cabling actually connects an MDF to its IDFs, not individual wall jacks directly to each other bypassing that distribution hierarchy entirely.",
+    explanation: "Cat 6a's full-distance 10 Gbps support, earned by suppressing the alien crosstalk that leaks in from separate cables nearby, Cat 5e's up-to-1-Gbps rating, the patch panel's role as the wiring closet's termination point for jack cabling so a short cord can bridge over to a switch port, and Cat 6's shorter-distance ceiling for 10 Gbps compared to Cat 6a are all accurate. Structured cabling standards do define maximum run-length limits rather than leaving that distance open-ended, and vertical backbone cabling actually connects an MDF to its IDFs, not individual wall jacks directly to each other bypassing that distribution hierarchy entirely.",
   },
   {
     id: 'implementation-024',
@@ -886,15 +886,15 @@ export const QUESTIONS = [
     id: 'operations-009',
     domain: 'operations',
     questionType: 'multiple-choice',
-    question: "An analyst plugs a laptop running tcpdump into a switch port and finds it only captures traffic addressed directly to that laptop, missing the broader conversation happening between two other hosts on the same switch. What needs to change on the capturing interface, and why?",
+    question: "An analyst's laptop is plugged into a switch port already configured as the destination of a SPAN session, so the switch is mirroring two other hosts' conversation to that port. Yet tcpdump, launched with the -p flag, captures only broadcasts and the laptop's own traffic. What needs to change on the capturing interface, and why?",
     options: [
       "Nothing on the interface itself; the analyst instead needs to loosen the tcpdump filter expression down to one that matches every packet",
       "The interface needs a static IP address assigned, since tcpdump refuses to capture on any interface still relying on DHCP",
-      "The interface needs to run in promiscuous mode, accepting and handing up every frame it sees rather than only frames addressed to it, since a switch normally forwards a given frame out only the one port where its destination lives",
+      "The interface needs to run in promiscuous mode — which the -p flag was suppressing — so the NIC accepts and hands up the mirrored frames even though their destination MAC addresses belong to other hosts",
       "The interface needs its MTU raised to support jumbo frames, since tcpdump silently discards any frame larger than the standard Ethernet MTU",
     ],
     correctIndexes: [2],
-    explanation: "Capturing meaningful traffic on a switched network requires putting the capturing interface into promiscuous mode, because a switch ordinarily forwards each frame out only the single port its destination actually lives on, so a laptop's NIC never sees frames meant for other hosts unless it's told to accept everything. Loosening the filter expression doesn't help, since the problem is which frames reach the NIC at all, not which ones tcpdump chooses to display; tcpdump has no such requirement for a statically assigned address; and nothing about MTU or jumbo-frame support is related to why traffic between two other hosts never reaches this particular interface.",
+    explanation: "The SPAN session already solves the delivery half of the problem: the switch, which would ordinarily forward each frame out only the single port its destination actually lives on, is copying the two hosts' conversation to the analyst's port. But those mirrored frames still carry the original hosts' MAC addresses as their destinations, so a NIC in its normal mode filters them out before tcpdump ever sees them — promiscuous mode, which tcpdump enables by default but the -p flag turns off, tells the interface to accept and hand up every frame regardless of destination. Loosening the filter expression doesn't help, since the frames are being discarded by the NIC before any filter applies; tcpdump has no requirement for a statically assigned address; and nothing about MTU or jumbo-frame support explains why frames addressed to other hosts' MACs are missing from the capture.",
   },
   {
     id: 'operations-010',
@@ -917,7 +917,7 @@ export const QUESTIONS = [
     id: 'operations-011',
     domain: 'operations',
     questionType: 'multiple-choice',
-    question: "NIST SP 800-34 Rev. 1 defines Maximum Tolerable Downtime (MTD) as the broadest of its core recovery metrics, with Recovery Time Objective (RTO) explicitly folded in beneath it as a subset consideration. Which of the other two metrics does the guide explicitly NOT treat as part of MTD?",
+    question: "NIST SP 800-34 Rev. 1 defines Maximum Tolerable Downtime (MTD) as the broadest of its core recovery metrics, with Recovery Time Objective (RTO) explicitly folded in beneath it as a subset consideration. Which related metric does the guide explicitly NOT treat as part of MTD?",
     options: [
       "MTTR, because MTTR is simply a renamed synonym for MTD used interchangeably throughout the guide",
       "Recovery Point Objective (RPO), which measures backward to the last usable backup rather than counting forward the way RTO does",
@@ -1364,7 +1364,7 @@ export const QUESTIONS = [
       "Changing only one variable guarantees the very first attempt will resolve the symptom, so the process never needs to loop back to a second candidate cause",
       "Regulatory compliance requires every individual network change to be logged and approved separately before it can be considered valid",
       "If several things change together, the symptom might still clear, but there would be no way to tell afterward which specific change actually fixed it, which would prevent repeating that same fix the next time the symptom shows up",
-      "Most router platforms are technically incapable of accepting more than one configuration command in a single session, so multiple simultaneous changes are not physically possible, a hardware limitation that would make this entire discussion of changing one variable at a time completely unnecessary in the first place",
+      "Most router platforms are technically incapable of accepting more than one configuration command in a single session, so multiple simultaneous changes are not physically possible",
     ],
     correctIndexes: [2],
     explanation: "Cisco's model limits each attempt to a single variable so that whichever change actually cleared the symptom can be identified afterward and repeated the next time the same problem occurs — touching several things at once might still work, but it destroys the ability to know which change mattered. Nothing about the restriction guarantees a first attempt will succeed, since the whole model is built around looping back to the next candidate when an attempt fails; no regulatory logging requirement drives this rule; and routers are perfectly capable of accepting multiple configuration commands in one session, so that isn't the actual constraint at play.",
@@ -1466,7 +1466,7 @@ export const QUESTIONS = [
       "A split pair, where two wires meant to remain bonded as a single twisted pair get terminated onto two different pairs instead, wrecking that pair's ability to cancel out crosstalk even though every wire still technically makes contact",
       "A short, where two wires that were never supposed to touch are making contact with each other somewhere along the run",
       "An open, where a wire fails to make contact at one of its termination points and never completes its circuit at all",
-      "Terminating one end T568A and the other T568B on the same run, which wires up a crossover pairing that simply won't work as a straight-through link at all — an entirely different symptom from a link that still passes a basic wire-map continuity check",
+      "Terminating one end T568A and the other T568B on the same run, which wires up a crossover pairing instead of the straight-through link that was intended",
     ],
     correctIndexes: [0],
     explanation: "A split pair is the mistake that produces exactly this pattern: because every wire still makes contact end to end, a basic continuity check passes, but separating a matched pair onto two different pairs during termination still wrecks that pair's ability to cancel out crosstalk, degrading the link even though it looks fine on a simple continuity test. A short or an open would each cause the continuity check itself to fail rather than pass, which rules both out here, and a T568A/T568B mismatch produces a non-functional crossover pairing rather than a link that still passes but merely performs poorly with elevated crosstalk.",
@@ -1491,7 +1491,7 @@ export const QUESTIONS = [
     questionType: "multiple-choice",
     question: "Two switches share a point-to-point Ethernet link. One side is manually forced to full duplex, and the other side is left on auto-negotiation, which settles it into half duplex. Which specific error signature on the half-duplex side is the recognized diagnostic signal for exactly this kind of duplex mismatch, as opposed to a physical-layer error in general?",
     options: [
-      "A rising giants counter, since giants are oversized frames that occur regardless of whatever duplex settings either side of a link is using, making a giants counter just as reliable an indicator of a duplex mismatch as any other counter an interface happens to report, according to this line of reasoning",
+      "A rising giants counter, since giants are oversized frames that occur regardless of whatever duplex settings either side of a link is using, making a giants counter just as reliable an indicator of a duplex mismatch as any other counter an interface happens to report",
       "A late collision — one that only shows up after a device has already pushed out a meaningful chunk of its own frame — because the half-duplex side still checks for a clear line before it transmits, while the full-duplex side skips that check entirely",
       "A rising CRC error count on its own, since any physical-layer frame corruption is treated as identical proof of a duplex mismatch",
       "A rising runts counter, since runts specifically occur only when two devices are locked into mismatched half-duplex settings on both ends",
@@ -1522,7 +1522,7 @@ export const QUESTIONS = [
       "1Gbps, because the speed a link actually negotiates follows whichever transceiver is physically plugged in, not the raw maximum capability the port hardware itself is rated for",
       "10Gbps, since the port hardware itself is rated for 10Gbps and the installed transceiver has no bearing on the link's negotiated speed",
       "40Gbps, since QSFP bundles four channels together and any SFP-capable port automatically inherits that combined bandwidth once connected",
-      "The link fails to come up at all, since a 10Gbps-capable port is never able to negotiate down to a lower speed than its own maximum rating, a claim that misunderstands how Ethernet auto-negotiation actually works between two connected devices",
+      "The link fails to come up at all, since a 10Gbps-capable port is never able to negotiate down to a lower speed than its own maximum rating",
     ],
     correctIndexes: [0],
     explanation: "The link settles at 1Gbps because a link negotiates at the speed of whichever transceiver is physically installed, not at the port hardware's own theoretical ceiling — plugging a slower transceiver into a faster-capable port silently caps that link at the transceiver's own speed. Claiming the port's own maximum wins out ignores that the transceiver, not the port silicon alone, sets the negotiated speed here; a 1Gbps SFP has nothing to do with QSFP's four-channel 40Gbps design, so no such inheritance happens; and a port capable of higher speeds negotiating down to match a slower transceiver is the normal, expected outcome rather than a failure to link up.",
@@ -1579,7 +1579,7 @@ export const QUESTIONS = [
     questionType: "multiple-choice",
     question: "A device is plugged into a switch access port that was accidentally assigned to the wrong VLAN. From that device's own point of view, what does this specific misconfiguration typically look like?",
     options: [
-      "The device displays an explicit VLAN-mismatch error partway through the DHCP exchange, since a DHCP server refuses to lease an address to a client on an unexpected VLAN, a level of VLAN awareness DHCP simply was never designed to have",
+      "The device displays an explicit VLAN-mismatch error partway through the DHCP exchange, since a DHCP server refuses to lease an address to a client on an unexpected VLAN",
       "The device fails to associate with the network at all, since being assigned to the wrong VLAN is described as blocking Layer 2 connectivity outright",
       "The switch port itself is shown in a down/down interface state, since access ports assigned to the wrong VLAN are automatically disabled",
       "The device shows no error at all — it associates and receives an address successfully, just from the wrong DHCP scope, landing it in a broadcast domain with the wrong subnet and gateway",
@@ -1593,7 +1593,7 @@ export const QUESTIONS = [
     questionType: "multiple-choice",
     question: "Two switches are connected by an 802.1Q trunk, and the native VLAN configured on one end doesn't match the native VLAN configured on the other end. What specific symptom does that particular mismatch produce, as distinct from a VLAN that's simply missing from the trunk's allowed list?",
     options: [
-      "Traffic for every single VLAN carried across the trunk is dropped entirely and immediately, in both directions, until the native VLAN mismatch between the two switches is fully corrected, a far more disruptive outcome than what a native VLAN mismatch actually produces on a real trunk",
+      "Traffic for every single VLAN carried across the trunk is dropped entirely and immediately, in both directions, until the native VLAN mismatch between the two switches is fully corrected",
       "Frames belonging to the mismatched native VLAN pass across the trunk without a tag and end up dropped into whatever VLAN the switch on the receiving end considers native, silently leaking those frames somewhere they don't belong",
       "The trunk fails to form at all, since 802.1Q is described as requiring both ends of a trunk to agree on native VLAN before any traffic will pass",
       "Nothing changes, since native VLAN designation is described as affecting only untagged frames received directly from an end-user device, never trunk-to-trunk traffic",
@@ -1610,7 +1610,7 @@ export const QUESTIONS = [
       "ACLs evaluate every rule in the list simultaneously and apply whichever single rule is the most specific match, regardless of where that rule sits in the list",
       "The new rule was never actually saved to the router's running configuration, since ACL changes are described as requiring a full device reboot before they take effect",
       "An ACL works through its rules from the top of the list downward and stops the moment it finds a match, so the broad deny rule positioned earlier catches the traffic first and shadows the newer, more specific permit rule placed beneath it",
-      "The ACL's implicit deny at the very end of the list is what's actually blocking this traffic, since none of the rules already written into the list were specific enough to override it, overlooking that the broad deny rule sitting higher up the list would already have matched and stopped evaluation long before the list's end was ever reached",
+      "The ACL's implicit deny at the very end of the list is what's actually blocking this traffic, since none of the rules already written into the list were specific enough to override it",
     ],
     correctIndexes: [2],
     explanation: "An ACL evaluates its rules in order and stops at the very first match, so a broad deny rule sitting above a newly added, more specific permit rule matches the traffic first and shadows the permit rule underneath it — exactly the trap rule ordering creates. ACLs don't evaluate every rule at once and pick the most specific match regardless of position, since order is precisely what determines which rule wins; ACL changes take effect without requiring a full reboot; and the implicit deny at the very end of the list never even gets reached here, since the broad deny rule higher up already matched and stopped evaluation before the list's end was ever reached.",
@@ -1637,7 +1637,7 @@ export const QUESTIONS = [
     options: [
       "None, since UDP port 69 is itself one of the two ports DHCP relies on alongside UDP port 68",
       "It blocks DHCP entirely while accidentally opening the ports used by SNMP instead, since SNMP is the protocol assigned to UDP port 69",
-      "It has no effect on DHCP at all, since DHCP is described as relying entirely on TCP rather than UDP for both its server and client ports, a transport-layer detail that this option simply gets backward",
+      "It has no effect on DHCP at all, since DHCP is described as relying entirely on TCP rather than UDP for both its server and client ports",
       "It fails to permit the correct DHCP traffic, since DHCP actually uses UDP port 67 for the server and UDP port 68 for the client, while port 69 belongs to TFTP instead",
     ],
     correctIndexes: [3],
@@ -1649,7 +1649,7 @@ export const QUESTIONS = [
     questionType: "multiple-choice",
     question: "A DHCP client performs a final ARP check on an address it was just offered and discovers that address is already answering on the network. Which DHCP message does the client send in response to that discovery, and which side of the exchange is that specific message always associated with?",
     options: [
-      "DHCPNAK, sent by the client to reject the server's own offer outright, a claim that misattributes this particular message type to the wrong side of the exchange entirely",
+      "DHCPNAK, sent by the client to reject the server's own offer outright",
       "DHCPDECLINE, sent by the client — and only ever by the client — to report that the address it was just offered is already in use elsewhere on the network",
       "DHCPNAK, sent by the server to refuse the client's subsequent DHCPREQUEST message",
       "DHCPDECLINE, sent by the server to withdraw an offer before the client ever has a chance to accept it",
@@ -1698,7 +1698,7 @@ export const QUESTIONS = [
       "Jitter, packet loss, and available bandwidth, three separate measurements that are described as combining directly into a single latency figure",
       "Attenuation, crosstalk, and interference — the same three signal-degradation sources covered under physical-layer troubleshooting",
       "Propagation delay tied to the raw physical distance a signal must cover, queuing delay accumulated while a packet sits in line behind other traffic on a busy link or device, and processing delay incurred while a device examines and then forwards that same packet onward",
-      "Only propagation delay, since queuing delay and processing delay are both accounted for separately from a latency measurement rather than contributing to it, a distinction that doesn't actually hold up once every stacked source of delay along a real path is measured and added together in practice",
+      "Only propagation delay, since queuing delay and processing delay are both accounted for separately from a latency measurement rather than contributing to it",
     ],
     correctIndexes: [2],
     explanation: "Latency stacks together from several distinct sources rather than one alone: propagation delay from the raw physical distance a signal travels, queuing delay while a packet waits behind other traffic, and processing delay while a device actually inspects and forwards it. Jitter and packet loss are related but separate measurements in their own right, not components that combine into a latency figure; attenuation, crosstalk, and interference are physical-layer signal-quality issues rather than sources of transmission delay; and queuing and processing delay are both genuine contributors to total latency rather than being tracked apart from it.",
@@ -1709,7 +1709,7 @@ export const QUESTIONS = [
     questionType: "multiple-choice",
     question: "A voice call sounds intermittently choppy even though every individual packet that does arrive shows a perfectly normal, low round-trip time. Given that latency and packet loss are measured as two separate things, what does this specific pattern suggest is actually happening?",
     options: [
-      "The situation described is contradictory and cannot actually occur, since a low round-trip time on arriving packets is described as always ruling out any packet loss on the same path, a conclusion that confuses what a surviving packet's own timing shows with what happened to the packets that never arrived at all",
+      "The situation described is contradictory and cannot actually occur, since a low round-trip time on arriving packets is described as always ruling out any packet loss on the same path",
       "The call is experiencing high jitter alone, on the assumption that jitter and packet loss are simply two different names for the identical underlying event",
       "The problem has to be queuing delay specifically, since queuing delay is described as the only latency source capable of producing a choppy audio symptom by itself",
       "Some packets are being lost outright rather than merely arriving late, since packet loss measures whether a packet arrived at all rather than how long it took, and voice traffic is highly sensitive to both figures independently",
@@ -1725,7 +1725,7 @@ export const QUESTIONS = [
     options: [
       "How relative transit time differs between two consecutive packets — relative transit time meaning the gap between a packet's own timestamp and whatever the receiver's clock reads at the moment that packet shows up — with the comparison smoothed against the jitter value calculated for the packet before it",
       "The total count of packets lost during an entire session divided by the total count of packets sent, expressed as one running percentage figure",
-      "The absolute round-trip time of every single packet observed throughout an entire session, averaged together into one single mean value that's recalculated only once per whole session rather than being recalculated after each individual packet, a description that conflates jitter with a completely different kind of latency statistic entirely",
+      "The absolute round-trip time of every single packet observed throughout an entire session, averaged together into one single mean value that's recalculated only once per whole session rather than being recalculated after each individual packet",
       "The difference between the highest and lowest round-trip times observed across an entire session, recalculated only whenever a brand new session begins",
     ],
     correctIndexes: [0],
@@ -1753,7 +1753,7 @@ export const QUESTIONS = [
     options: [
       "It queries each router directly over SNMP, requesting that router's own routing-table entry for the destination in question",
       "It relies on every router along the path supporting LLDP, using each router's own LLDP advertisement to build the hop list",
-      "It sends a single packet with the destination's entire path pre-encoded through IP source routing, and each router along that path replies in turn, a technique that most modern routers refuse to honor at all since source routing of this kind is disabled almost everywhere for security reasons, making this an unreliable way to trace any real path",
+      "It sends a single packet with the destination's entire path pre-encoded through IP source routing, and each router along that path replies in turn",
       "It sends out probe packets carrying a deliberately low time-to-live value, beginning small and bumping it up by one with every successive round, so each probe times out exactly one hop farther along, and whichever router that probe expired at sends back an ICMP message identifying itself",
     ],
     correctIndexes: [3],
@@ -1765,13 +1765,13 @@ export const QUESTIONS = [
     questionType: "multiple-choice",
     question: "A technician wants tcpdump to capture exactly 50 packets on one specific interface, without resolving the captured addresses and port numbers into names. Which combination of options accomplishes that, per tcpdump\'s own documented option flags?",
     options: [
-      "The interface flag to select the capture interface, the count flag set to 50 to stop after 50 packets, and the flag that leaves addresses and port numbers in their raw numeric form rather than resolving them",
-      "The write-to-file flag to select the interface, a hex-dump flag set to 50 to stop after 50 packets, and the ASCII-output flag to leave addresses and ports in raw numeric form",
-      "The read-from-file flag to select the interface, a verbosity flag set to 50 to stop after 50 packets, and the quiet-output flag to leave addresses and ports in raw numeric form",
-      "The list-interfaces flag to select the interface, a line-buffering flag set to 50 to stop after 50 packets, and the link-level-header flag to leave every captured address and port number in its own raw numeric form",
+      "-i to select the capture interface, -c 50 to stop after 50 packets, and -n to leave addresses and port numbers in raw numeric form",
+      "-D to select the capture interface, -s 50 to stop after 50 packets, and -q to leave addresses and port numbers in raw numeric form",
+      "-r to select the capture interface, -C 50 to stop after 50 packets, and -N to leave addresses and port numbers in raw numeric form",
+      "-w to select the capture interface, -t 50 to stop after 50 packets, and -e to leave addresses and port numbers in raw numeric form",
     ],
     correctIndexes: [0],
-    explanation: "tcpdump's own documented flags give this exact combination: an interface-selection flag to pick which interface to capture on, a count flag taking a number to stop after that many packets, and a separate flag whose job is specifically to leave addresses and port numbers in raw numeric form instead of resolving them into names. Writing to a file, dumping in hex, and printing captured data in ASCII are all genuinely documented tcpdump capabilities, but none of the three is the interface-selection, packet-count, or name-resolution flag this specific combination actually calls for, and the same mismatch applies to reading from a file, adjusting verbosity, and quieting output, or to listing interfaces, line-buffering output, and printing link-level headers.",
+    explanation: "tcpdump's -i flag selects which interface to capture on, -c takes a number and stops the capture once that many packets have been received, and -n is the flag whose specific job is leaving addresses and port numbers in raw numeric form instead of resolving them into names. The other combinations pair real, documented flags with the wrong jobs: -D just lists the interfaces available for capture, -s sets how many bytes of each packet to keep, and -q merely prints less protocol detail; -r reads packets back from a previously saved capture file rather than naming a live interface, -C rotates the output file once it grows past a size threshold, and -N only trims the domain portion off host names it still resolves; and -w writes raw packets out to a save file, -t suppresses timestamp printing, and -e prints link-level headers on each output line.",
   },
   {
     id: "troubleshooting-030",
@@ -1781,7 +1781,7 @@ export const QUESTIONS = [
     options: [
       "Some firewall or filtering device sits between the scanner and the host, obstructing that port enough that the scanner cannot settle on open or closed for it",
       "No application on the target host is currently listening on that port — the port itself is reachable and could start accepting connections later, but nothing is answering there right now",
-      "An application on the target host is actively listening for connections on that exact port, directly contradicting the original report of the service being unreachable, which is exactly the open state rather than the closed state this question is actually asking about",
+      "An application on the target host is actively listening for connections on that exact port, directly contradicting the original report of the service being unreachable",
       "The port answered the scanner's probe traffic, yet nothing in that response lets the scanner decide between the open and closed states for it",
     ],
     correctIndexes: [1],

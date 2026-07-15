@@ -96,7 +96,7 @@ export const FLASHCARDS = [
     service: 'CTE (WITH query)',
     domain: 'Querying',
     front: 'What does a WITH clause (CTE) let you do that a subquery in FROM does not as cleanly?',
-    back: 'It names an auxiliary query so it can be referenced later in the same statement, including multiple times, which makes multi-step queries easier to read and lets a computed result be reused without repeating the SQL. Each CTE without RECURSIVE is evaluated as an independent, self-contained step.',
+    back: "It names an auxiliary query so it can be referenced later in the same statement, including multiple times, which makes multi-step queries easier to read and lets a computed result be reused without repeating the SQL. By default a side-effect-free CTE referenced only once is folded into the parent query's plan rather than evaluated separately, while one referenced multiple times is computed once and reused.",
   },
   {
     id: 'recursive-cte',
@@ -161,7 +161,7 @@ export const FLASHCARDS = [
     service: 'B-tree Index',
     domain: 'Indexing',
     front: 'What kinds of queries can a B-tree index actually accelerate?',
-    back: "Equality and ordered-range comparisons (<, <=, =, >=, >), plus BETWEEN, IN, IS NULL/IS NOT NULL, and left-anchored LIKE patterns such as 'foo%'. It's also PostgreSQL's default index type — CREATE INDEX builds a B-tree unless another type is named — and because entries stay sorted, it can also serve queries that just need data returned in sorted order.",
+    back: "Equality and ordered-range comparisons (<, <=, =, >=, >), plus BETWEEN, IN, IS NULL/IS NOT NULL, and left-anchored LIKE patterns such as 'foo%' — though outside the C locale, that pattern-matching support requires building the index with a special operator class such as text_pattern_ops. It's also PostgreSQL's default index type — CREATE INDEX builds a B-tree unless another type is named — and because entries stay sorted, it can also serve queries that just need data returned in sorted order.",
   },
   {
     id: 'hash-index',
@@ -268,7 +268,7 @@ export const FLASHCARDS = [
     service: 'Repeatable Read',
     domain: 'Transactions',
     front: 'What guarantee does Repeatable Read add on top of Read Committed?',
-    back: 'The snapshot is taken once, at the start of the transaction, and held for every statement in it, so the same query run twice in that transaction sees an identical view of the data regardless of what other transactions commit in the meantime. PostgreSQL implements this as Snapshot Isolation, and an update that would conflict with a since-changed row raises a serialization error instead of silently overwriting it.',
+    back: "The snapshot is taken once, at the transaction's first non-transaction-control statement (its first real query, not BEGIN itself), and held for every statement in it, so the same query run twice in that transaction sees an identical view of the data regardless of what other transactions commit in the meantime. PostgreSQL implements this as Snapshot Isolation, and an update that would conflict with a since-changed row raises a serialization error instead of silently overwriting it.",
   },
   {
     id: 'serializable',
@@ -324,7 +324,7 @@ export const FLASHCARDS = [
     service: 'Snapshot',
     domain: 'Transactions',
     front: 'What is a "snapshot" in PostgreSQL\'s MVCC model?',
-    back: 'A snapshot is the set of transactions considered already-committed (and therefore visible) as of a particular moment, which is what lets a query see a consistent view of the database as it looked then, regardless of what concurrent transactions are doing to the underlying rows right now. Read Committed takes a new snapshot per statement; Repeatable Read and Serializable take one snapshot for the whole transaction.',
+    back: 'A snapshot is the set of transactions considered already-committed (and therefore visible) as of a particular moment, which is what lets a query see a consistent view of the database as it looked then, regardless of what concurrent transactions are doing to the underlying rows right now. Read Committed takes a new snapshot per statement; Repeatable Read and Serializable freeze one snapshot at their first real statement and reuse it for the whole transaction.',
   },
 
   // --- Administration & Maintenance ---
@@ -382,7 +382,7 @@ export const FLASHCARDS = [
     service: 'pg_restore',
     domain: 'Administration',
     front: 'What can pg_restore do that simply piping a plain-text pg_dump script into psql cannot?',
-    back: "Because pg_restore reads one of pg_dump's archive formats (custom or directory) rather than a flat SQL script, it can selectively restore just some objects, reorder what gets restored, and, for the directory format specifically, run the restore in parallel across multiple jobs (-j), none of which is possible once a dump has been reduced to a plain-text script.",
+    back: "Because pg_restore reads one of pg_dump's archive formats (custom or directory) rather than a flat SQL script, it can selectively restore just some objects, reorder what gets restored, and — for both the custom and directory formats — run the restore in parallel across multiple jobs (-j), none of which is possible once a dump has been reduced to a plain-text script.",
   },
   {
     id: 'wal-archiving',

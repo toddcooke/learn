@@ -146,7 +146,7 @@ export const QUESTIONS = [
     question:
       'What does AWS Control Tower provide for organizations managing multiple AWS accounts?',
     options: [
-      'A quick way to configure and govern a multi-account setup, orchestrating AWS Organizations together with Service Catalog and IAM Identity Center to assemble a landing zone in under an hour',
+      'A guided way to quickly configure and govern a multi-account landing zone',
       'A billing-only tool with no effect on account governance or guardrails',
       'A replacement for AWS KMS that centrally manages encryption keys across accounts',
       'A content delivery network for distributing static assets across accounts',
@@ -217,7 +217,7 @@ export const QUESTIONS = [
     options: [
       'It is only allowed if the destination is within the same subnet',
       'It is dropped because security groups only evaluate inbound traffic',
-      'It automatically leaves the instance without needing a matching outbound rule, because security groups are stateful and track the state of allowed connections',
+      'It automatically leaves the instance without needing a matching outbound rule',
       'It is blocked unless a matching outbound rule explicitly allows port 443',
     ],
     correctIndexes: [2],
@@ -280,12 +280,12 @@ export const QUESTIONS = [
     options: [
       'A NAT gateway can only be used with IPv4 traffic, never IPv6',
       'A private NAT gateway can be assigned an Elastic IP address just like a public NAT gateway',
-      'Every connection routed through a NAT gateway has to originate from inside the VPC that hosts it, not from outside',
+      'Traffic cannot be routed to a NAT gateway over a VPC peering connection, a Site-to-Site VPN connection, or Direct Connect',
       'External services outside the VPC can freely initiate new connections to instances behind a NAT gateway',
     ],
     correctIndexes: [2],
     explanation:
-      "NAT gateway traffic is one-directional by design: the connection always has to be opened from a resource inside the VPC that owns the gateway, never from the internet or another network. Elastic IPs only attach to a public NAT gateway; a private NAT gateway forwards traffic to other VPCs or on-premises networks and has no use for one. And a NAT gateway handles both IPv4 and IPv6, not just IPv4.",
+      "AWS documentation lists exactly which paths a NAT gateway can't serve: traffic arriving over a VPC peering connection, a Site-to-Site VPN, or Direct Connect can't be routed to it — a transit gateway is the supported way to share one VPC's NAT gateway with others in the centralized-egress pattern. External hosts still can't initiate new connections toward the instances behind it; only return traffic for connections those instances opened gets back in. Elastic IPs only attach to a public NAT gateway, since a private NAT gateway never talks to the public internet, and a NAT gateway handles both IPv4 and IPv6, not just IPv4.",
   },
   {
     id: 'secure-018',
@@ -297,7 +297,7 @@ export const QUESTIONS = [
       'Shield Standard is a paid add-on, while Shield Advanced is included automatically for free',
       'Shield Standard only protects Amazon S3 buckets, while Shield Advanced only protects EC2 instances',
       'Shield Advanced replaces the need for AWS WAF entirely',
-      'Shield Standard is included automatically with no added cost and defends against common large-scale volumetric DDoS attacks; Shield Advanced is a separately priced tier that adds broader DDoS protection',
+      'Shield Standard is included automatically at no cost, while Shield Advanced is a paid tier with broader DDoS protections',
     ],
     correctIndexes: [3],
     explanation:
@@ -309,7 +309,7 @@ export const QUESTIONS = [
     questionType: 'multiple-choice',
     question: 'What does AWS WAF let you do, according to AWS documentation?',
     options: [
-      'Monitor HTTP and HTTPS requests forwarded to protected resources like a CloudFront distribution or Application Load Balancer, and allow, block, or count them based on conditions you specify',
+      'Allow, block, or count web requests to protected resources based on conditions you specify',
       'Automatically rotate database credentials on a schedule',
       'Encrypt data at rest using customer-managed KMS keys',
       'Physically isolate AWS Regions from each other to prevent DDoS attacks',
@@ -359,7 +359,7 @@ export const QUESTIONS = [
       'Rotating IAM user access keys automatically on a schedule',
       'Issuing and renewing public SSL/TLS certificates',
       'Detecting network-layer DDoS attacks against EC2 instances',
-      'Discovering sensitive data (such as PII) in Amazon S3 using machine learning and pattern matching, and flagging S3 buckets with security or privacy issues',
+      'Discovering sensitive data such as PII stored in Amazon S3 buckets',
     ],
     correctIndexes: [3],
     explanation:
@@ -626,7 +626,7 @@ export const QUESTIONS = [
     domain: 'resilient',
     questionType: 'multiple-choice',
     question:
-      "A retail application needs one order-placed event to reach several independent systems at the same time — an SQS queue for fulfillment, a Lambda function for analytics, and an email notification — without the publisher needing to track who's listening. Which pattern fits, and which AWS service implements it?",
+      "A SaaS application needs one user-signup event to reach several independent systems at the same time — an SQS queue for account provisioning, a Lambda function that syncs the CRM, and a welcome email — without the publisher needing to track who's listening. Which pattern fits, and which AWS service implements it?",
     options: [
       'A dedicated, always-open TCP socket between the publisher and each listener',
       'Publish/subscribe fanout through an Amazon SNS topic',
@@ -676,10 +676,10 @@ export const QUESTIONS = [
     question:
       'A live-pricing application needs a persistent, two-way connection so the server can push updates to a connected client without the client repeatedly asking for new data. Which API Gateway API type is built for this?',
     options: [
-      'A WebSocket API, the stateful two-way option',
-      'An HTTP API, also a stateless request/response model',
-      'A private API, reachable only from inside a VPC',
-      'A REST API, which is stateless request/response',
+      'A WebSocket API',
+      'An HTTP API',
+      'A private API',
+      'A REST API',
     ],
     correctIndexes: [0],
     explanation:
@@ -771,7 +771,7 @@ export const QUESTIONS = [
     domain: 'resilient',
     questionType: 'multiple-choice',
     question:
-      'A team wants Amazon RDS to automatically add or remove read replicas as read traffic rises and falls, the same way an Auto Scaling group adds EC2 instances. Does RDS support this today?',
+      'A team running an RDS for MySQL DB instance wants Amazon RDS to automatically add or remove its read replicas as read traffic rises and falls, the same way an Auto Scaling group adds EC2 instances. Does RDS support this today?',
     options: [
       'Yes, once autoscaling is turned on for the source DB instance',
       "No — replicas must be created by hand; RDS won't add or remove them on its own",
@@ -780,7 +780,7 @@ export const QUESTIONS = [
     ],
     correctIndexes: [1],
     explanation:
-      "AWS documentation is explicit that read replicas must be created manually and that RDS has no autoscaling feature that adds or removes them as read demand shifts. There's no toggle that makes replica count adaptive, a Multi-AZ standby is a different kind of replica used for failover rather than automatic read scaling, and replicas can be created from an existing source instance at any point, not only during initial setup.",
+      "For the standard RDS engines such as MySQL, AWS documentation is explicit that read replicas must be created manually and that RDS has no autoscaling feature that adds or removes them as read demand shifts — Aurora is the one exception, since its Aurora Auto Scaling feature can adjust a cluster's Aurora Replica count automatically, but that capability doesn't extend to RDS for MySQL. A Multi-AZ standby is a different kind of replica used for failover rather than automatic read scaling, and replicas can be created from an existing source instance at any point, not only during initial setup.",
   },
   {
     id: 'resilient-012',
@@ -922,10 +922,10 @@ export const QUESTIONS = [
     question:
       'Which AWS service improves multi-Region availability by assigning an application static anycast IP addresses and steering traffic to the nearest healthy endpoint over the AWS backbone network?',
     options: [
-      'AWS Global Accelerator, which assigns static anycast IP addresses',
-      'AWS Direct Connect, a dedicated private link into a single Region',
-      'Amazon CloudFront, caching content at edge locations worldwide',
-      'Amazon Route 53, using DNS records pointed at the nearest endpoint',
+      'AWS Global Accelerator',
+      'AWS Direct Connect',
+      'Amazon CloudFront',
+      'Amazon Route 53',
     ],
     correctIndexes: [0],
     explanation:
@@ -1002,16 +1002,16 @@ export const QUESTIONS = [
     domain: 'resilient',
     questionType: 'multiple-choice',
     question:
-      "Instances in a private subnet need to reach package repositories on the internet, but nothing external should be able to open a connection to them. Which resource gives exactly this one-way outbound path?",
+      "Instances in an IPv6-enabled private subnet need to reach package repositories on the internet over IPv6, but nothing external should be able to open a connection to them. Which VPC component gives exactly this one-way outbound path for IPv6 traffic?",
     options: [
       'A VPC peering connection',
-      'An AWS Direct Connect gateway',
+      'An egress-only internet gateway',
       'An internet gateway routed directly into the private subnet',
-      'A public NAT gateway',
+      'A public NAT gateway with an associated Elastic IP address',
     ],
-    correctIndexes: [3],
+    correctIndexes: [1],
     explanation:
-      "A public NAT gateway lets instances behind it start outbound connections to the internet while blocking anything external from initiating a connection back in — exactly the one-directional behavior described. Routing a subnet's traffic straight to an internet gateway instead makes it a public subnet with two-way reachability, which is the opposite of what's needed, and neither VPC peering nor a Direct Connect gateway provides any path to the public internet at all.",
+      "An egress-only internet gateway is the IPv6 counterpart of a NAT gateway: instances behind it can initiate outbound IPv6 connections while nothing on the internet can start a connection back in — a protection worth calling out because IPv6 addresses are globally unique and would otherwise be reachable through a regular internet gateway. Routing the subnet's traffic straight to an internet gateway makes it publicly reachable in both directions, a public NAT gateway with an Elastic IP is the equivalent tool for IPv4 traffic rather than IPv6, and a VPC peering connection links two VPCs privately without providing any path to the public internet at all.",
   },
   {
     id: 'resilient-026',
@@ -1250,10 +1250,10 @@ export const QUESTIONS = [
     question:
       "An Amazon EFS file system experiences I/O activity that varies significantly over the course of a day. Which EFS throughput mode is designed to automatically scale bandwidth up or down to match that changing activity?",
     options: [
-      "Bursting Throughput mode, which scales available throughput with the file system's stored data size",
-      'Elastic throughput mode, which adjusts bandwidth automatically as activity changes',
-      'General Purpose performance mode, which targets low latency rather than automatic bandwidth scaling',
-      'Provisioned Throughput mode, which requires specifying a fixed throughput value ahead of time',
+      'Bursting Throughput mode',
+      'Elastic throughput mode',
+      'General Purpose performance mode',
+      'Provisioned Throughput mode',
     ],
     correctIndexes: [1],
     explanation:
@@ -1355,7 +1355,7 @@ export const QUESTIONS = [
     domain: 'performant',
     questionType: 'multiple-choice',
     question:
-      'A design needs a single published event to reach several independent subscribers at once — for example a queue, an analytics pipeline, and an email service. Which AWS service is purpose-built for this fanout pattern?',
+      'A fleet of IoT sensors publishes each telemetry reading once, and every reading must reach several independent consumers at the same time — an archival queue, an anomaly-detection function, and a live operations dashboard. Which AWS service is purpose-built for this fanout pattern?',
     options: ['AWS Direct Connect', 'Amazon Route 53', 'Amazon SQS', 'Amazon SNS'],
     correctIndexes: [3],
     explanation:
@@ -1488,7 +1488,7 @@ export const QUESTIONS = [
     domain: 'performant',
     questionType: 'multiple-choice',
     question:
-      'A gaming company runs a UDP-based backend across several AWS Regions and wants static IP addresses plus fast rerouting to the nearest healthy Region if one becomes impaired. Which service best fits this need?',
+      'A VoIP provider runs a UDP-based calling backend across several AWS Regions and wants static IP addresses plus fast rerouting to the nearest healthy Region if one becomes impaired. Which service best fits this need?',
     options: [
       'Amazon Route 53 latency-based routing alone',
       'AWS Global Accelerator',
@@ -1504,16 +1504,16 @@ export const QUESTIONS = [
     domain: 'performant',
     questionType: 'multiple-choice',
     question:
-      'Instances in a private subnet need to reach the internet for software updates, but nothing on the internet should be able to open a connection to them. What should be placed in a public subnet to enable this?',
+      'A steadily growing volume of outbound traffic from private subnets is routed through a single NAT gateway. How does the NAT gateway itself handle that increasing bandwidth demand?',
     options: [
-      'A Network Load Balancer placed in front of the private subnet',
-      'An internet gateway attached directly to the private subnet',
-      'A public NAT gateway, with private-subnet traffic routed to it',
-      'A Site-to-Site VPN connection to an on-premises network',
+      'It must be stopped and relaunched on a larger instance size by an administrator',
+      'It automatically scales its bandwidth, up to a documented per-gateway maximum',
+      'It caps every connection at a fixed rate that never changes as demand grows',
+      'It transparently spreads the extra traffic across NAT gateways in other Availability Zones',
     ],
-    correctIndexes: [2],
+    correctIndexes: [1],
     explanation:
-      "NAT gateway documentation describes exactly this pattern: instances in a private subnet route outbound traffic to a public NAT gateway, which lets them reach the internet while external hosts can't initiate connections back to them. An internet gateway doesn't attach to an individual subnet the way described, a Site-to-Site VPN connects to an on-premises network rather than the public internet, and a load balancer distributes incoming traffic rather than providing outbound internet access.",
+      "A NAT gateway is a managed component that scales its own bandwidth automatically, starting at 5 Gbps and scaling as high as 100 Gbps per gateway, so growing outbound demand requires no resizing work from the team — one of its documented advantages over running a self-managed NAT instance on EC2, where picking and changing the instance size is your job. It imposes no fixed unchanging rate cap on connections, and each NAT gateway serves traffic routed to it in its own Availability Zone rather than offloading demand onto gateways in other zones; past the per-gateway maximum, AWS's guidance is to split resources across multiple subnets with additional NAT gateways.",
   },
   {
     id: 'performant-019',
@@ -1704,12 +1704,12 @@ export const QUESTIONS = [
       'Transitioning an S3 object to a new storage class through a Lifecycle rule always incurs a per-gigabyte data retrieval fee',
       'A Requester Pays S3 bucket shifts data transfer and request costs onto the requester while the bucket owner still pays for storage',
       'An EC2 Auto Scaling group cannot mix On-Demand Instances with Reserved Instance or Savings Plans discounts',
-      'AWS Cost Explorer can display historical cost and usage data going back up to the last 13 months',
+      'By default, AWS Cost Explorer displays historical cost and usage data covering the most recent 13 months',
       'AWS Budgets refreshes its cost and usage figures continuously, in real time, as each charge is incurred',
     ],
     correctIndexes: [1, 3],
     explanation:
-      "S3 Requester Pays documentation confirms the bucket owner always covers storage while the requester covers the request and data transfer cost, and Cost Explorer documentation confirms it can show up to 13 months of historical data. Lifecycle documentation is explicit that transitions carry a per-request transition charge rather than a data retrieval fee, Auto Scaling documentation explains that a group can combine Reserved Instance and Savings Plans discounts with On-Demand Instances rather than being blocked from it, and Budgets documentation states figures are updated up to three times a day rather than continuously.",
+      "S3 Requester Pays documentation confirms the bucket owner always covers storage while the requester covers the request and data transfer cost, and Cost Explorer documentation confirms its default view covers the most recent 13 months of historical data, with an opt-in that extends the window to multiple years. Lifecycle documentation is explicit that transitions carry a per-request transition charge rather than a data retrieval fee, Auto Scaling documentation explains that a group can combine Reserved Instance and Savings Plans discounts with On-Demand Instances rather than being blocked from it, and Budgets documentation states figures are updated up to three times a day rather than continuously.",
   },
 
   // ---------------------------------------------------------------------
@@ -1742,16 +1742,16 @@ export const QUESTIONS = [
     domain: 'cost',
     questionType: 'multiple-choice',
     question:
-      'A team wants to run containerized workloads on AWS while avoiding any responsibility for provisioning EC2 instances, patching an operating system, or planning server capacity ahead of demand. Which capacity option for Amazon ECS matches this?',
+      'A team running containers on Amazon ECS is weighing the Fargate launch type against the EC2 launch type purely on cost. How do the billing models of the two launch types differ?',
     options: [
-      'Amazon ECS on EC2 with manually managed instances',
-      'Amazon ECS Anywhere on on-premises servers',
-      'AWS Fargate',
-      'An Amazon EC2 Auto Scaling group fronted by a load balancer',
+      'Fargate bills per task for the vCPU and memory it requests, while the EC2 launch type bills for the underlying instances',
+      'Fargate bills for whole EC2 instances, while the EC2 launch type bills per individual task',
+      'Both launch types bill per task, so their costs are always identical for the same workload',
+      'Fargate adds a fixed monthly per-cluster fee on top of the same per-instance charges the EC2 launch type has',
     ],
-    correctIndexes: [2],
+    correctIndexes: [0],
     explanation:
-      "ECS documentation describes Fargate as a serverless compute option billed only for what you use, where there are no servers to manage, no capacity to plan, and no workload isolation to configure. Running ECS on manually managed EC2 instances or an Auto Scaling group both still leave instance provisioning and OS patching to the team, and ECS Anywhere registers external on-premises servers or VMs, which is the opposite of avoiding server management.",
+      "Fargate bills per task for the vCPU and memory that task requests, and only while it runs, while the EC2 launch type bills for the underlying instances continuously whether tasks pack them efficiently or leave them half idle. That makes Fargate attractive when per-service resource needs don't divide cleanly into fixed instance sizes, while a densely packed, steadily utilized EC2 fleet — especially one discounted with Reserved Instances or Savings Plans — can come out cheaper for constant high-volume work. There's no fixed per-cluster Fargate fee, the two models genuinely differ rather than costing the same, and neither launch type bills in the other's unit.",
   },
   {
     id: 'cost-009',
@@ -1860,7 +1860,7 @@ export const QUESTIONS = [
     question:
       'Which TWO of the following statements about database backup, replication, and capacity behavior are correct? (Select TWO.)',
     options: [
-      'Amazon RDS automatically creates or removes read replicas as read traffic rises and falls',
+      "Amazon RDS automatically creates or removes an RDS for MySQL DB instance's read replicas as read traffic rises and falls",
       'An Amazon RDS Proxy can be attached to a read replica in place of the writer DB instance to pool its connections',
       'DynamoDB continuous backups support restoring a table to any second within the preceding 35 days',
       'DynamoDB on-demand capacity mode requires read and write capacity units to be provisioned in advance',
@@ -1868,7 +1868,7 @@ export const QUESTIONS = [
     ],
     correctIndexes: [2, 4],
     explanation:
-      "DynamoDB documentation confirms point-in-time recovery can restore a table to any second within the preceding 35 days, and read replica documentation confirms same-Region replication data transfer isn't charged. RDS documentation is explicit that it doesn't support autoscaling of read replicas, RDS Proxy documentation states a proxy can only be associated with the writer instance rather than a read replica, and on-demand capacity mode is defined by not needing capacity units provisioned in advance, which is what the provisioned mode requires instead.",
+      "DynamoDB documentation confirms point-in-time recovery can restore a table to any second within the preceding 35 days, and read replica documentation confirms same-Region replication data transfer isn't charged. RDS documentation is explicit that the standard engines such as RDS for MySQL don't support autoscaling of read replicas — only Aurora's Aurora Auto Scaling feature adjusts replica count automatically — RDS Proxy documentation states a proxy can only be associated with the writer instance rather than a read replica, and on-demand capacity mode is defined by not needing capacity units provisioned in advance, which is what the provisioned mode requires instead.",
   },
 
   // ---------------------------------------------------------------------

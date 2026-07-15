@@ -1,7 +1,8 @@
 // js/data/questions.js
-// Quiz questions for the Architecture & Data Types domain (15% exam weight).
+// Quiz questions covering all six exam domains: architecture, querying,
+// indexing, transactions, administration, and replication.
 // Grounded in the official PostgreSQL 18 documentation cached under
-// .cache/aws-docs/ during authoring (see scripts/fetch-doc.mjs). Every
+// .cache/docs/ during authoring (see scripts/fetch-doc.mjs). Every
 // answer key was re-checked against the exact cached passage it is based
 // on. Written in the author's own words, not copied verbatim from the docs.
 
@@ -68,15 +69,15 @@ export const QUESTIONS = [
     id: 'architecture-005',
     domain: 'architecture',
     questionType: 'multiple-choice',
-    question: 'Why might a PostgreSQL server reserve a small number of connection slots specifically for superusers via superuser_reserved_connections?',
+    question: 'A server is configured with max_connections = 100 and superuser_reserved_connections = 3. At what point does a new non-superuser connection attempt start being rejected?',
     options: [
-      'Because superuser connections consume no backend process resources, unlike ordinary connections.',
-      'So an administrator can still log in to fix the server after ordinary slots run out.',
-      'Because reserved connections are automatically used to run autovacuum workers.',
-      'Because max_connections only limits non-superuser sessions, so superusers are never subject to any connection cap.',
+      'Only once all 100 slots are occupied — the three reserved slots exist on top of max_connections, so up to 103 sessions can be active when superusers use them.',
+      'As soon as 97 connections are active, since new connections are accepted only for superusers once the active count reaches max_connections minus superuser_reserved_connections.',
+      'It is never rejected outright; the postmaster queues the attempt until one of the unreserved slots frees up.',
+      'Only once all 100 slots are occupied, at which point superusers may still connect by exceeding max_connections by up to three extra sessions.',
     ],
     correctIndexes: [1],
-    explanation: 'Reserved superuser connection slots exist so that, even when ordinary connection slots are exhausted, an administrator can still log in to diagnose or resolve whatever is consuming the remaining capacity.',
+    explanation: 'The reserved slots are carved out of max_connections rather than added on top of it: whenever the number of active connections is at least max_connections minus superuser_reserved_connections (97 here), new connections are accepted only for superusers, preserving an administrator\'s ability to log in and diagnose a server whose ordinary slots are exhausted. At most max_connections sessions can ever be active simultaneously — superusers cannot push past the cap — and a rejected attempt fails immediately rather than being queued.',
   },
 
   // --- Physical storage & TOAST internals (architecture-006..010) ---
@@ -356,7 +357,7 @@ export const QUESTIONS = [
 
   // --- Querying & SQL domain (20% exam weight, querying-001..024) ---
   // Grounded in the official PostgreSQL 18 documentation cached under
-  // .cache/aws-docs/ during authoring. Every answer key was re-checked
+  // .cache/docs/ during authoring. Every answer key was re-checked
   // against the exact cached passage it is based on. Written in the
   // author's own words, not copied verbatim from the docs.
 
@@ -383,7 +384,7 @@ export const QUESTIONS = [
     options: [
       'Nothing changes: ON and WHERE conditions are always fully interchangeable, for outer joins just as much as inner joins.',
       'PostgreSQL automatically rewrites the LEFT JOIN into a FULL JOIN so that no rows on either side get lost.',
-      'Moving that same condition into the ON clause instead would be flatly rejected by the parser as invalid syntax, since ON is documented as only ever being allowed to reference the two specific columns actually named in the join.',
+      'Moving that same condition into the ON clause instead is rejected by the parser as invalid syntax, since an ON condition may reference only the columns being compared by the join.',
       'The WHERE version runs after the join completes, so it filters out the null-padded rows for unmatched orders rows, since a comparison against null is never true — effectively turning the LEFT JOIN into an inner join.',
     ],
     correctIndexes: [3],
@@ -411,7 +412,7 @@ export const QUESTIONS = [
     options: [
       'A correlated EXISTS/NOT EXISTS test only cares whether the subquery returns at least one row at all, so it never has to directly compare against a value that might be null.',
       "NOT EXISTS automatically strips null rows out of its subquery's result set before evaluating anything, which NOT IN does not do.",
-      'The query planner silently rewrites every NOT EXISTS predicate into an equivalent LEFT JOIN combined with an IS NULL check internally, which is supposedly the actual reason nulls stop mattering here.',
+      'The query planner silently rewrites every NOT EXISTS predicate into an equivalent LEFT JOIN combined with an IS NULL check internally, and that rewrite is what makes the nulls stop mattering here.',
       'NOT EXISTS is guaranteed to scan its subquery all the way to completion on every call, unlike NOT IN, which can stop early.',
     ],
     correctIndexes: [0],
@@ -485,7 +486,7 @@ export const QUESTIONS = [
       "It rewrites the recursive term's join condition so that the underlying traversal algorithm itself proceeds in depth-first order.",
       'It converts UNION ALL into UNION automatically, so duplicate rows are discarded before any sorting happens.',
       'It is expanded internally into essentially the same visited-path-array bookkeeping a developer would otherwise hand-write, and it adds the named column to the CTE\'s output so the final result can be sorted by it.',
-      'It completely replaces the need for a primary-query ORDER BY clause, supposedly guaranteeing that the driver or client application always receives the CTE\'s rows already sorted in true depth-first traversal order.',
+      'It replaces the need for a primary-query ORDER BY clause, guaranteeing that the client application always receives the CTE\'s rows already sorted in true depth-first traversal order.',
     ],
     correctIndexes: [2],
     explanation: "SEARCH DEPTH FIRST is sugar for the manual technique of carrying an ever-growing array of visited rows and sorting by it afterward; the clause does not change the order rows are actually produced during evaluation, only the value in the added column that a later ORDER BY can use.",
@@ -714,7 +715,7 @@ export const QUESTIONS = [
     id: 'indexing-001',
     domain: 'indexing',
     questionType: 'multiple-choice',
-    question: 'Which set of query conditions can the planner satisfy using a plain B-tree index, per the documentation, without needing a special operator class?',
+    question: 'Which set of query conditions can the planner satisfy using a B-tree index, per the documentation?',
     options: [
       'Only exact equality tests using the = operator; every other comparison always forces a full sequential scan of the table instead.',
       'Any LIKE pattern at all, no matter where its wildcard character happens to sit within the string, since B-tree performs full pattern matching internally.',
@@ -722,7 +723,7 @@ export const QUESTIONS = [
       'Containment tests, such as the @> and <@ operators used to check array or range membership.',
     ],
     correctIndexes: [2],
-    explanation: "B-tree handles the ordering operators (<, <=, =, >=, >) plus constructs built from them, IS [NOT] NULL, and patterns anchored at the string's start such as 'foo%' — but a pattern with a leading wildcard, like '%bar', cannot use the index this way; containment operators like @> belong to GiST/GIN operator classes instead, and equality-only lookups describe Hash, not B-tree.",
+    explanation: "B-tree handles the ordering operators (<, <=, =, >=, >) plus constructs built from them, IS [NOT] NULL, and patterns anchored at the string's start such as 'foo%' — though outside the C locale that pattern-matching support requires building the index with a special operator class such as text_pattern_ops. A pattern with a leading wildcard, like '%bar', cannot use the index at all; containment operators like @> belong to GiST/GIN operator classes instead, and equality-only lookups describe Hash, not B-tree.",
   },
   {
     id: 'indexing-002',
@@ -1109,12 +1110,12 @@ export const QUESTIONS = [
     options: [
       'TRUNCATE and any ALTER TABLE variant that rewrites the table fail to be MVCC-safe.',
       'An explicit query against the system catalogs, such as directly selecting from pg_class, will show rows for objects that were created by a transaction that committed after the querying transaction took its snapshot, even under Serializable.',
-      'The strictest isolation level currently supported when connected directly to a hot standby server is Repeatable Read.',
+      'A transaction whose snapshot predates a concurrent TRUNCATE will nevertheless see the table as empty once that TRUNCATE commits, provided it had not already accessed the table beforehand.',
       "A newly created table's row contents are exempt from normal snapshot rules in the same way the table's existence is, so concurrent Repeatable Read transactions can see rows inserted into it immediately.",
       'A Repeatable Read transaction running on a hot standby can occasionally observe a transient state that would be inconsistent with any serial ordering of the transactions committed on the primary.',
     ],
     correctIndexes: [0, 2, 4],
-    explanation: "Three of these are stated directly in the caveats material: TRUNCATE/table-rewriting ALTER TABLE break MVCC-safety, Repeatable Read is the strictest level currently usable directly on a hot standby, and a standby's Repeatable Read transaction can see a transient state inconsistent with any serial execution on the primary. The claim about explicit catalog queries is backwards — the documentation says such queries do NOT see rows for concurrently created objects at the higher isolation levels; that exemption applies only to internal catalog lookups. Likewise the claim about a new table's contents is backwards — only the object's existence gets the exception; the rows it contains still follow ordinary snapshot visibility.",
+    explanation: "Three of these are stated directly in the caveats material: TRUNCATE/table-rewriting ALTER TABLE break MVCC-safety, a snapshot taken before a concurrent TRUNCATE offers no protection once that TRUNCATE commits (the truncation becomes visible to the older snapshot — only a transaction that already accessed the table, and therefore holds a lock blocking the DDL, avoids this), and a standby's Repeatable Read transaction can see a transient state inconsistent with any serial execution on the primary. The claim about explicit catalog queries is backwards — the documentation says such queries do NOT see rows for concurrently created objects at the higher isolation levels; that exemption applies only to internal catalog lookups. Likewise the claim about a new table's contents is backwards — only the object's existence gets the exception; the rows it contains still follow ordinary snapshot visibility.",
   },
   {
     id: 'transactions-005',

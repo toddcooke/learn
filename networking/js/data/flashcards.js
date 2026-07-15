@@ -259,7 +259,7 @@ export const FLASHCARDS = [
     service: 'Spanning Tree Protocol (STP)',
     domain: 'Network Implementation',
     front: 'In STP, what does a blocking port do that a designated port does not?',
-    back: "Every switch first picks its root port, the best path toward the elected root bridge, and a designated port to forward for each segment. Any remaining port that would otherwise complete a loop is put into blocking — it stays physically up and keeps listening, but discards frames, ready to switch to forwarding instantly if the active path ever fails.",
+    back: "Every switch first picks its root port, the best path toward the elected root bridge, and a designated port to forward for each segment. Any remaining port that would otherwise complete a loop is put into blocking — it stays physically up and keeps listening, but discards frames, ready to be promoted to forwarding if the active path ever fails — though classic 802.1D still walks it through listening and learning first rather than flipping it over instantly.",
   },
   {
     id: 'ssid-bssid',
@@ -371,15 +371,15 @@ export const FLASHCARDS = [
     id: 'cia-triad',
     service: 'CIA Triad',
     domain: 'Network Security',
-    front: 'An attacker silently edits a database value without ever viewing or copying anything else. Which leg of the CIA triad did they violate?',
+    front: 'Malware corrupts a stored configuration file so it no longer matches what was written, without ever reading or exfiltrating a thing. Which leg of the CIA triad does that violate?',
     back: "Integrity, not confidentiality — FIPS 199 defines confidentiality as unauthorized viewing or disclosure, and nothing here was ever disclosed, only altered. Integrity is the leg that covers improper modification or destruction of data. Availability is the third leg, broken whenever legitimate users get cut off from timely access, most visibly during a denial-of-service attack.",
   },
   {
     id: 'mfa',
     service: 'Multifactor Authentication (MFA)',
     domain: 'Network Security',
-    front: 'Why does a password plus a 4-digit PIN fail to qualify as MFA?',
-    back: "MFA needs factors from at least two different categories: something you know, something you have, something you are. A password and a PIN are both memorized secrets, so together they're still single-category, single-factor authentication no matter how many are stacked. NIST SP 800-63B's highest tier, AAL3, pushes even further, mandating a physical hardware cryptographic authenticator — a requirement no amount of extra passwords or PINs can fulfill.",
+    front: 'Why does a password plus a memorized security-question answer fail to qualify as MFA?',
+    back: "MFA needs factors from at least two different categories: something you know, something you have, something you are. A password and a security-question answer are both memorized secrets, so together they're still single-category, single-factor authentication no matter how many are stacked. NIST SP 800-63B's highest tier, AAL3, pushes even further, mandating a physical hardware cryptographic authenticator — a requirement no amount of extra memorized secrets can fulfill.",
   },
   {
     id: 'pki',
@@ -448,8 +448,8 @@ export const FLASHCARDS = [
     id: 'acl',
     service: 'Access Control Lists (ACLs)',
     domain: 'Network Security',
-    front: 'An ACL made entirely of permit rules still ends up blocking something. How?',
-    back: "Every ACL carries an implicit deny at the very end — a packet that falls through every listed rule without a match still gets dropped, whether or not anyone actually typed that deny in. Because rules are checked in order and stop at the first match, a too-broad rule placed early can also quietly override a narrower one an administrator meant to take effect further down.",
+    front: 'Applying a brand-new one-rule ACL — a single permit statement — suddenly cuts off all other traffic on that interface. What happened?',
+    back: "The implicit deny every ACL carries at its very end kicked in — a packet that falls through every listed rule without a match gets dropped, whether or not anyone actually typed that deny in, so applying any ACL flips an interface from allowing everything to allowing only what's listed. And because rules are checked in order and stop at the first match, a too-broad rule placed early can quietly override a narrower one further down.",
   },
   {
     id: 'dmz',
@@ -522,7 +522,7 @@ export const FLASHCARDS = [
     id: 'cat6-vs-cat6a',
     service: 'Cat6 vs. Cat6a Distance Limit',
     domain: 'Network Troubleshooting',
-    front: 'A 90-meter run needs a guaranteed 10Gbps. Why does that rule out Cat6?',
+    front: 'A 75-meter run needs a guaranteed 10Gbps. Why does that rule out Cat6?',
     back: "Cat6 can hit 10GBASE-T, but only over a shortened distance — roughly 37 to 55 meters depending on alien crosstalk — not the standard 100-meter horizontal run. Cat6a adds shielding that suppresses that alien crosstalk specifically, which is what lets it guarantee 10Gbps across the full 100 meters instead.",
   },
   {
@@ -557,8 +557,8 @@ export const FLASHCARDS = [
     id: 'dhcp-decline-nak',
     service: 'DHCPDECLINE vs. DHCPNAK',
     domain: 'Network Troubleshooting',
-    front: 'A DHCP exchange fails partway through. How do you tell from a DHCPDECLINE versus a DHCPNAK which side sent it?',
-    back: "DHCPDECLINE always comes from the client — it fires when the client's own ARP check finds its newly offered address already in use. DHCPNAK always comes from the server, refusing a renewal request outright, typically because the client is asking to keep an address that no longer fits the subnet it's actually connected to.",
+    front: 'A laptop moves to a new subnet and asks to renew the lease it got on the old one. Which DHCP message refuses that request, and which side sends it?',
+    back: "DHCPNAK, and it always comes from the server — it refuses a renewal outright when the client asks to keep an address that no longer fits the subnet it's actually connected to. Its client-side counterpart is DHCPDECLINE, which fires when the client's own ARP check finds a newly offered address already in use.",
   },
   {
     id: 'jitter',

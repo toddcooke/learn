@@ -2,6 +2,7 @@ import { DOMAINS, EXAM_FORMAT, EXAM_UI } from '../data/examInfo.js';
 import { QUESTIONS } from '../data/questions.js';
 import { drawMockExam, isCorrect, estimateScaledScore, shuffle } from '../lib/scoring.js';
 import { createStore } from '../lib/storage.js';
+import { validateCheckpoint, crossedThreshold } from '../lib/examSupport.js';
 import { escapeHtml } from '../lib/html.js';
 import { runReviewRound } from './quiz.js';
 
@@ -53,48 +54,25 @@ function formatClock(totalSeconds) {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-// Reads and validates the persisted checkpoint (if any). A checkpoint whose
-// question ids no longer resolve (e.g. the question bank changed) is
-// discarded. A well-formed checkpoint whose deadline has passed is NOT
-// discarded — it's returned with `expired: true` so render() can score the
-// saved answers instead of silently throwing them away.
+// Reads and validates the persisted checkpoint (if any) via
+// examSupport.validateCheckpoint. A checkpoint whose question ids no longer
+// resolve (e.g. the question bank changed) is discarded. A well-formed
+// checkpoint whose deadline has passed is NOT discarded — it's returned with
+// `expired: true` so render() can score the saved answers instead of
+// silently throwing them away.
 function readResumableCheckpoint() {
-  const checkpoint = store.getExamCheckpoint();
-  if (!checkpoint) {
-    // A stored-but-falsy value (e.g. a raw `0`) still needs clearing; this
-    // is a harmless no-op when nothing was stored at all.
+  const validated = validateCheckpoint(store.getExamCheckpoint(), QUESTIONS_BY_ID, Date.now());
+  if (!validated) {
+    // Covers malformed values AND stored-but-falsy ones (e.g. a raw `0`);
+    // clearing is a harmless no-op when nothing was stored at all.
     store.clearExamCheckpoint();
     return null;
   }
-
-  const { questionIds, answers, index, deadline } = checkpoint;
-  const isWellFormed = Array.isArray(questionIds) && questionIds.length > 0
-    && Array.isArray(answers)
-    && Number.isInteger(index) && index >= 0
-    && typeof deadline === 'number';
-  if (!isWellFormed) {
-    store.clearExamCheckpoint();
-    return null;
-  }
-
-  const exam = questionIds.map((id) => QUESTIONS_BY_ID.get(id));
-  if (exam.some((q) => !q)) {
-    store.clearExamCheckpoint();
-    return null;
-  }
-
-  const answeredCount = answers.filter((a) => Array.isArray(a) && a.length > 0).length;
-  const secondsLeft = Math.max(0, Math.round((deadline - Date.now()) / 1000));
-  const boundedIndex = Math.min(Math.max(index, 0), exam.length - 1);
-
+  const { checkpoint, expired } = validated;
   return {
-    exam,
-    answers: exam.map((_, i) => (Array.isArray(answers[i]) ? answers[i] : null)),
-    index: boundedIndex,
-    deadline,
-    answeredCount,
-    timeLeftLabel: formatClock(secondsLeft),
-    expired: deadline <= Date.now(),
+    ...checkpoint,
+    timeLeftLabel: formatClock(checkpoint.secondsLeft),
+    expired,
   };
 }
 
@@ -126,7 +104,7 @@ export function render(mount) {
     document.getElementById('resume-exam').addEventListener('click', () => {
       stopActiveTimer();
       removeLiveRegion();
-      const state = { index: checkpoint.index, answers: checkpoint.answers };
+      const state = { index: checkpoint.index, answers: checkpoint.answers, flags: new Set(checkpoint.flags) };
       runExam(mount, checkpoint.exam, state, checkpoint.deadline);
     });
   }
@@ -143,6 +121,7 @@ function startExam(mount) {
   const state = {
     index: 0,
     answers: new Array(exam.length).fill(null),
+    flags: new Set(),
   };
   const deadline = Date.now() + EXAM_FORMAT.durationMinutes * 60 * 1000;
   runExam(mount, exam, state, deadline);
@@ -167,6 +146,9 @@ function runExam(mount, exam, state, deadline) {
       answers: state.answers,
       index: state.index,
       deadline,
+      // OPTIONAL field: checkpoints saved before flags existed resume fine
+      // (validateCheckpoint normalizes a missing/wrong-shape value to []).
+      flags: Array.from(state.flags),
     });
   }
   persistCheckpoint();
@@ -228,15 +210,15 @@ function runExam(mount, exam, state, deadline) {
   // starts at the current value, not above the threshold.
   let prevSecondsLeft = currentSecondsLeft();
 
-  // Checked lowest-threshold-first: a throttled background tab can jump many
-  // minutes in one tick and cross BOTH thresholds at once, and announcing
-  // "10 minutes remaining" when under a minute actually remains would be
-  // affirmatively wrong. Only the lowest crossed threshold is announced.
+  // crossedThreshold (js/lib/examSupport.js) checks lowest-threshold-first:
+  // a throttled background tab can jump many minutes in one tick and cross
+  // BOTH thresholds at once, and announcing "10 minutes remaining" when
+  // under a minute actually remains would be affirmatively wrong. Only the
+  // lowest crossed threshold is announced.
   function announceThresholds(secondsLeft) {
-    if (prevSecondsLeft > 60 && secondsLeft <= 60) {
-      liveRegion.textContent = '1 minute remaining';
-    } else if (prevSecondsLeft > 600 && secondsLeft <= 600) {
-      liveRegion.textContent = '10 minutes remaining';
+    const message = crossedThreshold(prevSecondsLeft, secondsLeft);
+    if (message !== null) {
+      liveRegion.textContent = message;
     }
     prevSecondsLeft = secondsLeft;
   }
@@ -253,15 +235,49 @@ function runExam(mount, exam, state, deadline) {
     }
   }, 1000);
 
+  function isAnswered(i) {
+    return Array.isArray(state.answers[i]) && state.answers[i].length > 0;
+  }
+
+  function unansweredCount() {
+    return exam.reduce((n, _, i) => n + (isAnswered(i) ? 0 : 1), 0);
+  }
+
+  function navItemLabel(i) {
+    let label = `Question ${i + 1}`;
+    if (isAnswered(i)) label += ', answered';
+    if (state.flags.has(i)) label += ', flagged for review';
+    return label;
+  }
+
+  // Targeted refresh of the bits that change when the user answers or flags
+  // without navigating: the unanswered counts and the current question's
+  // navigator button. A full renderQuestion() here would rebuild the DOM and
+  // yank focus off the control the user just interacted with.
+  function updateQuestionStatus() {
+    const label = `${unansweredCount()} unanswered`;
+    for (const el of mount.querySelectorAll('.exam-unanswered')) {
+      el.textContent = label;
+    }
+    const navBtn = mount.querySelector(`.exam-nav-item[data-index="${state.index}"]`);
+    if (navBtn) {
+      navBtn.classList.toggle('is-answered', isAnswered(state.index));
+      navBtn.classList.toggle('is-flagged', state.flags.has(state.index));
+      navBtn.setAttribute('aria-label', navItemLabel(state.index));
+    }
+  }
+
   function renderQuestion(focusCounter) {
     const q = exam[state.index];
     const isMulti = q.questionType === 'multiple-response';
     const selected = state.answers[state.index] ?? [];
     const orderedOptions = optionOrders[state.index].map((i) => ({ opt: q.options[i], i }));
+    const flagged = state.flags.has(state.index);
+    const isLast = state.index + 1 === exam.length;
     mount.innerHTML = `
       <div class="exam-header">
-        <span id="exam-question-counter">Question ${state.index + 1} of ${exam.length}</span>
-        <span id="exam-timer" class="exam-timer"></span>
+        <h2 id="exam-question-counter" class="exam-question-counter">Question ${state.index + 1} of ${exam.length}</h2>
+        <span id="exam-timer" class="exam-timer" role="timer" aria-label="Time remaining"></span>
       </div>
       <form id="exam-form">
         <fieldset>
@@ -274,12 +290,54 @@ function runExam(mount, exam, state, deadline) {
           `).join('')}
         </fieldset>
       </form>
-      <div class="exam-nav">
+      <button type="button" id="exam-flag" class="exam-flag" aria-pressed="${flagged}"><span class="exam-flag-marker" aria-hidden="true">${flagged ? '⚑ ' : ''}</span>Flag for review</button>
+      <nav class="exam-nav" aria-label="Question navigator">
+        ${exam.map((_, i) => {
+          const classes = ['exam-nav-item'];
+          if (i === state.index) classes.push('is-current');
+          if (isAnswered(i)) classes.push('is-answered');
+          if (state.flags.has(i)) classes.push('is-flagged');
+          return `<button type="button" class="${classes.join(' ')}" data-index="${i}" ${i === state.index ? 'aria-current="true"' : ''} aria-label="${navItemLabel(i)}">${i + 1}</button>`;
+        }).join('')}
+      </nav>
+      <p class="exam-unanswered">${unansweredCount()} unanswered</p>
+      <div class="exam-controls">
         <button type="button" id="exam-prev" ${state.index === 0 ? 'disabled' : ''}>Previous</button>
-        <button type="button" id="exam-next">${state.index + 1 < exam.length ? 'Next' : 'Submit Exam'}</button>
+        <button type="button" id="exam-next">${isLast ? 'Submit Exam' : 'Next'}</button>
+        ${isLast ? `<span class="exam-unanswered exam-unanswered-badge">${unansweredCount()} unanswered</span>` : ''}
       </div>
     `;
     updateTimerDisplay();
+    // Persist (and reflect) every selection as it happens, not just on
+    // navigation — this is what keeps the unanswered counts live and means
+    // a refresh mid-question loses nothing.
+    document.getElementById('exam-form').addEventListener('change', () => {
+      saveAnswer();
+      updateQuestionStatus();
+    });
+    document.getElementById('exam-flag').addEventListener('click', (e) => {
+      const flagBtn = e.currentTarget;
+      const nowFlagged = !state.flags.has(state.index);
+      if (nowFlagged) {
+        state.flags.add(state.index);
+      } else {
+        state.flags.delete(state.index);
+      }
+      persistCheckpoint();
+      flagBtn.setAttribute('aria-pressed', String(nowFlagged));
+      flagBtn.querySelector('.exam-flag-marker').textContent = nowFlagged ? '⚑ ' : '';
+      updateQuestionStatus();
+    });
+    for (const btn of mount.querySelectorAll('.exam-nav-item')) {
+      btn.addEventListener('click', () => {
+        const target = Number(btn.dataset.index);
+        if (target === state.index) return;
+        saveAnswer();
+        state.index = target;
+        persistCheckpoint();
+        renderQuestion(true);
+      });
+    }
     document.getElementById('exam-prev').addEventListener('click', () => {
       saveAnswer();
       state.index -= 1;
@@ -343,14 +401,21 @@ function finishExam(mount, exam, state, { expiredWhileAway = false } = {}) {
     <p class="exam-note">${escapeHtml(EXAM_UI.resultsNote)}</p>
     <p>${correctCount} / ${exam.length} correct</p>
     <h3>By Domain</h3>
-    <ul>
-      ${byDomain.map((d) => `<li>${escapeHtml(d.domain.name)}: ${d.correct} / ${d.total}</li>`).join('')}
-    </ul>
+    <div class="table-scroll">
+      <table class="exam-domain-table">
+        <thead>
+          <tr><th scope="col">Domain</th><th scope="col">Correct</th><th scope="col">Total</th></tr>
+        </thead>
+        <tbody>
+          ${byDomain.map((d) => `<tr><th scope="row">${escapeHtml(d.domain.name)}</th><td>${d.correct}</td><td>${d.total}</td></tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
     <h3>Review</h3>
     ${results.map((r, i) => `
       <article class="review-item ${r.correct ? 'feedback-correct' : 'feedback-incorrect'}">
         <p><strong>Q${i + 1}.</strong> ${escapeHtml(r.question.question)}</p>
-        <p>${r.correct ? 'Correct' : 'Incorrect'} — ${escapeHtml(r.question.explanation)}</p>
+        <p><span class="feedback-marker" aria-hidden="true">${r.correct ? '✓' : '✗'}</span> ${r.correct ? 'Correct' : 'Incorrect'} — ${escapeHtml(r.question.explanation)}</p>
       </article>
     `).join('')}
     ${missedCount > 0 ? `<p><a href="#" id="exam-practice-missed">Practice the ${missedCount} missed questions</a></p>` : ''}

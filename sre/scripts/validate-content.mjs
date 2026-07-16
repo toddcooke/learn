@@ -120,12 +120,60 @@ async function validateFlashcards() {
   }
 }
 
+async function validateServices() {
+  if (!existsSync(new URL('../js/data/services.js', import.meta.url))) {
+    console.log('services.js not present yet, skipping');
+    return;
+  }
+  const { SERVICES } = await import('../js/data/services.js');
+  const { FLASHCARDS, FLASHCARD_DOMAINS } = await import('../js/data/flashcards.js');
+  check(Array.isArray(SERVICES) && SERVICES.length > 0, 'SERVICES must be a non-empty array');
+  const seenIds = new Set();
+  const seenNames = new Set();
+  const covered = new Set();
+  for (const s of SERVICES) {
+    check(typeof s.id === 'string' && s.id.length > 0,
+      `service missing id: ${JSON.stringify(s).slice(0, 80)}`);
+    check(!seenIds.has(s.id), `duplicate service id: ${s.id}`);
+    seenIds.add(s.id);
+    check(typeof s.name === 'string' && s.name.length > 0, `service ${s.id} missing name`);
+    check(!seenNames.has(s.name), `duplicate service name: ${s.name}`);
+    seenNames.add(s.name);
+    check(FLASHCARD_DOMAINS.includes(s.domain) && s.domain !== 'Best-Fit Scenarios',
+      `service ${s.id} has invalid domain: ${s.domain}`);
+    check(typeof s.blurb === 'string' && s.blurb.length >= 20 && s.blurb.length <= 220,
+      `service ${s.id} blurb must be 20-220 chars, got ${typeof s.blurb === 'string' ? s.blurb.length : 'none'}`);
+    covered.add(s.name);
+    if (s.covers !== undefined) {
+      check(Array.isArray(s.covers) && s.covers.length > 0
+        && s.covers.every((c) => typeof c === 'string' && c.length > 0),
+        `service ${s.id} covers must be a non-empty array of non-empty strings`);
+      for (const c of Array.isArray(s.covers) ? s.covers : []) covered.add(c);
+    }
+  }
+  // Drift guard: every service the flashcard deck names must appear on the
+  // services page, either as an entry's name or in its covers list.
+  const deckServices = new Set(
+    FLASHCARDS.map((c) => c.service).filter((svc) => svc !== 'Best-Fit Scenario'));
+  for (const svc of deckServices) {
+    check(covered.has(svc), `flashcard service not covered by services.js: ${svc}`);
+  }
+  // Reverse check: covers aliases must name real deck services, so renamed
+  // or removed flashcards can't leave stale aliases behind.
+  for (const s of SERVICES) {
+    for (const c of s.covers ?? []) {
+      check(deckServices.has(c), `service ${s.id} covers unknown flashcard service: ${c}`);
+    }
+  }
+}
+
 async function main() {
   const domains = await validateExamInfo();
   const domainIds = domains.map((d) => d.id);
   await validateStudyContent(domainIds);
   await validateQuestions(domains);
   await validateFlashcards();
+  await validateServices();
 
   if (errors.length > 0) {
     console.error(`\n${errors.length} validation error(s):`);

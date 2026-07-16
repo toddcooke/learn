@@ -1,5 +1,6 @@
 import { render as renderHome } from './views/home.js';
 import { render as renderStudyGuide } from './views/studyGuide.js';
+import { render as renderServices } from './views/services.js';
 import { render as renderQuiz } from './views/quiz.js';
 import { render as renderFlashcards } from './views/flashcards.js';
 import { render as renderMockExam } from './views/mockExam.js';
@@ -8,6 +9,7 @@ import { render as renderProgress } from './views/progress.js';
 const VIEWS = {
   home: renderHome,
   study: renderStudyGuide,
+  services: renderServices,
   quiz: renderQuiz,
   flashcards: renderFlashcards,
   exam: renderMockExam,

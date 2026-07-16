@@ -287,6 +287,18 @@ export const SERVICES = [
     domain: 'Compute, Containers, and Serverless',
     blurb: "Distributed tracing that follows a request across services to pinpoint latency bottlenecks and errors.",
   },
+  {
+    id: 'batch',
+    name: 'AWS Batch',
+    domain: 'Compute, Containers, and Serverless',
+    blurb: "Runs large-scale batch computing jobs on managed queues, provisioning the right amount of EC2 or Fargate capacity automatically.",
+  },
+  {
+    id: 'outposts',
+    name: 'AWS Outposts',
+    domain: 'Compute, Containers, and Serverless',
+    blurb: "AWS-managed racks in your own data center, running native AWS services on premises for low-latency or data-residency needs.",
+  },
 
   // ---------------------------------------------------------------------
   // Storage
@@ -379,6 +391,18 @@ export const SERVICES = [
     name: 'Amazon Redshift',
     domain: 'Database',
     blurb: "Petabyte-scale columnar data warehouse for OLAP — complex SQL analytics across huge datasets.",
+  },
+  {
+    id: 'dms',
+    name: 'AWS DMS',
+    domain: 'Database',
+    blurb: "Migrates databases into AWS with minimal downtime — like-for-like moves or, with the Schema Conversion Tool, cross-engine migrations.",
+  },
+  {
+    id: 'timestream',
+    name: 'Amazon Timestream',
+    domain: 'Database',
+    blurb: "Purpose-built serverless time-series database for high-volume metrics and IoT telemetry.",
   },
 
   // ---------------------------------------------------------------------

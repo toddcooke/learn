@@ -158,6 +158,13 @@ async function validateServices() {
   for (const svc of deckServices) {
     check(covered.has(svc), `flashcard service not covered by services.js: ${svc}`);
   }
+  // Reverse check: covers aliases must name real deck services, so renamed
+  // or removed flashcards can't leave stale aliases behind.
+  for (const s of SERVICES) {
+    for (const c of s.covers ?? []) {
+      check(deckServices.has(c), `service ${s.id} covers unknown flashcard service: ${c}`);
+    }
+  }
 }
 
 async function main() {

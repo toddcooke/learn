@@ -216,11 +216,11 @@ export const QUESTIONS = [
       'RDP carries a full remote graphical desktop session over TCP port 22, the same port SSH uses',
       'HTTPS wraps an HTTP exchange inside TLS and runs over TCP port 443',
       'SMB, a Windows file- and printer-sharing protocol, runs over TCP port 80, the same port used for plain HTTP',
-      'DNS listens on UDP port 53 for typical lookups, falling back to TCP for larger transfers such as zone transfers',
+      'DNS listens on UDP port 53 for typical lookups, using TCP port 53 for zone transfers and for responses too large for UDP',
       'SSH provides an encrypted remote command-line session over TCP port 22',
     ],
     correctIndexes: [1, 3, 4],
-    explanation: "HTTPS running over TCP 443, DNS using UDP 53 for ordinary lookups with TCP available for larger transfers, and SSH's encrypted sessions running over TCP 22 are all correct. RDP does not share SSH's port 22 — RDP is assigned its own port, TCP 3389 — and SMB does not run over the plain-HTTP port 80 either; SMB has its own dedicated port, TCP 445.",
+    explanation: "HTTPS running over TCP 443, DNS using UDP 53 for ordinary lookups while zone transfers and oversized (truncated) responses use TCP 53, and SSH's encrypted sessions running over TCP 22 are all correct. RDP does not share SSH's port 22 — RDP is assigned its own port, TCP 3389 — and SMB does not run over the plain-HTTP port 80 either; SMB has its own dedicated port, TCP 445.",
   },
 
   // --- Sub-theme: Transmission Media, Topologies & IPv4 Addressing (concepts-016..022) ---

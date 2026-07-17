@@ -48,7 +48,7 @@ export const FLASHCARDS = [
     service: 'SLI specification vs. implementation',
     domain: 'SLIs, SLOs & Error Budgets',
     front: "What is the difference between an SLI's specification and its implementation?",
-    back: "The specification is what you want to measure, such as 'the fraction of home-page loads that felt fast.' The implementation is how you actually measure it, such as reading load-balancer logs versus timing the page in a browser. The same specification can have several competing implementations, and measuring closer to the user usually produces a more faithful implementation.",
+    back: "The specification is the outcome you want to measure, kept independent of how you measure it — such as 'the fraction of home-page loads that complete in under 100 ms.' The implementation is how you actually measure that, such as reading load-balancer logs versus timing the page in a browser. The same specification can have several competing implementations, and measuring closer to the user usually produces a more faithful one.",
   },
   {
     id: 'error-budget',
@@ -69,7 +69,7 @@ export const FLASHCARDS = [
     service: 'Error budget policy',
     domain: 'SLIs, SLOs & Error Budgets',
     front: 'What does an error budget policy do once the budget runs out?',
-    back: "A pre-agreed, written document that spells out what happens when a service exhausts its error budget for the window — commonly freezing all further feature launches and non-critical releases until reliability recovers back above the target line, with narrow exceptions carved out for urgent fixes and security patches. Having it agreed in advance keeps the response from becoming a political argument in the middle of a bad month.",
+    back: "Most commonly it freezes further feature launches and non-critical releases until reliability recovers back above the target line, with narrow exceptions carved out for urgent fixes and security patches. The freeze is a reallocation rather than a punishment: a spent budget means users are already feeling instability, so engineering time shifts to reliability until the service is back inside its promise.",
   },
   {
     id: 'burn-rate',
@@ -77,13 +77,6 @@ export const FLASHCARDS = [
     domain: 'SLIs, SLOs & Error Budgets',
     front: 'What does a burn rate of 1 mean, versus a burn rate of 10?',
     back: "How fast a service is consuming its error budget relative to a steady, sustainable pace. A burn rate of 1 means the service will land at exactly zero budget right at the end of the SLO window if the current error rate holds; a burn rate of 10 means the same budget would be exhausted in one-tenth of the window, which is the kind of fast, dangerous spend that alerting wants to catch quickly.",
-  },
-  {
-    id: 'burn-rate-alerting',
-    service: 'Error budget burn-rate alerting',
-    domain: 'SLIs, SLOs & Error Budgets',
-    front: 'Why do production burn-rate alerts typically check more than one time window?',
-    back: "A single fixed window forces a trade-off between catching fast burns quickly and not missing slower ones: a short window pages fast but misses slow leaks, and a long window catches slow leaks but is slow to page on a sharp spike. Multiwindow, multi-burn-rate alerting layers a short and a long window together (a common combination pages on a 14.4x burn sustained over both the last hour and the last five minutes) so both failure shapes are covered without either flooding on-call or missing real trouble.",
   },
   {
     id: 'availability-aggregate',
@@ -97,7 +90,7 @@ export const FLASHCARDS = [
     service: 'Nines (availability)',
     domain: 'SLIs, SLOs & Error Budgets',
     front: "What does it mean for a service to have '4 nines' of availability?",
-    back: "Industry shorthand for how many nines appear in the availability percentage: 99% is '2 nines,' 99.99% is '4 nines,' and so on. Each additional nine represents a shrinking, and increasingly expensive, sliver of allowed downtime, since 100% availability is never actually achievable.",
+    back: "Industry shorthand for how many nines appear in the availability percentage: 99% is '2 nines,' 99.99% is '4 nines,' and so on. Each added nine shrinks the allowed downtime tenfold, and the ladder never tops out — 100% availability is never actually achievable.",
   },
   {
     id: 'cost-of-the-next-nine',
@@ -108,7 +101,7 @@ export const FLASHCARDS = [
   },
   {
     id: 'slo-floor-and-ceiling',
-    service: 'SLO target as a floor and a ceiling',
+    service: 'Running above the SLO target',
     domain: 'SLIs, SLOs & Error Budgets',
     front: 'Why should a team avoid running a service well above its SLO target for long stretches?',
     back: "An SLO is meant to be treated as both a floor (don't drop below it) and a ceiling (don't consistently blow far past it either), because users and dependent systems quietly start relying on the better-than-promised reliability they actually observe. That informal expectation can make a later, deliberate return to the published target feel like an outage even though the SLO itself was never breached.",
@@ -127,6 +120,27 @@ export const FLASHCARDS = [
     front: 'What is the practical difference between a rolling SLO window and a calendar-aligned one?',
     back: "A rolling window (for example, a trailing 28 days) tracks closer to how users actually experience a service, since a bad outage doesn't simply vanish the moment a new calendar month begins. A calendar-aligned window (a fixed month or quarter) instead lines up with business planning cycles like headcount and roadmap reviews, at the cost of a sudden reset that can hide recent pain.",
   },
+  {
+    id: 'error-budget-policy-advance',
+    service: 'Error budget policy',
+    domain: 'SLIs, SLOs & Error Budgets',
+    front: 'Why must an error budget policy be written and agreed before the budget is ever exhausted?',
+    back: "The moment the budget runs out is exactly when the consequences the policy prescribes are most painful and most contested — product wants to ship, reliability wants to stop, and any rule invented mid-crisis reads as one side winning a political fight. A policy agreed in calm conditions, with an escalation path for disagreements, turns the response into the automatic, impersonal consequence everyone already signed up for.",
+  },
+  {
+    id: 'percentile-latency-slis',
+    service: 'Percentile latency SLIs',
+    domain: 'SLIs, SLOs & Error Budgets',
+    front: 'Why are latency SLIs usually defined on percentiles rather than the average?',
+    back: "A mean folds the fast majority and the slow tail into one number, so a painfully slow 99th percentile can hide behind a healthy-looking average — and tying targets to the mean fails in other ways too, as when Bigtable's heavy tail dragged its mean-based SLO into constant violation and alerts fired voluminously without being actionable. Targets set on percentiles, often a tighter bound at the 90th and a looser one at the 99th, cover both the typical experience and the tail users actually complain about.",
+  },
+  {
+    id: 'pipeline-slis',
+    service: 'Pipeline SLIs',
+    domain: 'SLIs, SLOs & Error Budgets',
+    front: 'Which SLI categories fit a data pipeline better than request availability?',
+    back: "Pipelines usually have no discrete request to measure, so they are characterized by throughput and end-to-end latency, plus two pipeline-specific flavors: freshness (how recently the data behind a read was updated) and coverage or completeness (the fraction of records fully processed rather than skipped). Correctness — often measured by seeding synthetic records with known-good expected outputs — rounds out the set.",
+  },
 
   // ---------------------------------------------------------------------
   // Monitoring, Observability & Alerting
@@ -136,7 +150,7 @@ export const FLASHCARDS = [
     service: 'The four golden signals',
     domain: 'Monitoring, Observability & Alerting',
     front: 'What are the four golden signals of monitoring?',
-    back: 'Latency, traffic, errors, and saturation. If a team can only instrument four things about a user-facing system, these four give the broadest possible coverage of what is likely to be going wrong, and are the natural anchor for a top-level dashboard.',
+    back: 'Latency, traffic, errors, and saturation — two signals describing the request stream coming in (latency and traffic) and two describing things going wrong (errors and saturation). If a team can only instrument four things about a user-facing system, these four give the broadest possible coverage, and are the natural anchor for a top-level dashboard.',
   },
   {
     id: 'saturation-signal',
@@ -171,7 +185,7 @@ export const FLASHCARDS = [
     service: 'Playbook',
     domain: 'Monitoring, Observability & Alerting',
     front: 'What is a playbook, and why does SRE practice pair one with every alert?',
-    back: "A playbook is a written, linked-from-the-alert guide that explains an alert's severity and likely impact and lays out debugging steps and mitigations. Because a stressed, half-awake on-call engineer working from memory is slower and more error-prone than one following a checklist, pairing every alert with a playbook measurably cuts down both response time and the risk of a mistake made under pressure.",
+    back: "A playbook is a written, linked-from-the-alert guide that explains an alert's severity and likely impact and lays out debugging steps and mitigations. A stressed, half-awake on-call engineer working from memory is far more error-prone than one following a checklist, so pairing every alert with a playbook turns 3 a.m. debugging from improvisation into executing a known-good procedure.",
   },
   {
     id: 'symptom-vs-cause-paging',
@@ -191,8 +205,8 @@ export const FLASHCARDS = [
     id: 'mttr',
     service: 'MTTR',
     domain: 'Monitoring, Observability & Alerting',
-    front: 'What is MTTR, and what is one of the most effective levers for shortening it?',
-    back: "MTTR is the mean time to repair (sometimes 'recovery'): the average time from when a problem starts affecting users to when it is fully resolved. Well-maintained, alert-specific playbooks are one of the more reliable levers for shortening it, since they replace improvised debugging with a known-good sequence of steps.",
+    front: 'What is MTTR, and what on-call practice did Google find cut repair times by roughly 3x?',
+    back: "MTTR is the mean time to repair (sometimes 'recovery'): the average time from when a problem starts affecting users to when it is fully resolved. Google found that on-call engineers working from a playbook resolved incidents roughly three times faster than engineers improvising from memory, which makes playbook maintenance one of the most dependable levers on MTTR.",
   },
   {
     id: 'mtbf',
@@ -202,18 +216,25 @@ export const FLASHCARDS = [
     back: "MTBF is the average stretch of working time between one failure and the next — a measure of how rarely a system breaks in the first place. MTTR measures something else: once a failure has happened, how long it takes to detect, diagnose, and fully resolve it. A system can have a great MTBF but a terrible MTTR, or the reverse, because the two describe different halves of an incident's timeline — how often it happens, and how fast it's handled once it does.",
   },
   {
+    id: 'burn-rate-alerting',
+    service: 'Error budget burn-rate alerting',
+    domain: 'Monitoring, Observability & Alerting',
+    front: 'Why do production burn-rate alerts typically check more than one time window?',
+    back: "No single burn-rate/window pair can catch both failure shapes, so production setups run several alerts in parallel — for example, a 14.4x burn over 1 hour and a 6x burn over 6 hours both page, while a 1x burn over 3 days files a ticket — so fast spikes and slow leaks each hit an alert sized for them. Each alert also requires a short window (typically 1/12 of the long one, such as 5 minutes alongside the 1-hour check) to exceed the same threshold, which keeps it firing only while budget is actively being burned and lets it reset promptly once the problem is fixed.",
+  },
+  {
     id: 'low-traffic-burn-rate-alerting',
     service: 'Burn-rate alerting on low-traffic services',
     domain: 'Monitoring, Observability & Alerting',
     front: 'Why does burn-rate alerting break down for low-traffic services?',
-    back: "With very few requests per hour, a single failed request can represent a huge instantaneous error rate and trigger a page-worthy burn rate on its own, even though it may just be an isolated, uninteresting failure. Low-traffic and very-high-reliability services generally need a different alerting approach, such as longer windows or absolute failure counts, rather than the standard multiwindow burn-rate formula.",
+    back: "With very few requests per hour, a single failed request can represent a huge instantaneous error rate and trigger a page-worthy burn rate on its own, even though it may just be an isolated, uninteresting failure. Low-traffic services need a different approach — generating synthetic traffic, combining several small services under one SLO, or lowering the target and lengthening the window — while for extreme-reliability targets no alerting math reacts fast enough, and the answer is preventing failure by design rather than detecting it.",
   },
   {
     id: 'time-series-to-page',
     service: 'From a time series to a page',
     domain: 'Monitoring, Observability & Alerting',
     front: 'What has to be true before a monitoring rule should be allowed to page a human?',
-    back: "A good alerting rule should only fire when the condition is genuinely urgent, actionable, and something only a human can currently fix — otherwise it belongs in a lower-urgency channel like a ticket, or should be automated away entirely. Running every proposed new alert through that checklist before turning it on is what keeps a paging system trustworthy over time.",
+    back: "The condition must be genuinely urgent, actionable, and something only a human can currently fix — anything a script could handle should be automated away instead, and anything that can wait should not wake anyone. Running every proposed new alert through that checklist before turning it on is what keeps a paging system trustworthy over time.",
   },
   {
     id: 'observability-time-horizons',
@@ -222,13 +243,27 @@ export const FLASHCARDS = [
     front: 'Why does an observability strategy need both a fast clock and a slow one?',
     back: 'Near-real-time monitoring and alerting operate on the timescale of minutes, catching things that need action right now, while longer-term trend analysis over weeks or months surfaces slow capacity creep or gradual regressions that no single alert would ever fire on. A system that only watches the fast clock will still get blindsided by problems that build up gradually.',
   },
+  {
+    id: 'alerting-vs-debugging-metrics',
+    service: 'Alerting vs. debugging metrics',
+    domain: 'Monitoring, Observability & Alerting',
+    front: 'How do metrics meant for alerting differ from metrics meant for debugging?',
+    back: "An alerting metric should barely move except when something is genuinely wrong, so that any movement is itself the signal, while a debugging metric is expected to fluctuate constantly and just needs to point at what is fluctuating. Mixing the two on one dashboard confuses whoever is staring at it mid-incident — the alerting view says whether something is wrong, the debugging view says where to look next.",
+  },
+  {
+    id: 'alert-rule-lifecycle',
+    service: 'Alert rule lifecycle',
+    domain: 'Monitoring, Observability & Alerting',
+    front: 'What stages does an alert rule pass through between first evaluating true and reaching a human?',
+    back: "The condition is only pending when it first evaluates true, and must keep holding for a minimum duration before the rule transitions to firing — a debounce that keeps momentary blips from paging anyone. Once firing, a severity label decides the route: a page for conditions needing a human now, a ticket for things that can wait, or dashboard-only status that just adds context.",
+  },
 
   // ---------------------------------------------------------------------
   // Incident Response, On-Call & Postmortems
   // ---------------------------------------------------------------------
   {
     id: 'on-call',
-    service: 'On-call',
+    service: 'On-call response time',
     domain: 'Incident Response, On-Call & Postmortems',
     front: 'What determines a reasonable on-call response time target?',
     back: "The response time an on-call rotation commits to should be derived from the service's SLO and error budget, not from habit or gut feel — a service with a tight budget and a short window to react needs a faster guaranteed response than one with a generous budget. Setting the target this way keeps the on-call commitment tied to something the business actually agreed to.",
@@ -314,8 +349,43 @@ export const FLASHCARDS = [
     id: 'postmortem-trigger',
     service: 'When a postmortem is required',
     domain: 'Incident Response, On-Call & Postmortems',
-    front: 'What kinds of events typically require a postmortem, beyond a full outage?',
-    back: "Common triggers include a user-visible outage above some severity threshold, an SLO-impacting event that burns a significant slice of the error budget, a data loss incident, or even a near-miss that was caught only by luck. Writing postmortems for near-misses, not just full outages, is what lets an organization learn from close calls before they become real ones.",
+    front: 'What kinds of events commonly trigger a postmortem?',
+    back: "The SRE book's common triggers: user-visible downtime or degradation beyond a severity threshold, data loss of any kind, on-call engineer intervention such as a release rollback or rerouting of traffic, resolution time above some threshold, and a monitoring failure — an incident discovered manually when alerting should have caught it. Many teams extend the list with significant error-budget burns and lucky near misses, so the organization learns from close calls before they become real outages.",
+  },
+  {
+    id: 'on-call-load-limits',
+    service: 'On-call load limits',
+    domain: 'Incident Response, On-Call & Postmortems',
+    front: 'What limits does SRE place on on-call load, and what minimum team size falls out of them?',
+    back: "At most about two incidents per 12-hour shift — properly working one incident through root cause, remediation, and postmortem follow-up averages around six hours — and no more than 25% of any SRE's time spent on call. Together those constraints are why the SRE book derives a minimum of roughly eight engineers for a single-site rotation, making on-call sustainability a staffing-math problem rather than a willpower problem.",
+  },
+  {
+    id: 'incident-declaration',
+    service: 'Declaring an incident',
+    domain: 'Incident Response, On-Call & Postmortems',
+    front: 'What three questions decide whether to formally declare an incident?',
+    back: "Declare if fixing the problem needs a second team pulled in, if the outage is visible to customers, or if the issue is still unsolved after roughly an hour of focused analysis. The asymmetry favors declaring early: a declared incident that fizzles costs a little extra paperwork, while standing up coordination hours into a spiraling problem forfeits exactly the structure that would have contained it.",
+  },
+  {
+    id: 'three-cs-incident-roles',
+    service: 'Incident roles in the workbook',
+    domain: 'Incident Response, On-Call & Postmortems',
+    front: "How does the workbook's framing of incident roles differ from the SRE book's four roles?",
+    back: "The workbook organizes response around three Cs — coordinate, communicate, maintain control — and names only three core roles: Incident Commander, Communications Lead, and Operations Lead. It never elevates Planning to a fourth coequal role the way the SRE book does.",
+  },
+  {
+    id: 'incident-handoff',
+    service: 'Incident handoff',
+    domain: 'Incident Response, On-Call & Postmortems',
+    front: 'How should command of a long-running incident be handed off?',
+    back: "Explicitly and out loud: the outgoing Incident Commander states that command is transferring and stays on until the incoming commander confirms acceptance, with the change announced to everyone on the incident so nobody keeps taking direction from someone no longer in charge. The same ceremony applies at end-of-day and time-zone boundaries, where an informal fade-out would leave the response briefly unowned.",
+  },
+  {
+    id: 'operational-underload',
+    service: 'Operational underload',
+    domain: 'Incident Response, On-Call & Postmortems',
+    front: 'What is operational underload, and how do teams guard against it?',
+    back: "Operational underload is a rotation so quiet that engineers go too long without real production exposure, quietly losing incident-response calibration — a gap that only surfaces when a real page forces them to act on stale assumptions. Countermeasures include keeping a couple of on-call turns per quarter even on quiet services, Wheel of Misfortune sessions that re-run a past incident with new engineers cast into its roles, and disaster testing that manufactures controlled emergencies on purpose.",
   },
 
   // ---------------------------------------------------------------------
@@ -361,7 +431,14 @@ export const FLASHCARDS = [
     service: 'Criticality levels',
     domain: 'Capacity Planning & Managing Load',
     front: 'What are the four criticality tiers used to decide whose requests survive an overload?',
-    back: 'From most to least protected: CRITICAL_PLUS for requests whose failure causes serious user-visible impact, CRITICAL as the default for production traffic, SHEDDABLE_PLUS for traffic that can tolerate partial unavailability (typically batch jobs), and SHEDDABLE for traffic where even full unavailability is acceptable. When a backend is overloaded, it sheds the lowest tiers first, preserving capacity for the traffic that matters most.',
+    back: 'Two base tiers, each with a stricter _PLUS variant: CRITICAL is the default for production traffic, with CRITICAL_PLUS marking requests whose failure causes serious user-visible impact, while SHEDDABLE and SHEDDABLE_PLUS cover traffic that can tolerate degrees of unavailability. When a backend is overloaded, it sheds the lowest tiers first, preserving capacity for the traffic that matters most.',
+  },
+  {
+    id: 'sheddable-tiers',
+    service: 'Criticality levels',
+    domain: 'Capacity Planning & Managing Load',
+    front: 'What distinguishes SHEDDABLE_PLUS traffic from plain SHEDDABLE?',
+    back: 'SHEDDABLE_PLUS tolerates partial unavailability — the classic example is a batch job that needs its work done eventually but not right now, so it can wait out an overload and retry later. Plain SHEDDABLE tolerates full unavailability: the request can simply never happen, which is why it is the first traffic dropped when a backend starts shedding load.',
   },
   {
     id: 'adaptive-throttling',
@@ -374,8 +451,8 @@ export const FLASHCARDS = [
     id: 'retry-budget',
     service: 'Retry budget',
     domain: 'Capacity Planning & Managing Load',
-    front: 'What problem does a retry budget solve?',
-    back: 'Naive retries on failure can compound an overload into something much worse, since each failing request triggers more requests instead of fewer. Capping retries with a server-wide budget — for example, at most 60 retries per minute — contains that amplification, turning what could become a global cascading failure into a bounded number of dropped requests instead.',
+    front: 'What three layered guards keep retries from amplifying an overload?',
+    back: 'A per-request cap of about three attempts, a per-client budget that stops retrying once retries exceed roughly 10% of outgoing traffic (backed by blunt server-wide caps such as 60 retries per minute), and the rule that only the layer immediately above the rejection retries — since retries at every level of a call stack compound multiplicatively. Without these guards, each failing request triggers more requests instead of fewer, and an overload amplifies itself toward a cascading failure.',
   },
   {
     id: 'graceful-degradation-vs-load-shedding',
@@ -399,11 +476,39 @@ export const FLASHCARDS = [
     back: 'A failure that grows over time through positive feedback: part of a system fails, which increases load on the remaining healthy parts, which makes more of them fail in turn, and so on. Overload is by far the most common trigger — a service that was healthy at one traffic level starts crashing at a higher one, and simply dropping load back to the original level is often not enough to recover, since the surviving capacity has already shrunk.',
   },
   {
+    id: 'positive-feedback-cascading',
+    service: 'Breaking a cascading failure',
+    domain: 'Capacity Planning & Managing Load',
+    front: "Once a cascading failure's positive-feedback loop has started, what does it take to break it?",
+    back: "Blunt, immediate intervention: add capacity or restart servers stuck in states like GC death spirals, drastically drop traffic — allowing through, say, 1% until servers stabilize, then ramping back up — and enter degraded modes or eliminate batch and bad traffic so the surviving capacity goes to the requests that matter. Waiting for the system to recover on its own rarely works, because every new failure keeps adding load to the survivors and feeding the loop.",
+  },
+  {
     id: 'nalsd',
     service: 'Non-Abstract Large System Design (NALSD)',
     domain: 'Capacity Planning & Managing Load',
     front: 'What is NALSD, and why does the process insist on concrete numbers rather than staying abstract?',
     back: "NALSD is an iterative system-design skill: start from a problem statement, gather requirements, and repeatedly refine a design — sizing it in real machines, real QPS, real storage — until it holds up under both normal load and realistic failure scenarios. Working in concrete numbers instead of hand-waving forces early, often-wrong assumptions out into the open, where they can be checked and corrected rather than silently baked into a design that only looks sound.",
+  },
+  {
+    id: 'lame-duck',
+    service: 'Lame duck state',
+    domain: 'Capacity Planning & Managing Load',
+    front: 'What is a lame duck backend, and why does the state exist?',
+    back: "A lame duck is a backend that tells clients to stop sending it new work while letting requests already in flight finish normally — distinct from a healthy backend accepting work and from one refusing connections outright. The state is what makes routine restarts and rolling updates invisible to users, since traffic drains cleanly instead of connections being dropped mid-request.",
+  },
+  {
+    id: 'deterministic-subsetting',
+    service: 'Subsetting & weighted round robin',
+    domain: 'Capacity Planning & Managing Load',
+    front: 'Why do clients connect to only a subset of backends, and why is picking that subset randomly a trap?',
+    back: "A connection from every client to every backend wastes memory and CPU on both sides, so each client keeps connections to a limited subset. Choosing subsets randomly leaves some backends with far more connections than others; deterministic subsetting spreads clients evenly by construction, and weighted round robin then smooths the remaining per-request imbalance by favoring backends that report spare capacity.",
+  },
+  {
+    id: 'autoscaling-supplement',
+    service: 'Autoscaling',
+    domain: 'Capacity Planning & Managing Load',
+    front: 'Why is an autoscaler a supplement to capacity planning rather than a replacement?',
+    back: "Autoscalers have sharp edges — unhealthy instances polluting the utilization average, stateful services that cannot rebalance just by adding machines, and runaway growth when a bug keeps scaling up — so they are tuned quick to add and slow to remove capacity, bounded with explicit min/max limits, and paired with a manual kill switch. Scaling one service up can also shove unplanned load onto its dependencies, which is why a dependency review belongs before deployment.",
   },
 
   // ---------------------------------------------------------------------
@@ -434,15 +539,15 @@ export const FLASHCARDS = [
     id: 'progressive-rollout',
     service: 'Release rollout',
     domain: 'Release Engineering & Change Management',
-    front: 'What happens after a canary stage passes?',
-    back: 'A progressive rollout continues expanding a release in a sequence of increasingly larger stages beyond the initial canary — for example, one datacenter, then one region, then everywhere — checking health at each step before proceeding further. It keeps the blast radius of any newly discovered problem bounded all the way through the rollout, not just at the very first, smallest stage.',
+    front: 'In a progressive rollout, what gates each expansion stage after the canary, and what does the staging preserve?',
+    back: 'A health check gates every step: the release expands through increasingly larger stages — one datacenter, then one region, then everywhere — only after the metrics at the current stage look sound. That staging keeps the blast radius of any newly discovered problem bounded all the way through the rollout, not just at the very first, smallest stage.',
   },
   {
     id: 'rollback',
     service: 'Rollback',
     domain: 'Release Engineering & Change Management',
-    front: 'Why does incident response generally favor rolling back first and diagnosing afterward?',
-    back: "Reverting to the last known-good version is usually the fastest way to restore service, and it does not require first understanding exactly what went wrong — it only requires knowing that the new version is implicated. Diagnosing root cause can then happen calmly afterward, using the preserved bad version and its logs, without users continuing to suffer while the investigation is underway.",
+    front: 'What has to be prepared in advance for a rollback to actually be the fast path during an incident?',
+    back: "A rollback is only fast when it has been kept cheap ahead of time: the previous known-good version stays deployable, the revert path is exercised as routinely as the forward path, and rolling back is treated as a normal pipeline operation rather than an emergency exception. Then incident response only needs to know the new version is implicated — the preserved bad release and its logs keep root-cause diagnosis available for later, once users are no longer suffering.",
   },
   {
     id: 'rollout-detection-rollback',
@@ -460,10 +565,10 @@ export const FLASHCARDS = [
   },
   {
     id: 'config-design-fewer-knobs',
-    service: 'Configuration design: fewer knobs, smarter defaults',
+    service: 'Configuration design',
     domain: 'Release Engineering & Change Management',
-    front: "Why does good configuration-system design favor fewer knobs and smarter defaults over exposing every option?",
-    back: 'Every exposed configuration knob is a place where an operator can make a mistake, and the number of possible mistakes grows with the number of knobs. Picking sensible defaults and only exposing the settings that genuinely need to vary between deployments shrinks that surface area, at the cost of some flexibility for the rare case that truly needs it.',
+    front: 'In SRE configuration design, what should determine whether a setting is exposed as a knob at all?',
+    back: 'Only settings that genuinely need to vary between deployments earn a knob; everything else gets a sensible default, because every exposed option is a place where an operator can make a mistake and the number of possible mistakes grows with the number of knobs. The price is some flexibility for the rare case that truly needs it — a trade the design accepts deliberately.',
   },
   {
     id: 'release-engineering-discipline',
@@ -479,6 +584,27 @@ export const FLASHCARDS = [
     front: 'What kinds of guardrails typically wrap a release pipeline?',
     back: 'Mandatory code review before a change can ship, access controls on who can trigger a production push, and an automatically generated change report showing exactly what is different between the current and proposed release. Together they make a release auditable and give a reviewer a real chance to catch a problem before it reaches users, without requiring every release to be manually walked through step by step.',
   },
+  {
+    id: 'outages-from-changes',
+    service: 'Change-induced outages',
+    domain: 'Release Engineering & Change Management',
+    front: 'Roughly what fraction of outages does Google attribute to changes in a live system, and what follows from that?',
+    back: "About 70% of outages trace back to a change — a binary push, a configuration push, or even a launch that shifts the traffic profile — made to a system that was already running. The response is not to freeze changes but to automate three practices around them: progressive rollouts, fast and accurate problem detection, and safe rollback the moment something looks wrong.",
+  },
+  {
+    id: 'config-change-safety',
+    service: 'Safe configuration changes',
+    domain: 'Release Engineering & Change Management',
+    front: 'What three properties make a configuration change safe to apply?',
+    back: "It must be deployable gradually rather than as one all-or-nothing global push, it must be reversible with a real, exercised path back to the previous configuration, and any change that could strand an operator without control needs an automatic rollback — or at minimum an automatic halt — rather than depending on a human noticing in time. Together these turn reverting a bad config from a scramble into a routine, low-drama response.",
+  },
+  {
+    id: 'canary-vs-before-after',
+    service: 'Canary evaluation',
+    domain: 'Release Engineering & Change Management',
+    front: 'Why is before/after evaluation riskier than a true canary-vs-control comparison?',
+    back: "Comparing a fully replaced system against its own past behavior lets time itself confound the result — day of week, time of day, and unrelated background events all move metrics for reasons that have nothing to do with the change. A simultaneous canary-and-control split removes those confounds, which is also why teams run only one canary at a time: overlapping canaries contaminate each other's signal.",
+  },
 
   // ---------------------------------------------------------------------
   // Reliability Patterns & Toil Reduction
@@ -488,7 +614,14 @@ export const FLASHCARDS = [
     service: 'Toil',
     domain: 'Reliability Patterns & Toil Reduction',
     front: 'What makes work "toil" rather than just work someone dislikes doing?',
-    back: "Toil describes hands-on production work with six telltale traits: it's manual, it repeats, a machine could in principle do it just as well, it's reactive rather than planned, it leaves nothing of lasting value behind, and its total volume grows in step with the size of the service. Disliking a task does not make it toil, and a task done for the first time is not toil either — toil specifically describes recurring work that could, in principle, be engineered away.",
+    back: "Toil is hands-on production work that is manual, repetitive, and automatable — a machine could in principle do it just as well. Disliking a task does not make it toil, and a task done for the first time is not toil either; the term specifically describes recurring work that could be engineered away.",
+  },
+  {
+    id: 'toil-traits-role',
+    service: 'Toil',
+    domain: 'Reliability Patterns & Toil Reduction',
+    front: "Beyond being manual, repetitive, and automatable, what three traits mark a task's role as toil?",
+    back: "It's tactical — reactive and interrupt-driven rather than planned; it leaves no enduring value behind, since the service is in the same state after the task as before; and it scales linearly with the service, growing in step with traffic or user count. Work that leaves lasting improvement, or whose volume stays flat as the service grows, escapes the definition even when it's dull.",
   },
   {
     id: 'automation-hierarchy',
@@ -519,17 +652,45 @@ export const FLASHCARDS = [
     back: "A circuit breaker stops a client from repeatedly calling a dependency that is already failing, by 'tripping' after enough failures and briefly refusing calls outright so the failing dependency gets a chance to recover instead of being pounded by retries. Google's SRE books do not actually use the term 'circuit breaker' — the same protective idea shows up there under names like retry budgets and load shedding, which serve a closely related purpose without a single unified name.",
   },
   {
-    id: 'positive-feedback-cascading',
-    service: 'Positive feedback (cascading failures)',
-    domain: 'Reliability Patterns & Toil Reduction',
-    front: "Once a cascading failure's positive-feedback loop has started, what does it take to break it?",
-    back: "Waiting for the system to recover on its own rarely works, because every new failure keeps adding load to the survivors and feeding the loop. Breaking it takes active intervention: shedding load so overloaded tasks stop accepting work they are doomed to fail, propagating deadlines so abandoned requests stop consuming resources deep in the stack, and adding jittered exponential backoff so retries spread out instead of piling back on in synchronized waves.",
-  },
-  {
     id: 'redundancy-replica-pools',
     service: 'Redundancy through replica pools',
     domain: 'Reliability Patterns & Toil Reduction',
     front: 'How does spreading a service across a pool of replicas behind a load balancer improve reliability?',
     back: 'A pool of interchangeable replicas means the loss of any single one just shifts its share of traffic onto the survivors instead of taking down the service, and the load balancer is what makes that shift automatic and fast. This is the basic redundancy pattern underneath most of the more specific techniques — N+2 provisioning, quorum-based state, and graceful degradation all build on the assumption that no single replica is a single point of failure.',
+  },
+  {
+    id: 'toil-cap-50',
+    service: 'The 50% toil cap',
+    domain: 'Reliability Patterns & Toil Reduction',
+    front: "What is Google's 50% cap on toil, and how does it differ from the ~33% SREs actually report?",
+    back: "Google caps toil and other operational work at 50% of each SRE's time as a policy ceiling, reserving the other half for engineering that reduces future toil or adds features — because toil expands to fill all available time if nobody pushes back. Surveys of Google SREs measure actual toil around 33%, an empirical average that happens to sit under the cap, not the cap itself.",
+  },
+  {
+    id: 'overhead-vs-toil',
+    service: 'Overhead vs. toil',
+    domain: 'Reliability Patterns & Toil Reduction',
+    front: 'How do overhead and engineering work differ from toil?',
+    back: "Overhead is administrative work with no direct tie to running a production service — meetings, hiring, performance reviews — so it is not toil even though nobody enjoys it. Engineering work is toil's true opposite: novel, judgment-driven effort that leaves the service durably better, which is why a grungy one-off cleanup of a tangled alerting config is not toil while a recurring hand-run migration that leaves the service unchanged is.",
+  },
+  {
+    id: 'automation-value-drivers',
+    service: 'Value drivers of automation',
+    domain: 'Reliability Patterns & Toil Reduction',
+    front: 'What five value drivers does the SRE book credit automation with?',
+    back: "Five distinct drivers: consistency (machines repeat a procedure identically where humans drift), a platform (a reusable base that centralizes mistakes so a bug gets fixed once instead of rediscovered by every operator), faster repairs (automation resolving common faults drives down MTTR), faster action (software reacts quicker than any human in well-defined situations like failover), and time savings that compound because anyone can run the automation once it exists.",
+  },
+  {
+    id: 'code-as-liability',
+    service: 'Code as liability',
+    domain: 'Reliability Patterns & Toil Reduction',
+    front: 'Why does SRE treat every line of code in a production service as a liability?',
+    back: "More code means more surface area for defects, so deleting dead code, refusing to comment things out just in case, and removing features permanently hidden behind flags all count as genuine reliability work rather than tidying. The discipline traces to Hoare's maxim that reliability requires pursuing the utmost simplicity — in production software, an absence of surprise is a virtue, not a bore.",
+  },
+  {
+    id: 'defensive-automation',
+    service: 'Defensive automation',
+    domain: 'Reliability Patterns & Toil Reduction',
+    front: 'What safeguards must powerful automation carry, and what incident taught the lesson?',
+    back: "Automation should validate its inputs defensively, keep the safeguards a careful human would use (even something as simple as a timeout or rate limit), and hand control back to a human whenever it hits a condition it was not explicitly built to handle. The lesson comes from Google's Diskerase incident, where a decommissioning workflow given an empty machine list treated it as matching everything and started wiping disks across a CDN's servers.",
   },
 ];

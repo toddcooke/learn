@@ -85,7 +85,7 @@ export const QUESTIONS = [
     options: [
       'An SLI is a quantitative measurement of service behavior, while an SLO attaches a target value to that measurement',
       'If missing a threshold carries no explicit, defined consequence, that threshold is almost certainly an SLO rather than an SLA',
-      'A single SLI, such as latency, can have several SLOs layered on it — for example, a looser bound at a lower percentile and a stricter one at a higher percentile',
+      'A single SLI, such as latency, can have several SLOs layered on it — for example, a tighter bound at a lower percentile and a looser one at a higher percentile',
       "SRE teams typically negotiate the financial penalties written into a company's SLAs with its customers",
       'Every Google service that publishes an SLO also has a matching SLA with its users',
     ],

@@ -211,3 +211,33 @@ test('globalThis.localStorage access throwing does not crash zero-arg createStor
     }
   }
 });
+
+test('arch results: records and keeps the best score per challenge', () => {
+  const store = createStore(fakeBackend());
+  assert.deepEqual(store.getArchResults(), {});
+  store.recordArchResult('public-web', { completedAt: 1, bpPassed: 1, bpApplicable: 3 });
+  store.recordArchResult('public-web', { completedAt: 2, bpPassed: 3, bpApplicable: 3 });
+  assert.equal(store.getArchResults()['public-web'].bpPassed, 3);
+  store.recordArchResult('public-web', { completedAt: 3, bpPassed: 0, bpApplicable: 3 });
+  assert.equal(store.getArchResults()['public-web'].bpPassed, 3, 'worse result must not clobber');
+  assert.equal(store.getArchResults()['public-web'].completedAt, 2);
+});
+
+test('arch drafts: set/get/clear round-trip per challenge id', () => {
+  const store = createStore(fakeBackend());
+  assert.equal(store.getArchDraft('two-tier'), null);
+  store.setArchDraft('two-tier', { vpc: { cidr: '10.0.0.0/16' } });
+  assert.deepEqual(store.getArchDraft('two-tier'), { vpc: { cidr: '10.0.0.0/16' } });
+  assert.equal(store.getArchDraft('sandbox'), null, 'ids are independent');
+  store.clearArchDraft('two-tier');
+  assert.equal(store.getArchDraft('two-tier'), null);
+});
+
+test('arch getters survive a wrong-shape stored value', () => {
+  const backend = fakeBackend();
+  const store = createStore(backend);
+  backend.setItem('saa-prep:arch-results', JSON.stringify(['not', 'an', 'object']));
+  backend.setItem('saa-prep:arch-draft:x', JSON.stringify(42));
+  assert.deepEqual(store.getArchResults(), {});
+  assert.equal(store.getArchDraft('x'), null);
+});

@@ -5,7 +5,7 @@ import {
   addSecurityGroup, addSgRule, addWorkload, getSecurityGroup,
   effectiveRouteTable, removeWorkload, removeNat,
 } from './archModel.js';
-import { canDrop, connectionIntent } from './archCanvasRules.js';
+import { canDrop, connectionIntent, derivedEdges } from './archCanvasRules.js';
 
 function fixture() {
   const arch = createArch();
@@ -166,4 +166,56 @@ test('connectionIntent applies are no-op when their target entities vanish', () 
     privRtBefore.routes,
     'routes unchanged'
   );
+});
+
+test('derivedEdges: route edges from every subnet on a shared table', () => {
+  const { arch, pub, rt } = fixture();
+  const sb = addSubnet(arch, { name: 'public-b', az: 'b', cidr: '10.0.9.0/24' });
+  associateSubnet(arch, rt.id, sb.id);
+  const edges = derivedEdges(arch).filter((e) => e.kind === 'route');
+  assert.deepEqual(
+    edges.map((e) => [e.from.id, e.to.type]).sort(),
+    [[pub.id, 'igw'], [sb.id, 'igw']].sort(),
+  );
+  assert.deepEqual(edges[0].fact, { kind: 'route', rtbId: rt.id, index: 0 });
+});
+
+test('derivedEdges: nat route edge targets the nat ref', () => {
+  const { arch, priv, nat } = fixture();
+  connectionIntent({ type: 'subnet', id: priv.id }, { type: 'nat', id: nat.id }, arch).apply(arch, {});
+  const edge = derivedEdges(arch).find((e) => e.kind === 'route' && e.from.id === priv.id);
+  assert.deepEqual(edge.to, { type: 'nat', id: nat.id });
+});
+
+test('derivedEdges: internet, sg-ref, and external-CIDR rule edges', () => {
+  const { arch, web, db } = fixture();
+  connectionIntent({ type: 'internet' }, { type: 'workload', id: web.id }, arch).apply(arch, { port: 80 });
+  connectionIntent({ type: 'workload', id: web.id }, { type: 'workload', id: db.id }, arch).apply(arch, {});
+  const dbSg = getSecurityGroup(arch, db.sgIds[0]);
+  addSgRule(arch, dbSg.id, { portFrom: 22, source: '203.0.113.0/24' });
+
+  const edges = derivedEdges(arch).filter((e) => e.kind === 'sg-rule');
+  const byTo = (id) => edges.filter((e) => e.to.id === id);
+  assert.deepEqual(byTo(web.id).map((e) => e.from.type), ['internet']);
+  const dbEdges = byTo(db.id);
+  assert.equal(dbEdges.length, 2);
+  assert.ok(dbEdges.some((e) => e.from.type === 'workload' && e.from.id === web.id), 'sg-ref edge');
+  assert.ok(dbEdges.some((e) => e.from.type === 'internet' && /203\.0\.113/.test(e.label)), 'external CIDR renders from internet node');
+});
+
+test('derivedEdges: an SG shared by two workloads fans edges to both', () => {
+  const { arch, pub, web } = fixture();
+  const web2 = addWorkload(arch, { type: 'ec2', name: 'web-2', subnetIds: [pub.id] });
+  connectionIntent({ type: 'internet' }, { type: 'workload', id: web.id }, arch).apply(arch, {});
+  web2.sgIds = [...web.sgIds];
+  const targets = derivedEdges(arch).filter((e) => e.kind === 'sg-rule').map((e) => e.to.id).sort();
+  assert.deepEqual(targets, [web.id, web2.id].sort());
+});
+
+test('derivedEdges: facts point at the exact rule/route for deletion', () => {
+  const { arch, web } = fixture();
+  connectionIntent({ type: 'internet' }, { type: 'workload', id: web.id }, arch).apply(arch, {});
+  const edge = derivedEdges(arch).find((e) => e.kind === 'sg-rule');
+  const sg = getSecurityGroup(arch, edge.fact.sgId);
+  assert.equal(sg.inbound[edge.fact.index].source, '0.0.0.0/0');
 });

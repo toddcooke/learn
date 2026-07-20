@@ -64,38 +64,21 @@ export function validateStructure(arch) {
 
   // --- Route tables ---
   const natIds = new Set(arch.natGateways.map((n) => n.id));
-  const reportedErrors = new Set(); // Track ruleId+resourceId to avoid duplicates
   for (const rt of arch.routeTables) {
     for (const route of rt.routes) {
       if (!parseCidrStrict(route.destCidr)) {
-        const key = `route-dest-invalid:${rt.id}`;
-        if (!reportedErrors.has(key)) {
-          err('route-dest-invalid', `Route table ${rt.name}: destination "${route.destCidr}" is not a valid CIDR.`, [rt.id]);
-          reportedErrors.add(key);
-        }
+        err('route-dest-invalid', `Route table ${rt.name}: destination "${route.destCidr}" is not a valid CIDR.`, [rt.id]);
       }
       if (route.target === 'igw') {
         if (!arch.vpc.igwAttached) {
-          const key = `route-igw-unattached:${rt.id}`;
-          if (!reportedErrors.has(key)) {
-            err('route-igw-unattached', `Route table ${rt.name} routes to an internet gateway, but no IGW is attached to the VPC.`, [rt.id]);
-            reportedErrors.add(key);
-          }
+          err('route-igw-unattached', `Route table ${rt.name} routes to an internet gateway, but no IGW is attached to the VPC.`, [rt.id]);
         }
       } else if (typeof route.target === 'string' && route.target.startsWith('nat:')) {
         if (!natIds.has(route.target.slice(4))) {
-          const key = `route-nat-missing:${rt.id}`;
-          if (!reportedErrors.has(key)) {
-            err('route-nat-missing', `Route table ${rt.name} routes to NAT "${route.target.slice(4)}", which doesn't exist.`, [rt.id]);
-            reportedErrors.add(key);
-          }
+          err('route-nat-missing', `Route table ${rt.name} routes to NAT "${route.target.slice(4)}", which doesn't exist.`, [rt.id]);
         }
       } else {
-        const key = `route-target-unknown:${rt.id}`;
-        if (!reportedErrors.has(key)) {
-          err('route-target-unknown', `Route table ${rt.name}: unknown route target "${route.target}".`, [rt.id]);
-          reportedErrors.add(key);
-        }
+        err('route-target-unknown', `Route table ${rt.name}: unknown route target "${route.target}".`, [rt.id]);
       }
     }
   }

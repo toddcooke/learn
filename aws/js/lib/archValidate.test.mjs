@@ -48,10 +48,27 @@ test('flags route problems: bad dest, unattached IGW, missing NAT, unknown targe
   addRoute(arch, 'rtb-main', { destCidr: '198.51.100.0/24', target: 'nat:nat-99' });
   addRoute(arch, 'rtb-main', { destCidr: '203.0.113.0/24', target: 'vgw' });
   assert.deepEqual(ruleIds(arch), [
-    'route-dest-invalid', 'route-igw-unattached', 'route-nat-missing', 'route-target-unknown',
+    'route-dest-invalid', 'route-igw-unattached', 'route-igw-unattached', 'route-nat-missing', 'route-target-unknown',
   ]);
   arch.vpc.igwAttached = true;
   assert.ok(!ruleIds(arch).includes('route-igw-unattached'));
+});
+
+test('reports every offending route: two missing NATs produce two route-nat-missing errors', () => {
+  const arch = createArch();
+  addRoute(arch, 'rtb-main', { destCidr: '198.51.100.0/24', target: 'nat:missing-1' });
+  addRoute(arch, 'rtb-main', { destCidr: '203.0.113.0/24', target: 'nat:missing-2' });
+  const errors = validateStructure(arch).errors;
+  const natMissingErrors = errors.filter((e) => e.ruleId === 'route-nat-missing');
+  assert.equal(natMissingErrors.length, 2, 'should have exactly 2 route-nat-missing errors');
+  assert.ok(
+    natMissingErrors.some((e) => e.message.includes('missing-1')),
+    'first error should name missing-1'
+  );
+  assert.ok(
+    natMissingErrors.some((e) => e.message.includes('missing-2')),
+    'second error should name missing-2'
+  );
 });
 
 test('flags a NAT whose subnet is gone (hand-built state)', () => {

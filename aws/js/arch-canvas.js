@@ -11,8 +11,9 @@ import {
   AZS, getSubnet, getWorkload, getNat, getSecurityGroup,
   isPublicSubnet, effectiveRouteTable,
   addSubnet, addNat, addWorkload, addSecurityGroup,
+  updateWorkload, removeRoute, removeSgRule,
 } from './lib/archModel.js';
-import { derivedEdges } from './lib/archCanvasRules.js';
+import { derivedEdges, canDrop, connectionIntent } from './lib/archCanvasRules.js';
 
 const PALETTE = [
   { kind: 'subnet', label: '+ Subnet' },
@@ -137,26 +138,47 @@ function drawEdges(mount, ctx) {
 // Filled in by Task 5.
 function renderInspector(mount, ctx) { mount.innerHTML = ''; }
 
-// Filled in by Task 4 (drag/connect/popovers). This task wires only:
-// selection clicks, palette click-to-add, and the IGW toggle.
+// One in-flight drag/connect gesture per page; cleared on drop/cancel.
+let gesture = null;
+// The document-level Escape listener is attached once for the page's
+// lifetime, independent of (and in addition to) the mount's own attach-once
+// guard below — guarded by its own module-level flag rather than piggy-
+// backing on mount.dataset.cvWired so it stays correct even if a second
+// mount is ever wired.
+let escWired = false;
+
 function wireCanvas(mount) { wireStaticHandlers(mount); }
 
 // mount.innerHTML is fully replaced on every render, but the mount element
-// itself persists for the page's lifetime, so a delegated listener attached
-// to it survives across renders. Attach exactly once (guarded by a data
+// itself persists for the page's lifetime, so delegated listeners attached
+// to it survive across renders. Attach exactly once (guarded by a data
 // attribute) — otherwise every re-render stacks another listener and a
-// single click fires the handler once per prior render. The handler reads
-// currentCtx (set at the top of renderCanvas) rather than closing over the
-// ctx from whichever render first attached it, so it always sees the live
-// arch/selection/challenge.
+// single click/pointerdown fires the handler once per prior render. Every
+// listener here reads currentCtx (set at the top of renderCanvas) rather
+// than closing over the ctx from whichever render first attached it, so it
+// always sees the live arch/selection/challenge. A gesture in flight
+// (startDrag/startConnect) threads that currentCtx snapshot through its own
+// synchronous pointermove/pointerup lifecycle — it never re-reads
+// currentCtx mid-gesture, but no render (and thus no ctx change) happens
+// until the gesture applies its result through ctx.onChange().
 function wireStaticHandlers(mount) {
   if (mount.dataset.cvWired) return;
   mount.dataset.cvWired = '1';
+
   mount.addEventListener('click', (event) => {
     const igw = event.target.closest('[data-action="toggle-igw"]');
     if (igw) {
       currentCtx.arch.vpc.igwAttached = !currentCtx.arch.vpc.igwAttached;
       currentCtx.onChange();
+      return;
+    }
+    // .cv-surface (and the #arch-edges SVG it contains) is recreated on
+    // every render, so edge-click handling lives here on the persistent
+    // mount via event.target.closest('path.hit') rather than bound to the
+    // surface element directly.
+    const hit = event.target.closest('path.hit');
+    if (hit) {
+      showEdgePopover(Number(hit.dataset.edgeIndex), event, mount, currentCtx);
       return;
     }
     const pal = event.target.closest('[data-palette]');
@@ -169,6 +191,252 @@ function wireStaticHandlers(mount) {
       currentCtx.onSelect(JSON.parse(nodeEl.dataset.node));
     }
   });
+
+  mount.addEventListener('pointerdown', (event) => {
+    if (event.button !== 0) return;
+    const handle = event.target.closest('[data-connect]');
+    const pal = event.target.closest('[data-palette]');
+    const nodeEl = event.target.closest('[data-node]');
+    if (handle) {
+      startConnect(JSON.parse(handle.dataset.connect), event, mount, currentCtx);
+      event.preventDefault();
+    } else if (pal) {
+      startDrag({ mode: 'place', kind: pal.dataset.palette, label: pal.textContent }, event, mount, currentCtx);
+    } else if (nodeEl) {
+      const r = JSON.parse(nodeEl.dataset.node);
+      if (r.type === 'workload' || r.type === 'nat') {
+        const fromSubnet = event.target.closest('[data-drop]');
+        startDrag({
+          mode: 'move', kind: r.id, label: nodeEl.textContent,
+          fromSubnet: fromSubnet ? JSON.parse(fromSubnet.dataset.drop).id : null,
+        }, event, mount, currentCtx);
+      }
+    }
+  });
+
+  if (!escWired) {
+    escWired = true;
+    document.addEventListener('keydown', onEscape);
+  }
+}
+
+function onEscape(event) {
+  if (event.key === 'Escape') cancelGesture();
+}
+
+function cancelGesture() {
+  if (!gesture) return;
+  gesture.cleanup();
+  gesture = null;
+}
+
+// Palette placement and chip re-homing share one drag loop: a ghost chip
+// follows the pointer; drop containers highlight when canDrop() says yes.
+function startDrag(spec, event, mount, ctx) {
+  cancelGesture();
+  const ghost = document.createElement('span');
+  ghost.className = 'cv-chip cv-ghost';
+  ghost.textContent = spec.label.trim();
+  document.body.appendChild(ghost);
+  let target = null; // targetRef | null
+
+  const move = (e) => {
+    ghost.style.left = `${e.clientX + 8}px`;
+    ghost.style.top = `${e.clientY + 8}px`;
+    const el = document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-drop]');
+    mount.querySelectorAll('.cv-drop-ok').forEach((n) => n.classList.remove('cv-drop-ok'));
+    target = null;
+    if (el) {
+      const targetRef = JSON.parse(el.dataset.drop);
+      // Re-homing must not "drop into" the chip's own source subnet card
+      // when hovering itself; canDrop already treats same-subnet as false.
+      if (canDrop(spec.kind, targetRef, ctx.arch)) {
+        el.classList.add('cv-drop-ok');
+        target = targetRef;
+      }
+    }
+  };
+  const up = (e) => {
+    const dropAt = { x: e.clientX, y: e.clientY };
+    cancelGesture();
+    if (target) applyDrop(spec, target, dropAt, mount, ctx);
+  };
+  window.addEventListener('pointermove', move);
+  window.addEventListener('pointerup', up, { once: true });
+  gesture = {
+    cleanup() {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      ghost.remove();
+      mount.querySelectorAll('.cv-drop-ok').forEach((n) => n.classList.remove('cv-drop-ok'));
+    },
+  };
+  move(event);
+}
+
+function applyDrop(spec, targetRef, dropAt, mount, ctx) {
+  const { arch } = ctx;
+  if (spec.mode === 'place') {
+    if (spec.kind === 'subnet') {
+      showPopover(mount, dropAt, `
+        <p>Add subnet in which Availability Zone?</p>
+        <div class="arch-row">${['a', 'b', 'c'].map((az) => `<button type="button" data-az="${az}">AZ ${az}</button>`).join('')}</div>`,
+      (pop) => {
+        pop.addEventListener('click', (e) => {
+          const az = e.target.closest('[data-az]');
+          if (az) { addSubnet(arch, { az: az.dataset.az, cidr: '' }); closePopover(); ctx.onChange(); }
+        });
+      });
+      return;
+    }
+    if (spec.kind === 'alb') {
+      const boxes = arch.subnets.map((s) => `
+        <label class="arch-mini"><input type="checkbox" value="${s.id}" /> ${escapeHtml(s.name)}</label>`).join(' ');
+      showPopover(mount, dropAt, `
+        <p>ALB subnets (needs two AZs to be valid):</p>
+        <div class="arch-row">${boxes || '<em class="arch-mini">no subnets yet</em>'}</div>
+        <div class="arch-row"><button type="button" data-ok>Add ALB</button> <button type="button" data-cancel>Cancel</button></div>`,
+      (pop) => {
+        pop.addEventListener('click', (e) => {
+          if (e.target.closest('[data-ok]')) {
+            const ids = [...pop.querySelectorAll('input:checked')].map((i) => i.value);
+            addWorkload(arch, { type: 'alb', subnetIds: ids });
+            closePopover(); ctx.onChange();
+          }
+          if (e.target.closest('[data-cancel]')) closePopover();
+        });
+      });
+      return;
+    }
+    if (spec.kind === 'sg') { addSecurityGroup(arch); ctx.onChange(); return; }
+    if (spec.kind === 'nat') { addNat(arch, targetRef.id); ctx.onChange(); return; }
+    addWorkload(arch, { type: spec.kind, subnetIds: [targetRef.id] }); // ec2 | rds
+    ctx.onChange();
+    return;
+  }
+  // mode === 'move' (re-home)
+  const nat = getNat(arch, spec.kind);
+  if (nat) { nat.subnetId = targetRef.id; ctx.onChange(); return; }
+  const wl = getWorkload(arch, spec.kind);
+  if (!wl) return;
+  if (wl.type === 'ec2') {
+    updateWorkload(arch, wl.id, { subnetIds: [targetRef.id] });
+  } else {
+    // ALB/RDS chips render once per occupied subnet; replace the one it was
+    // dragged FROM, falling back to appending when the source is unknown.
+    const next = spec.fromSubnet && wl.subnetIds.includes(spec.fromSubnet)
+      ? wl.subnetIds.map((sid) => (sid === spec.fromSubnet ? targetRef.id : sid))
+      : [...wl.subnetIds, targetRef.id];
+    updateWorkload(arch, wl.id, { subnetIds: [...new Set(next)] });
+  }
+  ctx.onChange();
+}
+
+// Connect gesture: rubber-band line in the SVG overlay; legal endpoints are
+// any [data-node] (or the IGW chip) whose ref yields a non-null intent.
+function startConnect(fromRef, event, mount, ctx) {
+  cancelGesture();
+  const surface = mount.querySelector('.cv-surface');
+  const svg = mount.querySelector('#arch-edges');
+  const band = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  band.setAttribute('class', 'route');
+  band.setAttribute('stroke-dasharray', '4 3');
+  svg.appendChild(band);
+  const box = () => surface.getBoundingClientRect();
+  const start = { x: event.clientX - box().left, y: event.clientY - box().top };
+  let toRef = null;
+
+  const refAt = (e) => {
+    const el = document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-node]');
+    return el ? JSON.parse(el.dataset.node) : null;
+  };
+  const move = (e) => {
+    band.setAttribute('d', `M ${start.x} ${start.y} L ${e.clientX - box().left} ${e.clientY - box().top}`);
+    mount.querySelectorAll('.cv-drop-ok').forEach((n) => n.classList.remove('cv-drop-ok'));
+    toRef = null;
+    const candidate = refAt(e);
+    if (candidate && connectionIntent(fromRef, candidate, ctx.arch)) {
+      const el = document.elementFromPoint(e.clientX, e.clientY).closest('[data-node]');
+      el.classList.add('cv-drop-ok');
+      toRef = candidate;
+    }
+  };
+  const up = (e) => {
+    const dropAt = { x: e.clientX, y: e.clientY };
+    const finalTo = toRef;
+    cancelGesture();
+    if (finalTo) showIntentPopover(fromRef, finalTo, dropAt, mount, ctx);
+  };
+  window.addEventListener('pointermove', move);
+  window.addEventListener('pointerup', up, { once: true });
+  gesture = {
+    cleanup() {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      band.remove();
+      mount.querySelectorAll('.cv-drop-ok').forEach((n) => n.classList.remove('cv-drop-ok'));
+    },
+  };
+}
+
+function showIntentPopover(fromRef, toRef, dropAt, mount, ctx) {
+  const intent = connectionIntent(fromRef, toRef, ctx.arch);
+  if (!intent) return;
+  const portInput = intent.defaultPort !== null
+    ? `<input type="number" id="cv-port" value="${intent.defaultPort}" aria-label="Port" />`
+    : '';
+  const description = escapeHtml(intent.description).replace('{port}', '</span>PORT<span>')
+    .split('PORT').join(portInput || '');
+  showPopover(mount, dropAt, `
+    <p><span>${description}</span></p>
+    ${intent.warning ? `<p class="arch-mini">⚠ ${escapeHtml(intent.warning)}</p>` : ''}
+    <div class="arch-row"><button type="button" data-ok>Confirm</button> <button type="button" data-cancel>Cancel</button></div>`,
+  (pop) => {
+    pop.addEventListener('click', (e) => {
+      if (e.target.closest('[data-ok]')) {
+        const port = pop.querySelector('#cv-port');
+        intent.apply(ctx.arch, port ? { port: Number(port.value) } : {});
+        closePopover(); ctx.onChange();
+      }
+      if (e.target.closest('[data-cancel]')) closePopover();
+    });
+  });
+}
+
+function showEdgePopover(index, event, mount, ctx) {
+  const edge = derivedEdges(ctx.arch)[index];
+  if (!edge) return;
+  showPopover(mount, { x: event.clientX, y: event.clientY }, `
+    <p>${escapeHtml(edge.kind === 'route' ? 'Route' : 'Security group rule')}: ${escapeHtml(edge.label)}</p>
+    <div class="arch-row"><button type="button" data-del>Delete</button> <button type="button" data-cancel>Close</button></div>`,
+  (pop) => {
+    pop.addEventListener('click', (e) => {
+      if (e.target.closest('[data-del]')) {
+        if (edge.fact.kind === 'route') removeRoute(ctx.arch, edge.fact.rtbId, edge.fact.index);
+        else removeSgRule(ctx.arch, edge.fact.sgId, edge.fact.index);
+        closePopover(); ctx.onChange();
+      }
+      if (e.target.closest('[data-cancel]')) closePopover();
+    });
+  });
+}
+
+// One popover at a time, positioned inside the canvas panel near the drop.
+function showPopover(mount, at, html, wire) {
+  closePopover();
+  const pop = document.createElement('div');
+  pop.className = 'cv-popover';
+  pop.id = 'cv-popover';
+  pop.innerHTML = html;
+  const panelBox = mount.getBoundingClientRect();
+  pop.style.left = `${Math.max(8, at.x - panelBox.left - 40)}px`;
+  pop.style.top = `${Math.max(8, at.y - panelBox.top + 12)}px`;
+  mount.appendChild(pop);
+  wire(pop);
+}
+
+function closePopover() {
+  document.getElementById('cv-popover')?.remove();
 }
 
 // Adds a palette item into the selected container (or a sensible default)

@@ -83,6 +83,7 @@ export function connectionIntent(fromRef, toRef, arch) {
       description: `Allow TCP {port} to ${wl.name} from the internet (0.0.0.0/0) in its security group`,
       apply(a, options = {}) {
         const target = getWorkload(a, toRef.id);
+        if (!target) return;
         const sg = ensureSg(a, target);
         addSgRule(a, sg.id, { portFrom: options.port ?? target.port, source: '0.0.0.0/0' });
       },
@@ -99,9 +100,12 @@ export function connectionIntent(fromRef, toRef, arch) {
       warning: null,
       description: `Allow TCP {port} to ${to.name} from ${from.name}'s security group`,
       apply(a, options = {}) {
-        const src = ensureSg(a, getWorkload(a, fromRef.id));
-        const dst = ensureSg(a, getWorkload(a, toRef.id));
-        addSgRule(a, dst.id, { portFrom: options.port ?? getWorkload(a, toRef.id).port, source: `sg:${src.id}` });
+        const srcWl = getWorkload(a, fromRef.id);
+        const dstWl = getWorkload(a, toRef.id);
+        if (!srcWl || !dstWl) return;
+        const src = ensureSg(a, srcWl);
+        const dst = ensureSg(a, dstWl);
+        addSgRule(a, dst.id, { portFrom: options.port ?? dstWl.port, source: `sg:${src.id}` });
       },
     };
   }
@@ -122,6 +126,8 @@ export function connectionIntent(fromRef, toRef, arch) {
         : `Route ${subnet.name}'s internet traffic (0.0.0.0/0) out the internet gateway (makes it a public subnet)`,
       apply(a) {
         const s = getSubnet(a, fromRef.id);
+        if (!s) return;
+        if (viaNat && !getNat(a, toRef.id)) return;
         const rt = ensureOwnRouteTable(a, s);
         addRoute(a, rt.id, { destCidr: '0.0.0.0/0', target: viaNat ? `nat:${toRef.id}` : 'igw' });
       },

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   createArch, addSubnet, addNat, addRouteTable, addRoute, associateSubnet,
   addSecurityGroup, addSgRule, addWorkload, getSecurityGroup,
-  effectiveRouteTable,
+  effectiveRouteTable, removeWorkload, removeNat,
 } from './archModel.js';
 import { canDrop, connectionIntent } from './archCanvasRules.js';
 
@@ -139,4 +139,31 @@ test('connectionIntent descriptions name real resources', () => {
   assert.match(connectionIntent({ type: 'internet' }, { type: 'workload', id: web.id }, arch).description, /web-1/);
   assert.match(connectionIntent({ type: 'workload', id: web.id }, { type: 'workload', id: db.id }, arch).description, /db-1/);
   assert.match(connectionIntent({ type: 'subnet', id: priv.id }, { type: 'nat', id: nat.id }, arch).description, /private-a/);
+});
+
+test('connectionIntent applies are no-op when their target entities vanish', () => {
+  const { arch, pub, priv, web, nat } = fixture();
+  const sgCountBefore = arch.securityGroups.length;
+  const privRtBefore = effectiveRouteTable(arch, priv.id);
+
+  // Get intents before deleting targets.
+  const internetToWeb = connectionIntent({ type: 'internet' }, { type: 'workload', id: web.id }, arch);
+  const privToNat = connectionIntent({ type: 'subnet', id: priv.id }, { type: 'nat', id: nat.id }, arch);
+
+  // Delete the web workload and the NAT.
+  removeWorkload(arch, web.id);
+  removeNat(arch, nat.id);
+
+  // Apply both intents — should be safe no-ops.
+  internetToWeb.apply(arch, { port: 80 });
+  privToNat.apply(arch, {});
+
+  // Verify nothing was written.
+  assert.equal(arch.securityGroups.length, sgCountBefore, 'no new SGs created');
+  assert.equal(effectiveRouteTable(arch, priv.id).routes.length, privRtBefore.routes.length, 'no new routes');
+  assert.deepEqual(
+    effectiveRouteTable(arch, priv.id).routes,
+    privRtBefore.routes,
+    'routes unchanged'
+  );
 });

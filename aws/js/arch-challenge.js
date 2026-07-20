@@ -336,8 +336,129 @@ function dispatchAction(event, kinds) {
 document.getElementById('arch-builder').addEventListener('click', (e) => dispatchAction(e, ['BUTTON']));
 document.getElementById('arch-builder').addEventListener('change', (e) => dispatchAction(e, ['INPUT', 'SELECT']));
 
-// Task 11 fills these in (diagram rendering + task/results panel). Stubbed
-// here as empty functions so renderAll can call them without error.
-function renderDiagram(_mount) {}
+function renderDiagram(mount) {
+  const azsInUse = AZS.filter((az) => arch.subnets.some((s) => s.az === az));
+  const azCols = azsInUse.map((az) => {
+    const cards = arch.subnets.filter((s) => s.az === az).map((s) => {
+      const rt = effectiveRouteTable(arch, s.id);
+      const nats = arch.natGateways.filter((n) => n.subnetId === s.id)
+        .map((n) => `<span class="arch-chip">NAT ${escapeHtml(n.id)}</span>`).join('');
+      const wls = arch.workloads.filter((w) => w.subnetIds.includes(s.id))
+        .map((w) => `<span class="arch-chip">${escapeHtml(w.type.toUpperCase())} ${escapeHtml(w.name)}${w.publicIp ? ' ⬆︎' : ''}</span>`).join('');
+      const pub = isPublicSubnet(arch, s.id);
+      return `
+        <div class="arch-subnet ${pub ? 'is-public' : 'is-private'}">
+          <strong>${escapeHtml(s.name)}</strong> <span class="cidr">${escapeHtml(s.cidr)}</span>
+          <span class="arch-mini">${pub ? 'public' : 'private'} · ${escapeHtml(rt ? rt.name : '?')}</span>
+          <div>${nats}${wls}</div>
+        </div>`;
+    }).join('');
+    return `<div class="arch-az"><h4>AZ ${escapeHtml(az)}</h4>${cards}</div>`;
+  }).join('');
+  const unplaced = arch.workloads.filter((w) => w.subnetIds.length === 0)
+    .map((w) => `<span class="arch-chip">${escapeHtml(w.type.toUpperCase())} ${escapeHtml(w.name)}</span>`).join('');
+  mount.innerHTML = `
+    <h2>Diagram</h2>
+    <div class="arch-vpc-box">
+      ${arch.vpc.igwAttached ? '<span class="arch-igw-chip">IGW</span>' : ''}
+      <span class="cidr">VPC ${escapeHtml(arch.vpc.cidr)}</span>
+      ${azsInUse.length ? `<div class="arch-az-grid">${azCols}</div>` : '<p class="arch-mini">No subnets yet — the map fills in as you build.</p>'}
+    </div>
+    ${unplaced ? `<p class="arch-mini">Not placed in any subnet: ${unplaced}</p>` : ''}
+    <p class="arch-mini">Public subnets are tinted green (route to an attached IGW); private are blue. ⬆︎ = public IP.</p>`;
+}
 
-function renderTask(_mount) {}
+function runCheck() {
+  const { errors } = validateStructure(arch);
+  const goalRows = errors.length === 0 ? evaluateGoals(arch, challenge) : null;
+  const bpRows = evaluateBestPractices(arch, challenge.bestPractices);
+  results = { errors, goalRows, bpRows };
+  const complete = errors.length === 0 && challenge.goals.length > 0
+    && goalRows.every((r) => r.ok);
+  if (complete && challenge.id !== 'sandbox') {
+    const applicable = bpRows.filter((r) => r.applicable);
+    store.recordArchResult(challenge.id, {
+      completedAt: Date.now(),
+      bpPassed: applicable.filter((r) => r.ok).length,
+      bpApplicable: applicable.length,
+    });
+  } else if (!complete) {
+    failedChecks += 1;
+  }
+  renderAll();
+}
+
+function renderTask(mount) {
+  const rolesHtml = challenge.roles.map((role) => {
+    const assigned = arch.workloads.filter((w) => w.role === role.id);
+    return `<li>${escapeHtml(role.label)}: ${assigned.length
+      ? escapeHtml(assigned.map((w) => w.name).join(', '))
+      : '<em>unassigned — set a workload\'s role</em>'}</li>`;
+  }).join('');
+
+  let resultsHtml = '';
+  if (results) {
+    if (results.errors.length > 0) {
+      resultsHtml += `<h3>Structural problems (fix these first)</h3>
+        ${results.errors.map((e) => `<div class="arch-goal fail">${escapeHtml(e.message)}</div>`).join('')}`;
+    } else if (results.goalRows && results.goalRows.length > 0) {
+      const allOk = results.goalRows.every((r) => r.ok);
+      resultsHtml += `<h3>Goals ${allOk ? '— all satisfied 🎉' : ''}</h3>`;
+      resultsHtml += results.goalRows.map((row) => {
+        const traces = row.traces.map((t) => `
+          <details ${t.ok ? '' : 'open'}><summary class="arch-mini">${escapeHtml(t.title)}</summary>
+            <ul class="arch-trace">${t.trace.map((s) => `<li class="${s.ok ? 'ok' : 'fail'}">${escapeHtml(s.label)}</li>`).join('')}</ul>
+          </details>`).join('');
+        return `<div class="arch-goal ${row.ok ? 'ok' : 'fail'}">
+          ${escapeHtml(row.label)}
+          <p class="arch-mini">${escapeHtml(row.detail)}</p>${traces}</div>`;
+      }).join('');
+    }
+    const applicable = results.bpRows.filter((r) => r.applicable);
+    if (applicable.length > 0) {
+      const passed = applicable.filter((r) => r.ok).length;
+      resultsHtml += `<h3>Best practices</h3>
+        <p class="arch-score">${passed}/${applicable.length}</p>
+        ${applicable.map((r) => `<div class="arch-goal ${r.ok ? 'ok' : 'fail'}">
+          ${escapeHtml(r.message)}${r.ok ? '' : `<p class="arch-mini">Why: ${escapeHtml(r.why)}</p>`}</div>`).join('')}`;
+    }
+  }
+
+  const hintsHtml = challenge.hints.length === 0 ? '' : `
+    ${challenge.hints.slice(0, hintsShown).map((h) => `<p class="arch-mini">💡 ${escapeHtml(h)}</p>`).join('')}
+    ${hintsShown < challenge.hints.length
+      ? `<button type="button" data-action="hint">Hint ${hintsShown + 1}/${challenge.hints.length}</button>` : ''}`;
+
+  const reveal = challenge.refSolution && failedChecks >= 1
+    ? '<button type="button" data-action="reveal">Show reference solution</button>' : '';
+
+  mount.innerHTML = `
+    <h2>${challenge.id === 'sandbox' ? 'Checks' : 'Task'}</h2>
+    ${challenge.roles.length ? `<ul>${rolesHtml}</ul>` : ''}
+    <div class="arch-row">
+      <button type="button" data-action="check">Check architecture</button>
+      <button type="button" data-action="reset">Reset</button>
+      ${reveal}
+    </div>
+    ${hintsHtml}
+    ${results ? resultsHtml : '<p class="arch-mini">Build, then hit Check. Results explain every pass and fail.</p>'}`;
+}
+
+document.getElementById('arch-task').addEventListener('click', (event) => {
+  const el = event.target.closest('button[data-action]');
+  if (!el) return;
+  if (el.dataset.action === 'check') runCheck();
+  if (el.dataset.action === 'hint') { hintsShown += 1; renderAll(); }
+  if (el.dataset.action === 'reveal'
+      && window.confirm('Replace your current design with the reference solution?')) {
+    arch = challenge.refSolution();
+    changed();
+  }
+  if (el.dataset.action === 'reset'
+      && window.confirm('Discard your design and start this challenge over?')) {
+    store.clearArchDraft(challenge.id);
+    arch = challenge.startState ? challenge.startState() : createArch();
+    results = null;
+    renderAll();
+  }
+});

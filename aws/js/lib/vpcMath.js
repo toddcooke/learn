@@ -62,6 +62,29 @@ export function octetOf(int, octetIndexFrom1) {
   return (int >>> shift) & 0xff;
 }
 
+// Strict variant of parseCidr for user-typed input: returns null instead of
+// garbage for anything that isn't a well-formed dotted-quad/prefix. parseCidr
+// itself stays permissive — it only ever sees the explorer's hardcoded CIDRs.
+const CIDR_RE = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\/(\d{1,2})$/;
+
+export function parseCidrStrict(cidr) {
+  const m = CIDR_RE.exec(String(cidr).trim());
+  if (!m) return null;
+  const octets = [m[1], m[2], m[3], m[4]].map(Number);
+  const prefixLen = Number(m[5]);
+  if (octets.some((o) => o > 255) || prefixLen > 32) return null;
+  return parseCidr(`${octets.join('.')}/${prefixLen}`);
+}
+
+// Both take parsed blocks ({network, broadcast} from parseCidr/parseCidrStrict).
+export function cidrContains(outer, inner) {
+  return outer.network <= inner.network && inner.broadcast <= outer.broadcast;
+}
+
+export function cidrsOverlap(a, b) {
+  return a.network <= b.broadcast && b.network <= a.broadcast;
+}
+
 // Describes which octet the fixed/free boundary falls in for a given
 // prefix length, and (given a concrete network address) what value that
 // octet has, its block width, and the block's start/end within that octet.

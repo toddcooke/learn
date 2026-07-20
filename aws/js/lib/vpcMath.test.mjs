@@ -5,6 +5,9 @@ import {
   intToIp,
   maskForPrefix,
   parseCidr,
+  parseCidrStrict,
+  cidrContains,
+  cidrsOverlap,
   totalAddresses,
   usableAddresses,
   reservedAddresses,
@@ -192,4 +195,38 @@ test('ALL_HIGHLIGHTABLE_IDS covers every subnet, NAT badge, and both edge boxes 
   assert.equal(ALL_HIGHLIGHTABLE_IDS.length, SUBNETS.length + AZS.length + 2);
   assert.ok(ALL_HIGHLIGHTABLE_IDS.includes('subnet-app-c'));
   assert.ok(ALL_HIGHLIGHTABLE_IDS.includes('nat-b'));
+});
+
+// ---------------------------------------------------------------------------
+// Strict parsing + containment (architecture challenge helpers)
+// ---------------------------------------------------------------------------
+
+test('parseCidrStrict parses valid CIDRs like parseCidr', () => {
+  const parsed = parseCidrStrict('10.0.29.200/20');
+  assert.equal(intToIp(parsed.network), '10.0.16.0');
+  assert.equal(parsed.prefixLen, 20);
+});
+
+test('parseCidrStrict rejects malformed input with null', () => {
+  for (const bad of [
+    '10.0.0.0', '10.0.0.0/', '10.0.0.0/33', '10.0.0.256/24', '10.0.0/24',
+    'banana', '', '10.0.0.0/16/24', '10.0.0.-1/24', '10.0.0.0/1x',
+  ]) {
+    assert.equal(parseCidrStrict(bad), null, `${JSON.stringify(bad)} must be rejected`);
+  }
+});
+
+test('cidrContains: outer covers inner fully, not partially', () => {
+  const vpc = parseCidrStrict('10.0.0.0/16');
+  assert.equal(cidrContains(vpc, parseCidrStrict('10.0.1.0/24')), true);
+  assert.equal(cidrContains(vpc, parseCidrStrict('10.0.0.0/16')), true);
+  assert.equal(cidrContains(vpc, parseCidrStrict('10.1.0.0/24')), false);
+  assert.equal(cidrContains(vpc, parseCidrStrict('10.0.0.0/8')), false);
+});
+
+test('cidrsOverlap detects any shared address range', () => {
+  const a = parseCidrStrict('10.0.1.0/24');
+  assert.equal(cidrsOverlap(a, parseCidrStrict('10.0.1.128/25')), true);
+  assert.equal(cidrsOverlap(a, parseCidrStrict('10.0.0.0/16')), true);
+  assert.equal(cidrsOverlap(a, parseCidrStrict('10.0.2.0/24')), false);
 });

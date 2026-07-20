@@ -234,10 +234,6 @@ test('arch drafts: set/get/clear round-trip per challenge id', () => {
 });
 
 test('arch getters survive a wrong-shape stored value', () => {
-  const backend = fakeBackend();
-  const store = createStore(backend);
-  backend.setItem('saa-prep:arch-results', JSON.stringify(['not', 'an', 'object']));
-  backend.setItem('saa-prep:arch-draft:x', JSON.stringify(42));
-  assert.deepEqual(store.getArchResults(), {});
-  assert.equal(store.getArchDraft('x'), null);
+  assert.deepEqual(storeWithRaw('["not","an","object"]').getArchResults(), {});
+  assert.equal(storeWithRaw('42').getArchDraft('x'), null);
 });

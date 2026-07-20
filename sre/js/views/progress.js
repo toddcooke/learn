@@ -81,6 +81,7 @@ export function render(mount) {
         </div>
       `}
     </section>
+    <section id="arch-challenges-section" hidden></section>
     <section>
       <h3>Reset</h3>
       <p class="exam-note">Each action permanently removes the stored data on this device.</p>
@@ -109,4 +110,29 @@ export function render(mount) {
     store.clearFlashcardState();
     render(mount);
   });
+
+  // Architecture Challenge is an aws-only feature; js/views/progress.js is a
+  // byte-identical shared file across every module, so it can't statically
+  // import a data file that only exists in aws/js/data/. Loading it
+  // dynamically lets this same file degrade gracefully (empty, hidden
+  // section) in modules that have no archChallenges.js at all.
+  import('../data/archChallenges.js').then(({ ARCH_CHALLENGES }) => {
+    const archSection = document.getElementById('arch-challenges-section');
+    if (!archSection) return;
+    const archResults = store.getArchResults();
+    const archCompleted = ARCH_CHALLENGES.filter((c) => archResults[c.id]);
+    archSection.innerHTML = `
+      <h3><a href="architecture-challenge.html">Architecture challenges</a></h3>
+      <p>${archCompleted.length} of ${ARCH_CHALLENGES.length} completed</p>
+      ${archCompleted.length === 0 ? '' : `
+        <ul>
+          ${archCompleted.map((c) => {
+            const r = archResults[c.id];
+            return `<li>${escapeHtml(c.title)} — best practices ${r.bpPassed}/${r.bpApplicable}</li>`;
+          }).join('')}
+        </ul>
+      `}
+    `;
+    archSection.hidden = false;
+  }).catch(() => { /* this module has no architecture challenges */ });
 }

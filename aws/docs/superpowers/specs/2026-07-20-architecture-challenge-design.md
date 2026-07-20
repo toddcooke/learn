@@ -110,6 +110,9 @@ script only renders and wires the DOM.
   event wiring, storage calls.
 - **`architecture-challenge.html`** — page shell, styles (in
   `css/style.css` under an `arch-` prefix, dark-mode aware like the rest).
+  **(Amended during implementation):** page-specific styles actually live
+  inline in `architecture-challenge.html`'s own `<style>` block, matching the
+  `vpc-explorer.html` precedent, not in `css/style.css`.
 
 ### Validation level 1 — structural ("would AWS accept this")
 

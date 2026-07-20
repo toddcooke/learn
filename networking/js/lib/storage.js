@@ -144,6 +144,32 @@ export function createStore(backend) {
         /* ignore */
       }
     },
+    getArchResults() {
+      return loadObject(b, 'arch-results');
+    },
+    recordArchResult(challengeId, result) {
+      const results = loadObject(b, 'arch-results');
+      const prev = results[challengeId];
+      const ratio = (r) => (r.bpApplicable > 0 ? r.bpPassed / r.bpApplicable : 1);
+      if (!prev || ratio(result) >= ratio(prev)) {
+        results[challengeId] = result;
+        save(b, 'arch-results', results);
+      }
+    },
+    getArchDraft(challengeId) {
+      const value = load(b, `arch-draft:${challengeId}`, null);
+      return isPlainObject(value) ? value : null;
+    },
+    setArchDraft(challengeId, state) {
+      save(b, `arch-draft:${challengeId}`, state);
+    },
+    clearArchDraft(challengeId) {
+      try {
+        b.removeItem(`${NAMESPACE}:arch-draft:${challengeId}`);
+      } catch {
+        /* ignore */
+      }
+    },
     clearQuizHistory() {
       try {
         b.removeItem(`${NAMESPACE}:quiz-history`);

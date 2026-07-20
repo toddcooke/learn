@@ -7,7 +7,8 @@
 // the offending resource ids.
 
 import { parseCidrStrict, cidrContains, cidrsOverlap } from './vpcMath.js';
-import { getSubnet, getSecurityGroup, workloadAzs } from './archModel.js';
+import { getSubnet, getSecurityGroup, isPublicSubnet, workloadAzs } from './archModel.js';
+import { resolveRoute, INTERNET_TEST_IP } from './archSimulate.js';
 
 const VPC_PREFIX_MIN = 16; // AWS allows /16 (largest block)…
 const VPC_PREFIX_MAX = 28; // …through /28 (smallest) for VPCs and subnets.
@@ -120,4 +121,156 @@ export function validateStructure(arch) {
   }
 
   return { errors };
+}
+
+// ---------------------------------------------------------------------------
+// Best-practice rules (advisory). Each evaluator returns
+// { applicable, ok, message } — `why` comes from the rule table. Callers
+// score passed ÷ applicable; inapplicable rules are skipped entirely.
+// ---------------------------------------------------------------------------
+
+function ruleCoversPort(rule, port) {
+  return (rule.proto === 'tcp' || rule.proto === 'all') && rule.portFrom <= port && port <= rule.portTo;
+}
+
+const BEST_PRACTICE_RULES = [
+  {
+    id: 'db-in-private-subnet',
+    why: 'Databases should never be directly addressable from the internet; put them in subnets with no IGW route.',
+    evaluate(arch) {
+      const dbs = arch.workloads.filter((w) => w.type === 'rds');
+      if (dbs.length === 0) return { applicable: false };
+      const exposed = dbs.filter((db) => db.subnetIds.some((sid) => isPublicSubnet(arch, sid)));
+      return exposed.length === 0
+        ? { applicable: true, ok: true, message: 'Every database subnet is private.' }
+        : { applicable: true, ok: false, message: `${exposed.map((d) => d.name).join(', ')}: DB subnet group includes a public subnet.` };
+    },
+  },
+  {
+    id: 'no-open-ssh',
+    why: 'SSH open to 0.0.0.0/0 invites brute-force scans; restrict it to a known CIDR or use SSM Session Manager.',
+    evaluate(arch) {
+      const sgs = arch.securityGroups.filter((sg) => sg.inbound.length > 0);
+      if (sgs.length === 0) return { applicable: false };
+      const open = sgs.filter((sg) => sg.inbound.some((r) => r.source === '0.0.0.0/0' && ruleCoversPort(r, 22)));
+      return open.length === 0
+        ? { applicable: true, ok: true, message: 'No security group exposes SSH to the whole internet.' }
+        : { applicable: true, ok: false, message: `${open.map((g) => g.name).join(', ')}: allows TCP 22 from 0.0.0.0/0.` };
+    },
+  },
+  {
+    id: 'no-open-db-port',
+    why: 'The database port should only accept traffic from the application tier, never the internet.',
+    evaluate(arch) {
+      const dbs = arch.workloads.filter((w) => w.type === 'rds' && w.sgIds.length > 0);
+      if (dbs.length === 0) return { applicable: false };
+      const exposed = dbs.filter((db) => db.sgIds.some((sgId) => {
+        const sg = getSecurityGroup(arch, sgId);
+        return !!sg && sg.inbound.some((r) => r.source === '0.0.0.0/0' && ruleCoversPort(r, db.port));
+      }));
+      return exposed.length === 0
+        ? { applicable: true, ok: true, message: 'No database port is open to the internet.' }
+        : { applicable: true, ok: false, message: `${exposed.map((d) => d.name).join(', ')}: DB port open to 0.0.0.0/0.` };
+    },
+  },
+  {
+    id: 'least-privilege-sg',
+    why: 'Referencing a security group instead of a CIDR keeps the rule correct even as instances and subnets change.',
+    evaluate(arch) {
+      const vpcBlock = parseCidrStrict(arch.vpc.cidr);
+      const cidrRules = [];
+      for (const sg of arch.securityGroups) {
+        for (const r of sg.inbound) {
+          if (!r.source.startsWith('sg:')) cidrRules.push({ sg, r });
+        }
+      }
+      if (cidrRules.length === 0 || !vpcBlock) return { applicable: false };
+      const broad = cidrRules.filter(({ r }) => {
+        const block = parseCidrStrict(r.source);
+        return !!block && cidrContains(vpcBlock, block);
+      });
+      return broad.length === 0
+        ? { applicable: true, ok: true, message: 'Intra-VPC traffic is allowed via SG references, not CIDR ranges.' }
+        : { applicable: true, ok: false, message: `${[...new Set(broad.map(({ sg }) => sg.name))].join(', ')}: allows intra-VPC CIDR ranges — reference the source security group instead.` };
+    },
+  },
+  {
+    id: 'nat-per-az',
+    why: 'A single NAT gateway is a single point of failure and adds cross-AZ data charges for other AZs.',
+    evaluate(arch) {
+      const natAzsNeeded = new Set();
+      for (const s of arch.subnets) {
+        const route = resolveRoute(arch, s.id, INTERNET_TEST_IP);
+        if (route && route.target.startsWith('nat:')) natAzsNeeded.add(s.az);
+      }
+      if (natAzsNeeded.size < 2) return { applicable: false };
+      const natAzs = new Set(
+        arch.natGateways.map((n) => getSubnet(arch, n.subnetId)).filter(Boolean).map((s) => s.az),
+      );
+      const uncovered = [...natAzsNeeded].filter((az) => !natAzs.has(az));
+      return uncovered.length === 0
+        ? { applicable: true, ok: true, message: 'Every AZ that egresses through NAT has its own NAT gateway.' }
+        : { applicable: true, ok: false, message: `AZ ${uncovered.join(', ')} egresses through a NAT gateway in another AZ.` };
+    },
+  },
+  {
+    id: 'single-az',
+    why: 'An AZ outage takes down everything in it; spreading workloads across AZs is the base layer of AWS high availability.',
+    evaluate(arch) {
+      const azs = new Set();
+      let any = false;
+      for (const wl of arch.workloads) {
+        for (const az of workloadAzs(arch, wl)) { azs.add(az); any = true; }
+      }
+      if (!any) return { applicable: false };
+      return azs.size >= 2
+        ? { applicable: true, ok: true, message: 'Workloads span multiple Availability Zones.' }
+        : { applicable: true, ok: false, message: 'Everything runs in a single Availability Zone.' };
+    },
+  },
+  {
+    id: 'unused-resources',
+    why: 'Idle NAT gateways bill hourly, and orphaned SGs/route tables make the design harder to reason about.',
+    evaluate(arch) {
+      const unused = [];
+      const routedNats = new Set();
+      for (const rt of arch.routeTables) {
+        for (const r of rt.routes) {
+          if (typeof r.target === 'string' && r.target.startsWith('nat:')) routedNats.add(r.target.slice(4));
+        }
+      }
+      for (const nat of arch.natGateways) {
+        if (!routedNats.has(nat.id)) unused.push(`NAT gateway ${nat.id} (no route uses it)`);
+      }
+      for (const sg of arch.securityGroups) {
+        const attached = arch.workloads.some((w) => w.sgIds.includes(sg.id));
+        const referenced = arch.securityGroups.some((other) => other.inbound.some((r) => r.source === `sg:${sg.id}`));
+        if (!attached && !referenced) unused.push(`security group ${sg.name} (attached to nothing)`);
+      }
+      for (const rt of arch.routeTables) {
+        if (!rt.isMain && rt.subnetIds.length === 0) unused.push(`route table ${rt.name} (no subnets associated)`);
+      }
+      return unused.length === 0
+        ? { applicable: true, ok: true, message: 'No unused NAT gateways, security groups, or route tables.' }
+        : { applicable: true, ok: false, message: `Unused: ${unused.join('; ')}.` };
+    },
+  },
+];
+
+export const BEST_PRACTICE_RULE_IDS = BEST_PRACTICE_RULES.map((r) => r.id);
+
+export function evaluateBestPractices(arch, ruleIds = 'all') {
+  const selected = ruleIds === 'all'
+    ? BEST_PRACTICE_RULES
+    : BEST_PRACTICE_RULES.filter((r) => ruleIds.includes(r.id));
+  return selected.map((rule) => {
+    const result = rule.evaluate(arch);
+    return {
+      ruleId: rule.id,
+      applicable: result.applicable,
+      ok: result.applicable ? result.ok : true,
+      message: result.applicable ? result.message : 'Not applicable to this design.',
+      why: rule.why,
+    };
+  });
 }

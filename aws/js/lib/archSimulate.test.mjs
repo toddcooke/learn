@@ -137,6 +137,16 @@ test('workloadToInternet: public-IP path, healthy NAT path, and NAT-in-private-s
   assert.ok(res.trace.some((s) => !s.ok && /NAT/.test(s.label)));
 });
 
+test('inbound to an unplaced workload (no subnets) fails even with all other conditions met', () => {
+  const { arch } = baseArch();
+  const sg = addSecurityGroup(arch, 'web-sg');
+  addSgRule(arch, sg.id, { portFrom: 80, source: '0.0.0.0/0' });
+  const wl = addWorkload(arch, { type: 'ec2', subnetIds: [], sgIds: [sg.id], publicIp: true });
+  const { ok, trace } = internetToWorkload(arch, wl.id, 80);
+  assert.equal(ok, false);
+  assert.ok(trace.some((s) => !s.ok && /isn't placed/.test(s.label)));
+});
+
 test('isInternetOpen needs both a public path and a 0.0.0.0/0 rule', () => {
   const { arch, pub } = baseArch();
   const sg = addSecurityGroup(arch, 'web-sg');

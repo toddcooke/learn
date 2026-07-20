@@ -111,6 +111,7 @@ export function sourceToWorkload(arch, source, workloadId, port) {
       : 'No internet gateway is attached to the VPC',
     ok: arch.vpc.igwAttached,
   });
+  let subnetStepsAdded = 0;
   for (const sid of wl.subnetIds) {
     const subnet = getSubnet(arch, sid);
     if (!subnet) continue; // structural validation reports dangling refs
@@ -122,6 +123,10 @@ export function sourceToWorkload(arch, source, workloadId, port) {
         : `Subnet ${subnet.name} has no route to the internet gateway — it's a private subnet`,
       ok: viaIgw,
     });
+    subnetStepsAdded++;
+  }
+  if (subnetStepsAdded === 0) {
+    trace.push({ label: `${wl.name} isn't placed in any subnet`, ok: false });
   }
   if (wl.type === 'ec2') {
     trace.push({

@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Architecture Challenge — AWS SAA-C03 Prep</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    /* Page-specific styles; reuses css/style.css variables. Dark mode:
+       page-local @media (prefers-color-scheme: dark) override block
+       re-mapping the site palette exactly like vpc-explorer.html does —
+       copy that block's --color-* overrides verbatim, then the arch-*
+       surface variables below. */
+    :root {
+      --arch-surface: #fff;
+      --arch-surface-muted: #f3f4f6;
+      --arch-public: #ecfdf3;   /* public-subnet tint */
+      --arch-private: #eff6ff;  /* private-subnet tint */
+      --arch-fail-bg: #fef2f2;
+      --arch-ok-bg: #f0fdf4;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        color-scheme: dark;
+        /* --color-* overrides copied from vpc-explorer.html */
+        --color-bg: #0f172a;
+        --color-text: #e2e8f0;
+        --color-muted: #94a3b8;
+        --color-border: #334155;
+        --color-primary: #3b82f6;
+        --color-primary-dark: #2563eb;
+        --color-success: #4ade80;
+        --color-danger: #f87171;
+        --arch-surface: #1e293b;
+        --arch-surface-muted: #334155;
+        --arch-public: #14532d;
+        --arch-private: #172554;
+        --arch-fail-bg: #450a0a;
+        --arch-ok-bg: #052e16;
+      }
+    }
+    #arch-content { max-width: 1400px; margin: 0 auto; padding: 1.5rem; }
+    /* Landing */
+    .arch-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+    .arch-card { border: 1px solid var(--color-border); border-radius: 8px; padding: 1rem;
+                 background: var(--arch-surface); text-decoration: none; color: inherit; display: block; }
+    .arch-card:hover { border-color: var(--color-primary); }
+    .arch-card .badge-done { color: var(--color-success); font-weight: 600; }
+    /* Workbench: three columns, stacking on narrow screens */
+    .arch-workbench { display: grid; grid-template-columns: 340px 1fr 360px; gap: 1rem; align-items: start; }
+    @media (max-width: 1100px) { .arch-workbench { grid-template-columns: 1fr; } }
+    .arch-panel { border: 1px solid var(--color-border); border-radius: 8px;
+                  background: var(--arch-surface); padding: 1rem; }
+    .arch-panel h2 { font-size: 1rem; margin: 0 0 0.75rem; }
+    .arch-section { border-top: 1px solid var(--color-border); padding: 0.75rem 0; }
+    .arch-section h3 { font-size: 0.85rem; margin: 0 0 0.5rem; text-transform: uppercase;
+                       letter-spacing: 0.04em; color: var(--color-muted); }
+    .arch-row { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; margin-bottom: 0.4rem; }
+    .arch-row input, .arch-row select { font: inherit; padding: 0.25rem 0.4rem; border: 1px solid var(--color-border);
+                                        border-radius: 4px; background: var(--arch-surface); color: inherit; }
+    .arch-row input[type="text"] { width: 8.5rem; }
+    .arch-row input[type="number"] { width: 5rem; }
+    .arch-mini { font-size: 0.8rem; color: var(--color-muted); }
+    button.arch-del { background: transparent; color: var(--color-danger); border: none; padding: 0 0.3rem; font-size: 1rem; }
+    button.arch-add { background: transparent; color: var(--color-primary); border: 1px dashed var(--color-border); width: 100%; }
+    /* Diagram */
+    .arch-vpc-box { border: 2px solid var(--color-primary); border-radius: 10px; padding: 0.75rem; position: relative; }
+    .arch-igw-chip { position: absolute; top: -0.9rem; left: 1rem; background: var(--color-primary); color: #fff;
+                     border-radius: 999px; padding: 0.1rem 0.6rem; font-size: 0.75rem; }
+    .arch-az-grid { display: grid; grid-auto-columns: 1fr; grid-auto-flow: column; gap: 0.75rem; margin-top: 0.75rem; }
+    .arch-az h4 { margin: 0 0 0.5rem; font-size: 0.8rem; color: var(--color-muted); }
+    .arch-subnet { border: 1px solid var(--color-border); border-radius: 8px; padding: 0.5rem; margin-bottom: 0.6rem; }
+    .arch-subnet.is-public { background: var(--arch-public); }
+    .arch-subnet.is-private { background: var(--arch-private); }
+    .arch-subnet .cidr { font-family: ui-monospace, monospace; font-size: 0.8rem; }
+    .arch-chip { display: inline-block; border: 1px solid var(--color-border); background: var(--arch-surface);
+                 border-radius: 6px; padding: 0.15rem 0.45rem; font-size: 0.78rem; margin: 0.15rem 0.15rem 0 0; }
+    /* Task panel */
+    .arch-goal { border-left: 3px solid var(--color-border); padding: 0.4rem 0.6rem; margin-bottom: 0.5rem; }
+    .arch-goal.ok { border-left-color: var(--color-success); background: var(--arch-ok-bg); }
+    .arch-goal.fail { border-left-color: var(--color-danger); background: var(--arch-fail-bg); }
+    .arch-trace { font-size: 0.82rem; margin: 0.3rem 0 0; padding-left: 1.1rem; }
+    .arch-trace li.ok::marker { content: "✓ "; color: var(--color-success); }
+    .arch-trace li.fail::marker { content: "✗ "; color: var(--color-danger); }
+    .arch-score { font-size: 1.4rem; font-weight: 700; }
+    .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <h1>Architecture Challenge</h1>
+    <nav id="nav"><a href="index.html">← SAA-C03 Prep Home</a> <a href="vpc-explorer.html">VPC Explorer</a></nav>
+  </header>
+  <main id="arch-content">
+    <section id="arch-landing" hidden></section>
+    <section id="arch-workbench" hidden>
+      <div id="arch-head"></div>
+      <div class="arch-workbench">
+        <div class="arch-panel" id="arch-builder" aria-label="Builder"></div>
+        <div class="arch-panel" id="arch-diagram" aria-label="Diagram"></div>
+        <div class="arch-panel" id="arch-task" aria-label="Task and results"></div>
+      </div>
+    </section>
+  </main>
+  <footer class="site-footer">
+    <p>Unofficial study tool. Not affiliated with AWS. Progress stored locally in your browser.</p>
+  </footer>
+  <script type="module" src="js/arch-challenge.js"></script>
+</body>
+</html>

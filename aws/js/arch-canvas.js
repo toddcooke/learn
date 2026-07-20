@@ -25,7 +25,15 @@ const PALETTE = [
 
 const ref = (obj) => escapeHtml(JSON.stringify(obj));
 
+// The mount-level click listener is attached once (see wireStaticHandlers)
+// and lives for the page's lifetime, but arch/selection/challenge change on
+// every render and every challenge switch. currentCtx holds the ctx from the
+// most recent renderCanvas call so the long-lived handler always reads live
+// state instead of closing over a stale ctx from its first render.
+let currentCtx = null;
+
 export function renderCanvas(mount, ctx) {
+  currentCtx = ctx;
   const { arch, selection } = ctx;
   const sel = (r) => (selection && JSON.stringify(selection) === JSON.stringify(r) ? 'cv-selected' : '');
 
@@ -87,7 +95,7 @@ export function renderCanvas(mount, ctx) {
 
   drawEdges(mount, ctx);
   renderInspector(mount.querySelector('#arch-inspector'), ctx); // Task 5 fills this in
-  wireCanvas(mount, ctx);                                       // Task 4 fills this in
+  wireCanvas(mount);                                             // Task 4 fills this in
 }
 
 function chip(r, label, sel) {
@@ -131,24 +139,34 @@ function renderInspector(mount, ctx) { mount.innerHTML = ''; }
 
 // Filled in by Task 4 (drag/connect/popovers). This task wires only:
 // selection clicks, palette click-to-add, and the IGW toggle.
-function wireCanvas(mount, ctx) { wireStaticHandlers(mount, ctx); }
+function wireCanvas(mount) { wireStaticHandlers(mount); }
 
-function wireStaticHandlers(mount, ctx) {
+// mount.innerHTML is fully replaced on every render, but the mount element
+// itself persists for the page's lifetime, so a delegated listener attached
+// to it survives across renders. Attach exactly once (guarded by a data
+// attribute) — otherwise every re-render stacks another listener and a
+// single click fires the handler once per prior render. The handler reads
+// currentCtx (set at the top of renderCanvas) rather than closing over the
+// ctx from whichever render first attached it, so it always sees the live
+// arch/selection/challenge.
+function wireStaticHandlers(mount) {
+  if (mount.dataset.cvWired) return;
+  mount.dataset.cvWired = '1';
   mount.addEventListener('click', (event) => {
     const igw = event.target.closest('[data-action="toggle-igw"]');
     if (igw) {
-      ctx.arch.vpc.igwAttached = !ctx.arch.vpc.igwAttached;
-      ctx.onChange();
+      currentCtx.arch.vpc.igwAttached = !currentCtx.arch.vpc.igwAttached;
+      currentCtx.onChange();
       return;
     }
     const pal = event.target.closest('[data-palette]');
     if (pal) {
-      clickToAdd(pal.dataset.palette, ctx);
+      clickToAdd(pal.dataset.palette, currentCtx);
       return;
     }
     const nodeEl = event.target.closest('[data-node]');
     if (nodeEl && !event.target.closest('[data-connect]')) {
-      ctx.onSelect(JSON.parse(nodeEl.dataset.node));
+      currentCtx.onSelect(JSON.parse(nodeEl.dataset.node));
     }
   });
 }

@@ -46,3 +46,17 @@ for (const ch of ARCH_CHALLENGES) {
     assert.notEqual(ch.refSolution(), ch.refSolution());
   });
 }
+
+test('fix-broken: the shipped startState fails its functional goals as planted', () => {
+  const ch = ARCH_CHALLENGES.find((c) => c.id === 'fix-broken');
+  const rows = evaluateGoals(ch.startState(), ch);
+  const byType = (t) => rows.filter((r) => r.goal.type === t);
+  assert.ok(byType('internetReaches').some((r) => !r.ok), 'web must start unreachable');
+  assert.ok(byType('hasEgress').some((r) => !r.ok), 'worker egress must start broken');
+  const bp = evaluateBestPractices(ch.startState(), ch.bestPractices);
+  assert.ok(bp.some((r) => r.ruleId === 'no-open-db-port' && !r.ok), 'DB port must start open');
+});
+
+test('there are exactly 8 challenges', () => {
+  assert.equal(ARCH_CHALLENGES.length, 8);
+});

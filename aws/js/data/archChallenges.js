@@ -143,6 +143,82 @@ function threeTierSolution() {
   return arch;
 }
 
+// Challenge 6 start/solution share one builder; `fixed` toggles the three
+// planted flaws: (a) web subnet never associated with the public table,
+// (b) NAT gateway placed in the private worker subnet, (c) DB port open to
+// the world. The start state is structurally CLEAN on purpose — the player
+// finds the flaws through Check, not through red structural errors.
+function fixBrokenBuild(fixed) {
+  const { arch, publicRt } = vpcWithIgw();
+  const pub = addSubnet(arch, { name: 'public-a', az: 'a', cidr: '10.0.1.0/24' });
+  if (fixed) associateSubnet(arch, publicRt.id, pub.id); // flaw (a)
+  const workerSub = addSubnet(arch, { name: 'worker-a', az: 'a', cidr: '10.0.2.0/24' });
+  const dbA = addSubnet(arch, { name: 'db-a', az: 'a', cidr: '10.0.3.0/24' });
+  const dbB = addSubnet(arch, { name: 'db-b', az: 'b', cidr: '10.0.4.0/24' });
+  const nat = addNat(arch, fixed ? pub.id : workerSub.id); // flaw (b)
+  const workerRt = addRouteTable(arch, 'worker-private');
+  addRoute(arch, workerRt.id, { destCidr: '0.0.0.0/0', target: `nat:${nat.id}` });
+  associateSubnet(arch, workerRt.id, workerSub.id);
+  const webSg = addSecurityGroup(arch, 'web-sg');
+  addSgRule(arch, webSg.id, { portFrom: 80, source: '0.0.0.0/0' });
+  const dbSg = addSecurityGroup(arch, 'db-sg');
+  addSgRule(arch, dbSg.id, { portFrom: 5432, source: fixed ? `sg:${webSg.id}` : '0.0.0.0/0' }); // flaw (c)
+  const workerSg = addSecurityGroup(arch, 'worker-sg');
+  addWorkload(arch, {
+    type: 'ec2', name: 'web-1', role: 'web',
+    subnetIds: [pub.id], sgIds: [webSg.id], publicIp: true, port: 80,
+  });
+  addWorkload(arch, {
+    type: 'ec2', name: 'worker-1', role: 'worker',
+    subnetIds: [workerSub.id], sgIds: [workerSg.id], publicIp: false,
+  });
+  addWorkload(arch, {
+    type: 'rds', name: 'app-db', role: 'db',
+    subnetIds: [dbA.id, dbB.id], sgIds: [dbSg.id],
+  });
+  return arch;
+}
+
+function cidrPlanStart() {
+  const arch = createArch();
+  arch.vpc.cidr = '10.0.0.0/24';
+  arch.vpc.igwAttached = true; // the point of this one is subnetting, not IGW plumbing
+  return arch;
+}
+
+function cidrPlanSolution() {
+  const arch = cidrPlanStart();
+  const publicRt = addRouteTable(arch, 'public');
+  addRoute(arch, publicRt.id, { destCidr: '0.0.0.0/0', target: 'igw' });
+  const pubA = addSubnet(arch, { name: 'public-a', az: 'a', cidr: '10.0.0.0/26' });
+  const pubB = addSubnet(arch, { name: 'public-b', az: 'b', cidr: '10.0.0.64/26' });
+  associateSubnet(arch, publicRt.id, pubA.id);
+  associateSubnet(arch, publicRt.id, pubB.id);
+  addSubnet(arch, { name: 'private-a', az: 'a', cidr: '10.0.0.128/26' });
+  addSubnet(arch, { name: 'private-b', az: 'b', cidr: '10.0.0.192/26' });
+  return arch;
+}
+
+function bastionSolution() {
+  const { arch, publicRt } = vpcWithIgw();
+  const pub = addSubnet(arch, { name: 'public-a', az: 'a', cidr: '10.0.1.0/24' });
+  associateSubnet(arch, publicRt.id, pub.id);
+  const priv = addSubnet(arch, { name: 'app-a', az: 'a', cidr: '10.0.2.0/24' });
+  const bastionSg = addSecurityGroup(arch, 'bastion-sg');
+  addSgRule(arch, bastionSg.id, { portFrom: 22, source: '203.0.113.0/24' });
+  const appSg = addSecurityGroup(arch, 'app-sg');
+  addSgRule(arch, appSg.id, { portFrom: 22, source: `sg:${bastionSg.id}` });
+  addWorkload(arch, {
+    type: 'ec2', name: 'bastion-1', role: 'bastion',
+    subnetIds: [pub.id], sgIds: [bastionSg.id], publicIp: true, port: 22,
+  });
+  addWorkload(arch, {
+    type: 'ec2', name: 'app-1', role: 'app',
+    subnetIds: [priv.id], sgIds: [appSg.id], publicIp: false, port: 22,
+  });
+  return arch;
+}
+
 export const ARCH_CHALLENGES = [
   {
     id: 'public-web',
@@ -271,5 +347,85 @@ export const ARCH_CHALLENGES = [
       'Chain the SGs: internet → alb-sg:443 → app-sg:8080 → db-sg:5432.',
     ],
     refSolution: threeTierSolution,
+  },
+  {
+    id: 'fix-broken',
+    title: 'Fix the broken architecture',
+    brief: 'You inherited this "finished" environment from a contractor: a public web '
+      + 'server, a PostgreSQL database, and a private batch worker. Users report the '
+      + 'site never loads, the worker can\'t download updates, and security flagged '
+      + 'the database. Find and fix all three problems — nothing here is missing, '
+      + 'some of it is just wrong.',
+    roles: [
+      { id: 'web', label: 'web server', expectedType: 'ec2' },
+      { id: 'db', label: 'database', expectedType: 'rds' },
+      { id: 'worker', label: 'batch worker', expectedType: 'ec2' },
+    ],
+    startState: () => fixBrokenBuild(false),
+    goals: [
+      { type: 'exists', role: 'web', workloadType: 'ec2' },
+      { type: 'exists', role: 'db', workloadType: 'rds' },
+      { type: 'exists', role: 'worker', workloadType: 'ec2' },
+      { type: 'internetReaches', role: 'web', port: 80 },
+      { type: 'reaches', fromRole: 'web', toRole: 'db', port: 5432 },
+      { type: 'noInternetReach', role: 'db' },
+      { type: 'hasEgress', role: 'worker' },
+    ],
+    bestPractices: ['db-in-private-subnet', 'no-open-db-port', 'least-privilege-sg', 'no-open-ssh', 'unused-resources'],
+    hints: [
+      'Run Check and read the traces — each failing goal names the hop that breaks.',
+      "The public route table exists and has the right route. Which subnets actually use it?",
+      'A NAT gateway only works from inside a public subnet.',
+      "The database's security group should trust the web server's SG, not the whole internet.",
+    ],
+    refSolution: () => fixBrokenBuild(true),
+  },
+  {
+    id: 'cidr-plan',
+    title: 'CIDR planning in a /24',
+    brief: 'Corporate IPAM assigned your project exactly 10.0.0.0/24 — not one address '
+      + 'more. Carve it into two public and two private subnets across two AZs, each '
+      + 'with at least 50 usable IPs. Remember AWS reserves 5 addresses in every '
+      + 'subnet, and subnets must not overlap.',
+    roles: [],
+    startState: cidrPlanStart,
+    goals: [
+      { type: 'vpcCidrIs', cidr: '10.0.0.0/24' },
+      { type: 'subnetPlan', count: 4, minUsableHosts: 50, minAzs: 2, publicCount: 2, privateCount: 2 },
+    ],
+    bestPractices: ['unused-resources'],
+    hints: [
+      'Four equal slices of a /24 are /26s: .0, .64, .128, .192.',
+      'A /26 holds 64 addresses; minus the 5 AWS reserves leaves 59 usable — enough.',
+      'Public = associated with a route table that sends 0.0.0.0/0 to the IGW.',
+    ],
+    refSolution: cidrPlanSolution,
+  },
+  {
+    id: 'bastion',
+    title: 'Locked-down bastion host',
+    brief: 'Admins need SSH access to private app servers, but the security team\'s '
+      + 'rules are strict: SSH into the bastion only from the office network '
+      + '(203.0.113.0/24), app servers reachable only through the bastion, and '
+      + 'nothing open to 0.0.0.0/0.',
+    roles: [
+      { id: 'bastion', label: 'bastion host', expectedType: 'ec2' },
+      { id: 'app', label: 'app server', expectedType: 'ec2' },
+    ],
+    startState: null,
+    goals: [
+      { type: 'exists', role: 'bastion', workloadType: 'ec2' },
+      { type: 'exists', role: 'app', workloadType: 'ec2' },
+      { type: 'cidrReaches', cidr: '203.0.113.0/24', cidrLabel: 'the office', role: 'bastion', port: 22 },
+      { type: 'noInternetReach', role: 'bastion' },
+      { type: 'reaches', fromRole: 'bastion', toRole: 'app', port: 22 },
+      { type: 'noInternetReach', role: 'app' },
+    ],
+    bestPractices: ['no-open-ssh', 'least-privilege-sg', 'unused-resources'],
+    hints: [
+      'The bastion needs a public IP and a public subnet — but its SSH rule uses the office CIDR, not 0.0.0.0/0.',
+      "App servers allow SSH from the bastion's security group, and get no public IP at all.",
+    ],
+    refSolution: bastionSolution,
   },
 ];

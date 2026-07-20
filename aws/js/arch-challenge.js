@@ -146,7 +146,7 @@ function renderBuilder(mount) {
   const natRows = arch.natGateways.map((n) => `
     <div class="arch-row">
       <span class="arch-mini">${n.id} in</span>
-      <select data-action="nat-subnet" data-id="${n.id}">${subnetOpts(n.subnetId)}</select>
+      <select data-action="nat-subnet" data-id="${n.id}" aria-label="NAT subnet">${subnetOpts(n.subnetId)}</select>
       <button type="button" class="arch-del" data-action="nat-del" data-id="${n.id}" title="Delete NAT">✕</button>
     </div>`).join('');
 
@@ -158,7 +158,7 @@ function renderBuilder(mount) {
       <div class="arch-row">
         <input type="text" value="${escapeHtml(r.destCidr)}" data-action="route-dest" data-id="${rt.id}" data-index="${i}" aria-label="Destination CIDR" />
         <span class="arch-mini">→</span>
-        <select data-action="route-target" data-id="${rt.id}" data-index="${i}">${targetOpts(r.target)}</select>
+        <select data-action="route-target" data-id="${rt.id}" data-index="${i}" aria-label="Route target">${targetOpts(r.target)}</select>
         <button type="button" class="arch-del" data-action="route-del" data-id="${rt.id}" data-index="${i}">✕</button>
       </div>`).join('');
     const assocBoxes = arch.subnets.map((s) => {
@@ -167,7 +167,7 @@ function renderBuilder(mount) {
     }).join(' ');
     return `
       <div class="arch-section">
-        <h3>${escapeHtml(rt.name)}${rt.isMain ? ' (main)' : ''}
+        <h3>${escapeHtml(rt.name)}${rt.isMain && rt.name.toLowerCase() !== 'main' ? ' (main)' : ''}
           ${rt.isMain ? '' : `<button type="button" class="arch-del" data-action="rt-del" data-id="${rt.id}">✕</button>`}</h3>
         <p class="arch-mini">local route (${escapeHtml(arch.vpc.cidr)}) is implicit</p>
         ${routeRows}
@@ -271,8 +271,14 @@ const ACTIONS = {
   'rt-add': () => { addRouteTable(arch); },
   'rt-del': (el) => { removeRouteTable(arch, el.dataset.id); },
   'route-add': (el) => { addRoute(arch, el.dataset.id, { destCidr: '0.0.0.0/0', target: 'igw' }); },
-  'route-dest': (el) => { getRouteTable(arch, el.dataset.id).routes[el.dataset.index].destCidr = el.value.trim(); },
-  'route-target': (el) => { getRouteTable(arch, el.dataset.id).routes[el.dataset.index].target = el.value; },
+  'route-dest': (el) => {
+    const rt = getRouteTable(arch, el.dataset.id);
+    if (rt && rt.routes[el.dataset.index]) rt.routes[el.dataset.index].destCidr = el.value.trim();
+  },
+  'route-target': (el) => {
+    const rt = getRouteTable(arch, el.dataset.id);
+    if (rt && rt.routes[el.dataset.index]) rt.routes[el.dataset.index].target = el.value;
+  },
   'route-del': (el) => { removeRoute(arch, el.dataset.id, Number(el.dataset.index)); },
   'rt-assoc': (el) => {
     if (el.checked) associateSubnet(arch, el.dataset.id, el.dataset.subnet);
@@ -282,9 +288,18 @@ const ACTIONS = {
   'sg-name': (el) => { const sg = getSecurityGroup(arch, el.dataset.id); if (sg) sg.name = el.value.trim(); },
   'sg-del': (el) => { removeSecurityGroup(arch, el.dataset.id); },
   'rule-add': (el) => { addSgRule(arch, el.dataset.id, { portFrom: 80, source: '0.0.0.0/0' }); },
-  'rule-portfrom': (el) => { getSecurityGroup(arch, el.dataset.id).inbound[el.dataset.index].portFrom = Number(el.value); },
-  'rule-portto': (el) => { getSecurityGroup(arch, el.dataset.id).inbound[el.dataset.index].portTo = Number(el.value); },
-  'rule-source': (el) => { getSecurityGroup(arch, el.dataset.id).inbound[el.dataset.index].source = el.value.trim(); },
+  'rule-portfrom': (el) => {
+    const sg = getSecurityGroup(arch, el.dataset.id);
+    if (sg && sg.inbound[el.dataset.index]) sg.inbound[el.dataset.index].portFrom = Number(el.value);
+  },
+  'rule-portto': (el) => {
+    const sg = getSecurityGroup(arch, el.dataset.id);
+    if (sg && sg.inbound[el.dataset.index]) sg.inbound[el.dataset.index].portTo = Number(el.value);
+  },
+  'rule-source': (el) => {
+    const sg = getSecurityGroup(arch, el.dataset.id);
+    if (sg && sg.inbound[el.dataset.index]) sg.inbound[el.dataset.index].source = el.value.trim();
+  },
   'rule-del': (el) => { removeSgRule(arch, el.dataset.id, Number(el.dataset.index)); },
   'wl-add': (el) => { addWorkload(arch, { type: el.dataset.type }); },
   'wl-name': (el) => { updateWorkload(arch, el.dataset.id, { name: el.value.trim() }); },
@@ -294,12 +309,14 @@ const ACTIONS = {
   'wl-multiaz': (el) => { updateWorkload(arch, el.dataset.id, { multiAz: el.checked }); },
   'wl-subnet': (el) => {
     const wl = arch.workloads.find((w) => w.id === el.dataset.id);
+    if (!wl) return;
     wl.subnetIds = el.checked
       ? [...wl.subnetIds, el.dataset.subnet]
       : wl.subnetIds.filter((sid) => sid !== el.dataset.subnet);
   },
   'wl-sg': (el) => {
     const wl = arch.workloads.find((w) => w.id === el.dataset.id);
+    if (!wl) return;
     wl.sgIds = el.checked
       ? [...wl.sgIds, el.dataset.sg]
       : wl.sgIds.filter((gid) => gid !== el.dataset.sg);

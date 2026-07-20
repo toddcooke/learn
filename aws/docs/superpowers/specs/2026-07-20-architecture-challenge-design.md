@@ -210,6 +210,10 @@ Three regions:
   Security Groups (inbound rules), Workloads (type-dependent fields, role
   dropdown). Add/edit/delete; every change re-renders the diagram and
   autosaves the draft.
+  **(Amended during implementation):** sections shipped as plain,
+  non-collapsing sections, not collapsible — no requirement emerged during
+  implementation to hide a section, and collapsing state would have been
+  one more thing to autosave.
 - **Diagram (center)** — auto-drawn nested boxes: VPC border with CIDR +
   IGW chip; a column per in-use AZ; subnet cards tinted public/private
   (derived from routing) showing their CIDR, route-table badge, NAT chips,
@@ -231,6 +235,18 @@ Extend the existing store (same namespace/validation patterns):
 
 The Progress view gains a small "Architecture challenges" card (completed
 count + per-challenge badges) reading `getArchResults()`.
+
+**(Amended during implementation):** the shipped field names are
+`{ completedAt, bpPassed, bpApplicable }`, not `{ completedAt, bpScore,
+bpTotal }` — `bpPassed`/`bpApplicable` read more clearly at call sites
+(`recordArchResult`, the landing badge, the Progress card) than a
+score/total pair would.
+
+**(Amended during implementation):** `js/views/progress.js` is a
+drift-SHARED file (byte-identical across all five modules), so it cannot
+statically import `js/data/archChallenges.js`, which exists only in `aws/`.
+The Progress card instead loads it via a dynamic `import()` and hides its
+own section (`.catch()`) in every module that has no such data file.
 
 ### Wiring
 

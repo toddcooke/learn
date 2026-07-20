@@ -157,8 +157,12 @@ export function createStore(backend) {
       }
     },
     getArchDraft(challengeId) {
+      // A wrong-shape draft would throw mid-render on the challenge page with
+      // no Reset button in reach, so every array field it iterates is checked.
       const value = load(b, `arch-draft:${challengeId}`, null);
-      return isPlainObject(value) ? value : null;
+      const arraysOk = ['subnets', 'natGateways', 'routeTables', 'securityGroups', 'workloads']
+        .every((k) => Array.isArray(value?.[k]));
+      return isPlainObject(value) && isPlainObject(value.vpc) && arraysOk ? value : null;
     },
     setArchDraft(challengeId, state) {
       save(b, `arch-draft:${challengeId}`, state);

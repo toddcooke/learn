@@ -225,9 +225,13 @@ test('arch results: records and keeps the best score per challenge', () => {
 
 test('arch drafts: set/get/clear round-trip per challenge id', () => {
   const store = createStore(fakeBackend());
+  const draft = {
+    vpc: { cidr: '10.0.0.0/16' },
+    subnets: [], natGateways: [], routeTables: [], securityGroups: [], workloads: [],
+  };
   assert.equal(store.getArchDraft('two-tier'), null);
-  store.setArchDraft('two-tier', { vpc: { cidr: '10.0.0.0/16' } });
-  assert.deepEqual(store.getArchDraft('two-tier'), { vpc: { cidr: '10.0.0.0/16' } });
+  store.setArchDraft('two-tier', draft);
+  assert.deepEqual(store.getArchDraft('two-tier'), draft);
   assert.equal(store.getArchDraft('sandbox'), null, 'ids are independent');
   store.clearArchDraft('two-tier');
   assert.equal(store.getArchDraft('two-tier'), null);
@@ -236,4 +240,13 @@ test('arch drafts: set/get/clear round-trip per challenge id', () => {
 test('arch getters survive a wrong-shape stored value', () => {
   assert.deepEqual(storeWithRaw('["not","an","object"]').getArchResults(), {});
   assert.equal(storeWithRaw('42').getArchDraft('x'), null);
+});
+
+test('arch draft with the right outer shape but wrong-shape fields returns null', () => {
+  assert.equal(storeWithRaw('{"foo":1}').getArchDraft('x'), null);
+});
+
+test('a minimally-shaped arch draft round-trips non-null', () => {
+  const raw = '{"vpc":{},"subnets":[],"natGateways":[],"routeTables":[],"securityGroups":[],"workloads":[]}';
+  assert.notEqual(storeWithRaw(raw).getArchDraft('x'), null);
 });

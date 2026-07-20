@@ -7,7 +7,7 @@
 // except noInternetReach, where an empty role trivially exposes nothing.
 
 import {
-  workloadsByRole, workloadAzs, isPublicSubnet, getSubnet,
+  workloadsByRole, workloadAzs, isPublicSubnet,
 } from './archModel.js';
 import {
   sourceToWorkload, internetToWorkload, workloadToWorkload,

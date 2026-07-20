@@ -11,7 +11,7 @@ import { createStore } from './lib/storage.js';
 import { ARCH_CHALLENGES } from './data/archChallenges.js';
 import {
   AZS, createArch,
-  getSubnet, getRouteTable, getSecurityGroup,
+  getRouteTable, getSecurityGroup,
   addSubnet, updateSubnet, removeSubnet, addNat, removeNat,
   addRouteTable, removeRouteTable, addRoute, removeRoute,
   associateSubnet, disassociateSubnet,
@@ -92,12 +92,13 @@ function renderLanding(mount) {
   const cards = ARCH_CHALLENGES.map((ch, i) => {
     const result = done[ch.id];
     const badge = result
-      ? `<p class="badge-done">✓ Completed — best practices ${result.bpPassed}/${result.bpApplicable || '–'}</p>`
+      ? `<p class="badge-done">✓ Completed — best practices ${Number(result.bpPassed)}/${Number(result.bpApplicable) || '–'}</p>`
       : '<p class="arch-mini">Not completed yet</p>';
+    const truncated = ch.brief.length > 110 ? `${ch.brief.slice(0, 110)}…` : ch.brief;
     return `
       <a class="arch-card" href="#${ch.id}">
         <h3>${i + 1}. ${escapeHtml(ch.title)}</h3>
-        <p class="arch-mini">${escapeHtml(ch.brief.slice(0, 110))}…</p>
+        <p class="arch-mini">${escapeHtml(truncated)}</p>
         ${badge}
       </a>`;
   }).join('');

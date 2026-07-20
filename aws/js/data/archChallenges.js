@@ -355,7 +355,8 @@ export const ARCH_CHALLENGES = [
       + 'server, a PostgreSQL database, and a private batch worker. Users report the '
       + 'site never loads, the worker can\'t download updates, and security flagged '
       + 'the database. Find and fix all three problems — nothing here is missing, '
-      + 'some of it is just wrong.',
+      + "some of it is just wrong. Security's finding won't fail the functional check "
+      + '— watch the best-practice score for that one.',
     roles: [
       { id: 'web', label: 'web server', expectedType: 'ec2' },
       { id: 'db', label: 'database', expectedType: 'rds' },

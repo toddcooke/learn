@@ -2,7 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { emit } from './cfnEmit.js';
 import { compile } from './cfnCompile.js';
-import { createArch, getSubnet, effectiveRouteTable, getSecurityGroup } from './archModel.js';
+import {
+  createArch, getSubnet, effectiveRouteTable, getSecurityGroup, addSubnet, addSecurityGroup, addWorkload,
+} from './archModel.js';
 import { validateStructure } from './archValidate.js';
 import { evaluateGoals } from './archGoals.js';
 import { ARCH_CHALLENGES } from '../data/archChallenges.js';
@@ -99,4 +101,17 @@ test('non-default ports emit as a Port tag and compile back', () => {
   const compiled = compile(text).arch;
   const alb = compiled.workloads.find((w) => w.type === 'alb');
   assert.equal(alb.port, 443);
+});
+
+test('free-text names with YAML-significant characters survive the round trip', () => {
+  const arch = createArch();
+  arch.vpc.igwAttached = false;
+  const s = addSubnet(arch, { name: 'a: b', az: 'a', cidr: '10.0.1.0/24' });
+  const sg = addSecurityGroup(arch, "web: sg 'quoted'");
+  addWorkload(arch, { type: 'ec2', name: 'web #1', subnetIds: [s.id], sgIds: [sg.id] });
+  const r = compile(emit(arch));
+  assert.deepEqual(r.diagnostics.filter((d) => d.severity === 'error'), [], emit(arch));
+  assert.equal(r.arch.subnets[0].name, 'a: b');
+  assert.equal(r.arch.securityGroups[0].name, "web: sg 'quoted'");
+  assert.equal(r.arch.workloads[0].name, 'web #1');
 });

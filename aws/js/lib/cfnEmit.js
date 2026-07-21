@@ -36,6 +36,14 @@ function allocator() {
   };
 }
 
+// Plain-scalar-unsafe values (a "k: v" name, a leading YAML indicator,
+// edge whitespace) are single-quoted so free-text names survive the trip.
+function yamlScalar(value) {
+  const s = String(value);
+  const unsafe = s === '' || /^[\s\-?:,[\]{}#&*!|>'"%@`]/.test(s) || /:(\s|$)/.test(s) || /\s#/.test(s) || /\s$/.test(s);
+  return unsafe ? `'${s.replace(/'/g, "''")}'` : s;
+}
+
 export function emit(arch) {
   const lines = [];
   const out = (s) => lines.push(s);
@@ -70,7 +78,7 @@ export function emit(arch) {
     if (publicIpSubnets.has(s.id)) out('      MapPublicIpOnLaunch: true');
     out('      Tags:');
     out('        - Key: Name');
-    out(`          Value: ${s.name}`);
+    out(`          Value: ${yamlScalar(s.name)}`);
   }
 
   // The model can hold igw routes without an attached IGW (broken starts):
@@ -159,9 +167,9 @@ export function emit(arch) {
     out(`  ${sgIds[sg.id]}:`);
     out('    Type: AWS::EC2::SecurityGroup');
     out('    Properties:');
-    out(`      GroupDescription: ${sg.name}`);
+    out(`      GroupDescription: ${yamlScalar(sg.name)}`);
     out(`      VpcId: !Ref ${vpcId}`);
-    out(`      GroupName: ${sg.name}`);
+    out(`      GroupName: ${yamlScalar(sg.name)}`);
     if (sg.inbound.length > 0) {
       out('      SecurityGroupIngress:');
       for (const r of sg.inbound) {
@@ -183,10 +191,10 @@ export function emit(arch) {
   const emitTags = (wl, portAsTag) => {
     out('      Tags:');
     out('        - Key: Name');
-    out(`          Value: ${wl.name}`);
+    out(`          Value: ${yamlScalar(wl.name)}`);
     if (wl.role) {
       out('        - Key: Role');
-      out(`          Value: ${wl.role}`);
+      out(`          Value: ${yamlScalar(wl.role)}`);
     }
     if (portAsTag && wl.port !== undefined && wl.port !== DEFAULT_WORKLOAD_PORTS[wl.type]) {
       out('        - Key: Port');
@@ -223,7 +231,7 @@ export function emit(arch) {
       out(`  ${groupId}:`);
       out('    Type: AWS::RDS::DBSubnetGroup');
       out('    Properties:');
-      out(`      DBSubnetGroupDescription: Subnets for ${wl.name}`);
+      out(`      DBSubnetGroupDescription: ${yamlScalar(`Subnets for ${wl.name}`)}`);
       emitRefList('SubnetIds', wl.subnetIds, subnetIds);
       out(`  ${lid}:`);
       out('    Type: AWS::RDS::DBInstance');

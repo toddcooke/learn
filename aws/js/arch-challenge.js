@@ -58,12 +58,24 @@ function startText() {
 
 // The draft is YAML text. Legacy visual-builder drafts (JSON models) are
 // migrated by serializing them once, then cleared so this runs only once.
+// Migration is the one place this code touches years-old stored data: a
+// corrupted draft (storage only shape-checks it shallowly) must degrade to
+// the start state, never a blank page (emit throwing at module load) or
+// silent data loss (clearing the draft on a bogus "success").
 function draftText() {
   const text = store.getArchCfnText(challenge.id);
   if (text !== null) return text;
   const legacy = store.getArchDraft(challenge.id);
   if (legacy) {
-    const migrated = emit(legacy);
+    let migrated;
+    try {
+      migrated = emit(legacy);
+    } catch {
+      return startText(); // leave the JSON draft in place
+    }
+    if (compile(migrated).diagnostics.some((d) => d.severity === 'error')) {
+      return startText(); // leave the JSON draft in place
+    }
     store.setArchCfnText(challenge.id, migrated);
     store.clearArchDraft(challenge.id);
     return migrated;

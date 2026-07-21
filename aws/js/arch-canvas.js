@@ -221,7 +221,10 @@ function wireStaticHandlers(mount) {
 }
 
 function onEscape(event) {
-  if (event.key === 'Escape') cancelGesture();
+  // Popovers are post-gesture artifacts (the gesture that opened them has
+  // already ended), so Escape must close them too, not just cancel an
+  // in-flight drag/connect.
+  if (event.key === 'Escape') { cancelGesture(); closePopover(); }
 }
 
 function cancelGesture() {
@@ -280,18 +283,20 @@ function applyDrop(spec, targetRef, dropAt, mount, ctx) {
     if (spec.kind === 'subnet') {
       showPopover(mount, dropAt, `
         <p>Add subnet in which Availability Zone?</p>
-        <div class="arch-row">${['a', 'b', 'c'].map((az) => `<button type="button" data-az="${az}">AZ ${az}</button>`).join('')}</div>`,
+        <div class="arch-row">${['a', 'b', 'c'].map((az) => `<button type="button" data-az="${az}">AZ ${az}</button>`).join('')}
+          <button type="button" data-cancel>Cancel</button></div>`,
       (pop) => {
         pop.addEventListener('click', (e) => {
           const az = e.target.closest('[data-az]');
           if (az) { addSubnet(arch, { az: az.dataset.az, cidr: '' }); closePopover(); ctx.onChange(); }
+          if (e.target.closest('[data-cancel]')) closePopover();
         });
       });
       return;
     }
     if (spec.kind === 'alb') {
       const boxes = arch.subnets.map((s) => `
-        <label class="arch-mini"><input type="checkbox" value="${s.id}" /> ${escapeHtml(s.name)}</label>`).join(' ');
+        <label class="arch-mini"><input type="checkbox" value="${escapeHtml(s.id)}" /> ${escapeHtml(s.name)}</label>`).join(' ');
       showPopover(mount, dropAt, `
         <p>ALB subnets (needs two AZs to be valid):</p>
         <div class="arch-row">${boxes || '<em class="arch-mini">no subnets yet</em>'}</div>
@@ -315,6 +320,10 @@ function applyDrop(spec, targetRef, dropAt, mount, ctx) {
     return;
   }
   // mode === 'move' (re-home)
+  // canDrop already gates this, but a re-home can only ever mean "into a
+  // subnet" — guard here too so a future gating regression can never write
+  // an undefined id into subnetIds.
+  if (targetRef.type !== 'subnet') return;
   const nat = getNat(arch, spec.kind);
   if (nat) { nat.subnetId = targetRef.id; ctx.onChange(); return; }
   const wl = getWorkload(arch, spec.kind);
@@ -385,8 +394,13 @@ function showIntentPopover(fromRef, toRef, dropAt, mount, ctx) {
   const portInput = intent.defaultPort !== null
     ? `<input type="number" id="cv-port" value="${intent.defaultPort}" aria-label="Port" />`
     : '';
-  const description = escapeHtml(intent.description).replace('{port}', '</span>PORT<span>')
-    .split('PORT').join(portInput || '');
+  // escapeHtml runs first and leaves the literal "{port}" marker untouched
+  // (it contains no HTML-special characters), so splitting on it directly
+  // is safe even if the intent's own text (e.g. a user-edited workload
+  // name) happens to contain the word "PORT" — there's no intermediate
+  // sentinel for such text to collide with.
+  const parts = escapeHtml(intent.description).split('{port}');
+  const description = parts.join(portInput || '');
   showPopover(mount, dropAt, `
     <p><span>${description}</span></p>
     ${intent.warning ? `<p class="arch-mini">⚠ ${escapeHtml(intent.warning)}</p>` : ''}

@@ -47,6 +47,16 @@ test('canDrop: re-homing existing nodes', () => {
   assert.equal(canDrop('ec2-99', { type: 'subnet', id: pub.id }, arch), false, 'unknown id');
 });
 
+test('canDrop: ALB re-home targets an unoccupied subnet, not its own subnet or the VPC background', () => {
+  const { arch, pub, priv } = fixture();
+  const sb = addSubnet(arch, { name: 'public-b', az: 'b', cidr: '10.0.9.0/24' });
+  const alb = addWorkload(arch, { type: 'alb', subnetIds: [pub.id, priv.id] });
+  assert.equal(canDrop(alb.id, { type: 'subnet', id: sb.id }, arch), true, 'unoccupied subnet');
+  assert.equal(canDrop(alb.id, { type: 'subnet', id: pub.id }, arch), false, 'already-occupied subnet');
+  assert.equal(canDrop(alb.id, { type: 'vpc' }, arch), false, 'vpc is not a re-home target for an existing ALB');
+  assert.equal(canDrop('alb', { type: 'vpc' }, arch), true, 'palette ALB still targets the vpc background');
+});
+
 test('connectionIntent: internet → workload creates an SG rule (auto-creating the SG)', () => {
   const { arch, web } = fixture();
   const intent = connectionIntent({ type: 'internet' }, { type: 'workload', id: web.id }, arch);

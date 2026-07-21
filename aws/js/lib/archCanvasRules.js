@@ -29,10 +29,17 @@ export function canDrop(kind, targetRef, arch) {
   if (!resolved) return false;
   switch (resolved) {
     case 'subnet':
-    case 'alb':
       return targetRef.type === 'vpc';
     case 'sg':
       return targetRef.type === 'sg-tray';
+    case 'alb':
+      // Palette: ALBs are placed on the VPC background (their subnet set is
+      // chosen in a popover). Existing ALBs re-home like RDS — dropped onto
+      // a subnet they don't already occupy; the VPC background is no longer
+      // a sensible target once an ALB already has subnets.
+      if (isPalette) return targetRef.type === 'vpc';
+      if (targetRef.type !== 'subnet' || !getSubnet(arch, targetRef.id)) return false;
+      return !getWorkload(arch, kind).subnetIds.includes(targetRef.id);
     case 'nat':
     case 'ec2':
     case 'rds': {

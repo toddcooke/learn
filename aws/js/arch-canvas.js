@@ -33,6 +33,10 @@ const ref = (obj) => escapeHtml(JSON.stringify(obj));
 // most recent renderCanvas call so the long-lived handler always reads live
 // state instead of closing over a stale ctx from its first render.
 let currentCtx = null;
+// The mount from the most recent renderCanvas call, kept alongside currentCtx
+// so the module-level resize handler (attached once, below) can re-run
+// drawEdges against live state without a render having to thread it through.
+let lastMount = null;
 
 export function renderCanvas(mount, ctx) {
   currentCtx = ctx;
@@ -95,13 +99,26 @@ export function renderCanvas(mount, ctx) {
     <div id="arch-inspector"></div>
     <p class="arch-mini">Simplification: security groups are inbound-only here; outbound is allow-all.</p>`;
 
+  lastMount = mount;
   drawEdges(mount, ctx);
-  renderInspector(mount.querySelector('#arch-inspector'), ctx); // Task 5 fills this in
-  wireCanvas(mount);                                             // Task 4 fills this in
+  renderInspector(mount.querySelector('#arch-inspector'), ctx);
+  wireCanvas(mount);
+}
+
+// Called by the host page when navigating away from the workbench (e.g. back
+// to the landing list). Clears currentCtx so long-lived, module-level
+// listeners (document keydown, the debounced resize handler) see "no canvas
+// mounted" and no-op instead of operating on a detached arch from the last
+// render.
+export function unmountCanvas() {
+  currentCtx = null;
 }
 
 function chip(r, label, sel) {
-  const connectable = r.type === 'workload' || r.type === 'nat';
+  // NAT gateways are never the `from` side of any connection intent (only
+  // workloads originate connections), so giving them a handle would let a
+  // drag start a connect gesture that can never find a legal endpoint.
+  const connectable = r.type === 'workload';
   return `<span class="cv-chip ${sel(r)}" data-node="${ref(r)}">${escapeHtml(label)}
     ${connectable ? `<span class="cv-handle" data-connect="${ref(r)}" title="Draw connection">⇢</span>` : ''}</span>`;
 }
@@ -299,6 +316,12 @@ let gesture = null;
 // backing on mount.dataset.cvWired so it stays correct even if a second
 // mount is ever wired.
 let docKeydownWired = false;
+// Same once-per-page rationale as docKeydownWired: window resizes (e.g. the
+// arch-workbench grid collapsing at the 1100px breakpoint) move every node,
+// so the SVG overlay's arrows need to be redrawn from fresh getBoundingClientRect
+// calls. Debounced so a drag-resize doesn't redraw on every intermediate frame.
+let resizeWired = false;
+let resizeTimer = null;
 
 function wireCanvas(mount) { wireStaticHandlers(mount); }
 
@@ -370,6 +393,17 @@ function wireStaticHandlers(mount) {
   if (!docKeydownWired) {
     docKeydownWired = true;
     document.addEventListener('keydown', onDocumentKeydown);
+  }
+
+  if (!resizeWired) {
+    resizeWired = true;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (!currentCtx || !lastMount || !lastMount.isConnected) return;
+        drawEdges(lastMount, currentCtx);
+      }, 100);
+    });
   }
 }
 

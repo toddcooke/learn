@@ -12,7 +12,7 @@ import { ARCH_CHALLENGES } from './data/archChallenges.js';
 import { createArch } from './lib/archModel.js';
 import { validateStructure, evaluateBestPractices } from './lib/archValidate.js';
 import { evaluateGoals } from './lib/archGoals.js';
-import { renderCanvas } from './arch-canvas.js';
+import { renderCanvas, unmountCanvas } from './arch-canvas.js';
 
 const store = createStore();
 
@@ -74,6 +74,12 @@ function renderAll() {
   landing.hidden = !!challenge;
   workbench.hidden = !challenge;
   if (!challenge) {
+    // No workbench is mounted on the landing page, so arch-canvas.js's
+    // module-level currentCtx must be cleared here — otherwise its long-lived
+    // document keydown listener keeps reading the last workbench's ctx (arch,
+    // selection, and all) and a stray Delete/Backspace on the landing page
+    // would mutate a detached arch and crash changed() on challenge === null.
+    unmountCanvas();
     renderLanding(landing);
     return;
   }
@@ -205,6 +211,11 @@ document.getElementById('arch-task').addEventListener('click', (event) => {
   if (el.dataset.action === 'reveal'
       && window.confirm('Replace your current design with the reference solution?')) {
     arch = challenge.refSolution();
+    // A fresh arch restarts its id counters from scratch, so a selection ref
+    // held over from the old arch (e.g. { type: 'workload', id: 'w1' }) could
+    // alias an unrelated node in the new one. Clear it so nothing stays
+    // selected across the swap.
+    selection = null;
     changed();
   }
   if (el.dataset.action === 'reset'
@@ -212,6 +223,7 @@ document.getElementById('arch-task').addEventListener('click', (event) => {
     store.clearArchDraft(challenge.id);
     arch = challenge.startState ? challenge.startState() : createArch();
     results = null;
+    selection = null;
     renderAll();
   }
 });

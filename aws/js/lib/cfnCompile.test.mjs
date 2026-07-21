@@ -437,6 +437,35 @@ test('duplicate logical ids are errors (yaml unique-key rule)', () => {
   assert.ok(errs(r).length > 0);
 });
 
+test('an invalid enum value produces exactly one diagnostic (no double validation)', () => {
+  const r = compile(`Resources:
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+  SubA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: us-east-1a
+  SubB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: us-east-1b
+  Alb:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Subnets:
+        - !Ref SubA
+        - !Ref SubB
+      Scheme: bogus
+`);
+  assert.equal(errs(r).filter((d) => d.message === 'Expected one of: internet-facing, internal.').length, 1);
+});
+
 test('compile never throws on garbage', () => {
   for (const text of ['', ':', '\t', 'Resources: 3', 'Resources:\n  X: 4', '[1,2', 'a: *anchor']) {
     assert.doesNotThrow(() => compile(text), text);

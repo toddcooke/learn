@@ -38,7 +38,19 @@ export function compile(text) {
     const range = node && node.range ? [node.range[0], node.range[1]] : [0, Math.min(1, text.length)];
     diagnostics.push({ from: range[0], to: range[1], severity, message });
   };
-  const fail = (sourceMap, kinds) => ({ arch: null, diagnostics, sourceMap, idMap: null, kinds });
+  const dedupe = (list) => {
+    // Dedupe diagnostics by (from, to, severity, message); preserve first-occurrence order.
+    // Enum validation (e.g. ALB Scheme, RDS Engine) runs both generically and explicitly,
+    // producing byte-identical errors twice.
+    const seen = new Set();
+    return list.filter((d) => {
+      const key = `${d.from}:${d.to}:${d.severity}:${d.message}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  };
+  const fail = (sourceMap, kinds) => ({ arch: null, diagnostics: dedupe(diagnostics), sourceMap, idMap: null, kinds });
 
   const doc = parseDocument(text, { customTags: CFN_TAGS, prettyErrors: false });
   for (const e of doc.errors) {
@@ -464,7 +476,7 @@ export function compile(text) {
   const hasErrors = diagnostics.some((d) => d.severity === 'error');
   return {
     arch: hasErrors ? null : arch,
-    diagnostics,
+    diagnostics: dedupe(diagnostics),
     sourceMap,
     idMap: hasErrors ? null : { modelToLogical, logicalToModel },
     kinds,

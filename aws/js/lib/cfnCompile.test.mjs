@@ -466,6 +466,20 @@ test('an invalid enum value produces exactly one diagnostic (no double validatio
   assert.equal(errs(r).filter((d) => d.message === 'Expected one of: internet-facing, internal.').length, 1);
 });
 
+test('a valueless Properties key acts like an absent one; a scalar value stays an error', () => {
+  const empty = compile(`${VPC_ONLY}  W:
+    Type: AWS::EC2::Instance
+    Properties:
+`);
+  assert.deepEqual(messages(errs(empty)).filter((m) => /must be a mapping/.test(m)), []);
+  assert.ok(messages(errs(empty)).some((m) => m === 'Missing required property "ImageId" for AWS::EC2::Instance.'));
+  const scalar = compile(`${VPC_ONLY}  W:
+    Type: AWS::EC2::Instance
+    Properties: 3
+`);
+  assert.ok(messages(errs(scalar)).some((m) => m === 'Properties of "W" must be a mapping.'));
+});
+
 test('compile never throws on garbage', () => {
   for (const text of ['', ':', '\t', 'Resources: 3', 'Resources:\n  X: 4', '[1,2', 'a: *anchor']) {
     assert.doesNotThrow(() => compile(text), text);

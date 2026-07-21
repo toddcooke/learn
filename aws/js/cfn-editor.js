@@ -66,7 +66,7 @@ function enclosingResource(state, lineNo) {
     if (m) {
       for (let k = n + 1; k <= state.doc.lines; k += 1) {
         const t = state.doc.line(k).text;
-        if (k > n + 1 && /^ {0,2}\S/.test(t)) break;
+        if (/^ {0,2}\S/.test(t)) break;
         const tm = /^\s*Type:\s*([A-Za-z0-9:]+)\s*$/.exec(t);
         if (tm) return { logicalId: m[1], typeName: tm[1] };
       }
@@ -152,7 +152,7 @@ function cfnHover(getCompile) {
       if (m.index <= col && col <= m.index + m[0].length) { match = m; break; }
     }
     if (!match) return null;
-    const word = match[0];
+    const word = match[0].replace(/:$/, '');
     let body = null;
     if (/^AWS::/.test(word)) {
       body = typeDoc(word) || 'No documentation found.';

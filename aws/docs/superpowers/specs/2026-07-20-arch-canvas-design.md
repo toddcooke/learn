@@ -65,6 +65,10 @@ stay editable through the inspector.
 - **Re-home**: drag an existing chip into another container (move an EC2
   between subnets, move a NAT from private to public — the fix-broken
   move). Same legality rules as placement.
+  **(Amended during implementation):** `canDrop` needed a small restructure
+  after review — an existing ALB re-homes onto a subnet it doesn't already
+  occupy (like RDS), while dropping an existing ALB back onto the VPC
+  background is illegal once it has any subnets.
 - **Connect**: every node exposes a connect handle; dragging it
   rubber-bands a line and highlights legal endpoints. Dropping opens a
   popover stating the fact to create; Confirm applies it:
@@ -82,6 +86,10 @@ stay editable through the inspector.
   - **subnet → NAT**: route `0.0.0.0/0 → nat:<id>` with the same
     create-or-extend table behavior.
   - Anything else (e.g. workload → subnet) is not a legal connection.
+  **(Amended during implementation):** the popover's `{port}` placeholder
+  is spliced in by escaping the description first, then splitting on the
+  literal `{port}` marker — `escapeHtml` never touches that marker, so it
+  always survives intact for the split.
 - **Arrows rendered**: derived from the model only — route edges
   (subnet → IGW/NAT) and SG-rule edges (Internet/workload → workload,
   drawn when a rule's source resolves to the internet, a CIDR, or another
@@ -97,6 +105,11 @@ stay editable through the inspector.
 - **Cancel/undo affordances**: Esc cancels an in-flight drag or connect;
   popovers have Cancel; there is no undo stack in this phase (parity with
   the old builder).
+
+**(Amended during implementation):** every `connectionIntent.apply()` and
+inspector delete/edit mutator is null-guarded — if the popover's or
+inspector's target (node, edge, subnet) vanishes mid-flight because another
+action removed it first, applying is a no-op instead of throwing.
 
 ### What explicitly does not change
 
@@ -125,6 +138,10 @@ stay editable through the inspector.
     the SVG overlay renders and the arrow-click UI deletes through.
 - **`aws/js/arch-canvas.js`** (new, DOM-only) — canvas rendering, drag
   handlers (pointer events), SVG overlay, popovers, inspector, selection.
+  **(Amended during implementation):** the plan's per-render wiring would
+  have stacked duplicate listeners; instead the mount-level pointer/click
+  listeners attach once for the page's lifetime and read a live
+  module-level `ctx` updated on every `renderCanvas` call.
 - **`aws/js/arch-challenge.js`** (slimmed) — page shell, landing, task
   panel, Check flow; mounts the canvas and passes it the shared
   `changed()` re-render/autosave funnel.

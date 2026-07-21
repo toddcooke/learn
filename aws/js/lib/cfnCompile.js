@@ -107,7 +107,7 @@ export function compile(text) {
     const spec = RESOURCE_TYPES[typeName];
     if (!spec) {
       if (KNOWN_UNSUPPORTED.includes(typeName)) {
-        diag('warning', typePair.value, `${typeName} is real CloudFormation, but this simulator does not support it; the resource is ignored.`);
+        diag('warning', typePair.value, `${typeName} is real CloudFormation, but this simulator does not support it; the resource is ignored. Supported types: ${Object.keys(RESOURCE_TYPES).join(', ')}.`);
       } else {
         diag('error', typePair.value, `Unknown CloudFormation resource type: ${typeName}`);
       }

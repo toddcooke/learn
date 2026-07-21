@@ -48,6 +48,7 @@ test('real-but-unsupported type is a warning and the resource is ignored', () =>
 `);
   assert.deepEqual(errs(r), []);
   assert.match(messages(warns(r))[0], /AWS::S3::Bucket is real CloudFormation/);
+  assert.match(messages(warns(r))[0], /Supported types:/);
   assert.ok(r.arch);
 });
 

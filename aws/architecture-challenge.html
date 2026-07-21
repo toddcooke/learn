@@ -65,12 +65,7 @@
     .arch-section h3 { font-size: 0.85rem; margin: 0 0 0.5rem; text-transform: uppercase;
                        letter-spacing: 0.04em; color: var(--color-muted); }
     .arch-row { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; margin-bottom: 0.4rem; }
-    .arch-row input, .arch-row select { font: inherit; padding: 0.25rem 0.4rem; border: 1px solid var(--color-border);
-                                        border-radius: 4px; background: var(--arch-surface); color: inherit; }
-    .arch-row input[type="text"] { width: 8.5rem; }
-    .arch-row input[type="number"] { width: 5rem; }
     .arch-mini { font-size: 0.8rem; color: var(--color-muted); }
-    button.arch-del { background: transparent; color: var(--color-danger); border: none; padding: 0 0.3rem; font-size: 1rem; }
     /* Task panel */
     .arch-goal { border-left: 3px solid var(--color-border); padding: 0.4rem 0.6rem; margin-bottom: 0.5rem; }
     .arch-goal.ok { border-left-color: var(--color-success); background: var(--arch-ok-bg); }
@@ -79,7 +74,6 @@
     .arch-trace li.ok::marker { content: "✓ "; color: var(--color-success); }
     .arch-trace li.fail::marker { content: "✗ "; color: var(--color-danger); }
     .arch-score { font-size: 1.4rem; font-weight: 700; }
-    .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
     /* Canvas */
     #arch-canvas { position: relative; overflow: hidden; }
@@ -100,7 +94,6 @@
     .cv-chip { display: inline-flex; align-items: center; gap: 0.25rem; border: 1px solid var(--color-border);
                background: var(--arch-surface); border-radius: 6px; padding: 0.2rem 0.45rem; font-size: 0.78rem;
                margin: 0.15rem 0.2rem 0 0; }
-    .cv-selected { outline: 2px solid var(--color-primary); outline-offset: 1px; }
     .cv-tray { border-top: 1px dashed var(--color-border); margin-top: 0.75rem; padding-top: 0.5rem; }
     .cv-hl { outline: 2px solid var(--color-primary); outline-offset: 1px; }
     .cv-stale { opacity: 0.55; }

@@ -105,6 +105,13 @@ export function renderCanvas(mount, ctx) {
       </div>
       <svg id="arch-edges" aria-hidden="true"></svg>
     </div>
+    <p class="cv-legend arch-mini">
+      <svg class="cv-legend-line" viewBox="0 0 20 8" aria-hidden="true"><line x1="1" y1="4" x2="19" y2="4" class="route"></line></svg>
+      route (where a subnet's traffic goes)
+      <span aria-hidden="true">·</span>
+      <svg class="cv-legend-line" viewBox="0 0 20 8" aria-hidden="true"><line x1="1" y1="4" x2="19" y2="4" class="sg-rule"></line></svg>
+      security-group rule (allowed inbound traffic)
+    </p>
     <div id="arch-inspector"></div>
     <p class="arch-mini">Simplification: security groups are inbound-only here; outbound is allow-all.</p>`;
 
@@ -127,7 +134,34 @@ function chip(r, label, sel) {
   return `<span class="cv-chip ${sel(r)}" data-node="${ref(r)}">${escapeHtml(label)}</span>`;
 }
 
-// Straight-line arrows between element edge midpoints, in cv-surface coords.
+// Clamps a ray from a rectangle's center toward another point to that
+// rectangle's own border (a simple line/box intersection: scale the
+// direction vector so it lands on whichever half-extent it reaches first),
+// so edge lines start/stop at box borders instead of crossing interiors or
+// (for a wide card like a subnet) ending in empty space in the middle.
+// Degenerate directions (zero-length segments, e.g. two overlapping boxes
+// sharing a center) have no well-defined border crossing — fall back to the
+// center itself rather than divide-by-zero into NaN.
+function clampToBorder(cx, cy, dx, dy, halfW, halfH) {
+  const scaleX = dx !== 0 ? halfW / Math.abs(dx) : Infinity;
+  const scaleY = dy !== 0 ? halfH / Math.abs(dy) : Infinity;
+  const scale = Math.min(scaleX, scaleY);
+  if (!Number.isFinite(scale)) return { x: cx, y: cy };
+  return { x: cx + dx * scale, y: cy + dy * scale };
+}
+
+// Route edges store just the destination CIDR as `label` (matches the
+// model's route shape), so build the fuller pill text from the edge's
+// resolved `to` ref. SG-rule edges already carry their full `TCP <port>`
+// (or `<source> → TCP <port>`) text in `label` — leave those alone.
+function edgeLabelText(edge) {
+  if (edge.kind !== 'route') return edge.label;
+  const dest = edge.to.type === 'igw' ? 'IGW' : `NAT ${edge.to.id}`;
+  return `${edge.label} → ${dest}`;
+}
+
+// Arrows between element edges (not centers), in cv-surface coords, each
+// carrying a midpoint label pill so its meaning reads without a hover.
 function drawEdges(mount, ctx) {
   const svg = mount.querySelector('#arch-edges');
   const surface = mount.querySelector('.cv-surface');
@@ -143,16 +177,24 @@ function drawEdges(mount, ctx) {
     const a = anchor(edge.from);
     const b = anchor(edge.to);
     if (!a || !b) return;
-    const x1 = a.left + a.width / 2 - surfaceBox.left;
-    const y1 = a.top + a.height / 2 - surfaceBox.top;
-    const x2 = b.left + b.width / 2 - surfaceBox.left;
-    const y2 = b.top + b.height / 2 - surfaceBox.top;
-    const d = `M ${x1} ${y1} L ${x2} ${y2}`;
+    const ax = a.left + a.width / 2 - surfaceBox.left;
+    const ay = a.top + a.height / 2 - surfaceBox.top;
+    const bx = b.left + b.width / 2 - surfaceBox.left;
+    const by = b.top + b.height / 2 - surfaceBox.top;
+    // Clamp the center-to-center segment to each element's own border.
+    const start = clampToBorder(ax, ay, bx - ax, by - ay, a.width / 2, a.height / 2);
+    const end = clampToBorder(bx, by, ax - bx, ay - by, b.width / 2, b.height / 2);
+    const d = `M ${start.x} ${start.y} L ${end.x} ${end.y}`;
+    const mx = (start.x + end.x) / 2;
+    const my = (start.y + end.y) / 2;
     paths.push(`<path class="${edge.kind}" d="${d}" marker-end="url(#cv-arrow)"><title>${escapeHtml(edge.label)}</title></path>`);
+    // pointer-events none (belt-and-suspenders with the CSS default) so the
+    // label never steals a click from the .hit path drawn right after it.
+    paths.push(`<text class="cv-edge-label ${edge.kind}" x="${mx}" y="${my}" text-anchor="middle" dominant-baseline="middle" pointer-events="none">${escapeHtml(edgeLabelText(edge))}</text>`);
     paths.push(`<path class="hit" d="${d}" data-edge-index="${i}"></path>`);
   });
   svg.innerHTML = `
-    <defs><marker id="cv-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <defs><marker id="cv-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
       <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path></marker></defs>
     ${paths.join('')}`;
 }

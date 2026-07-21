@@ -103,6 +103,18 @@
     #arch-edges path.route { stroke: var(--color-primary); }
     #arch-edges path.sg-rule { stroke: var(--color-success); }
     #arch-edges path.hit { pointer-events: stroke; stroke: transparent; stroke-width: 10; }
+    /* Midpoint label pills: paint-order stroke gives each <text> a solid
+       halo in the surface color so it reads over lines/cards without a
+       separate background <rect>; fill color matches its edge's stroke. */
+    #arch-edges text.cv-edge-label { font-size: 0.65rem; font-family: inherit; paint-order: stroke;
+                                      stroke: var(--arch-surface); stroke-width: 3px; stroke-linejoin: round; pointer-events: none; }
+    #arch-edges text.cv-edge-label.route { fill: var(--color-primary); }
+    #arch-edges text.cv-edge-label.sg-rule { fill: var(--color-success); }
+    .cv-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 0.3rem; margin: 0.6rem 0 0; }
+    .cv-legend-line { width: 1.4rem; height: 0.6rem; overflow: visible; flex: none; }
+    .cv-legend-line line { stroke-width: 2; }
+    .cv-legend-line line.route { stroke: var(--color-primary); }
+    .cv-legend-line line.sg-rule { stroke: var(--color-success); }
     .cv-ghost { position: fixed; pointer-events: none; z-index: 40; opacity: 0.85; }
     .cv-popover { position: absolute; z-index: 50; background: var(--arch-surface); border: 1px solid var(--color-border);
                   border-radius: 8px; padding: 0.7rem; max-width: 320px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); }

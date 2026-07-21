@@ -5,7 +5,7 @@ import {
   addSecurityGroup, addSgRule, addWorkload, getSecurityGroup,
   effectiveRouteTable, removeWorkload, removeNat,
 } from './archModel.js';
-import { canDrop, connectionIntent, derivedEdges } from './archCanvasRules.js';
+import { canDrop, addSubnetRoute, ensureWorkloadSg, derivedEdges } from './archCanvasRules.js';
 
 function fixture() {
   const arch = createArch();
@@ -57,125 +57,41 @@ test('canDrop: ALB re-home targets an unoccupied subnet, not its own subnet or t
   assert.equal(canDrop('alb', { type: 'vpc' }, arch), true, 'palette ALB still targets the vpc background');
 });
 
-test('connectionIntent: internet → workload creates an SG rule (auto-creating the SG)', () => {
+test('addSubnetRoute: creates and associates an own table when the subnet is on main', () => {
+  const { arch, priv } = fixture();
+  const rt = addSubnetRoute(arch, priv.id, '0.0.0.0/0', 'igw');
+  assert.equal(rt.isMain, false);
+  assert.equal(rt.name, 'private-a-rt');
+  assert.deepEqual(effectiveRouteTable(arch, priv.id).routes, [{ destCidr: '0.0.0.0/0', target: 'igw' }]);
+});
+
+test('addSubnetRoute: extends an existing explicit table instead of creating another', () => {
+  const { arch, pub, nat } = fixture();
+  const rt = addSubnetRoute(arch, pub.id, '0.0.0.0/0', `nat:${nat.id}`);
+  assert.equal(rt.name, 'public', 'reused the fixture\'s explicit table');
+  assert.equal(rt.routes.length, 2);
+});
+
+test('addSubnetRoute: never touches the main table', () => {
+  const { arch, priv } = fixture();
+  addSubnetRoute(arch, priv.id, '0.0.0.0/0', 'igw');
+  assert.deepEqual(arch.routeTables.find((t) => t.isMain).routes, []);
+});
+
+test('addSubnetRoute: null-safe for missing subnet and missing NAT', () => {
+  const { arch, priv } = fixture();
+  assert.equal(addSubnetRoute(arch, 'subnet-99', '0.0.0.0/0', 'igw'), null);
+  assert.equal(addSubnetRoute(arch, priv.id, '0.0.0.0/0', 'nat:nat-99'), null);
+  assert.equal(effectiveRouteTable(arch, priv.id).isMain, true, 'no table was created');
+});
+
+test('ensureWorkloadSg: reuses an attached SG, creates one when missing, null for unknown id', () => {
   const { arch, web } = fixture();
-  const intent = connectionIntent({ type: 'internet' }, { type: 'workload', id: web.id }, arch);
-  assert.equal(intent.kind, 'sg-rule-internet');
-  assert.equal(intent.defaultPort, 80);
-  assert.match(intent.description, /0\.0\.0\.0\/0/);
-  intent.apply(arch, { port: 443 });
-  const sg = getSecurityGroup(arch, web.sgIds[0]);
+  const sg = ensureWorkloadSg(arch, web.id);
   assert.equal(sg.name, 'web-1-sg');
-  assert.deepEqual(sg.inbound, [{ proto: 'tcp', portFrom: 443, portTo: 443, source: '0.0.0.0/0' }]);
-});
-
-test('connectionIntent: workload → workload chains SGs on both sides', () => {
-  const { arch, web, db } = fixture();
-  const intent = connectionIntent({ type: 'workload', id: web.id }, { type: 'workload', id: db.id }, arch);
-  assert.equal(intent.kind, 'sg-rule-chain');
-  assert.equal(intent.defaultPort, 5432);
-  intent.apply(arch, { port: 5432 });
-  const webSg = getSecurityGroup(arch, web.sgIds[0]);
-  const dbSg = getSecurityGroup(arch, db.sgIds[0]);
-  assert.equal(dbSg.inbound[0].source, `sg:${webSg.id}`);
-  assert.equal(dbSg.inbound[0].portFrom, 5432);
-});
-
-test('connectionIntent: reuses existing SGs instead of creating duplicates', () => {
-  const { arch, web } = fixture();
-  const sg = addSecurityGroup(arch, 'my-sg');
-  web.sgIds.push(sg.id);
-  const intent = connectionIntent({ type: 'internet' }, { type: 'workload', id: web.id }, arch);
-  intent.apply(arch, { port: 80 });
-  assert.equal(arch.securityGroups.length, 1, 'no new SG created');
-  assert.equal(sg.inbound.length, 1);
-});
-
-test('connectionIntent: subnet → IGW routes via a created-or-extended explicit table', () => {
-  const { arch, priv } = fixture();
-  const intent = connectionIntent({ type: 'subnet', id: priv.id }, { type: 'igw' }, arch);
-  assert.equal(intent.kind, 'route-igw');
-  assert.equal(intent.warning, null, 'IGW attached: no warning');
-  intent.apply(arch, {});
-  const rt = effectiveRouteTable(arch, priv.id);
-  assert.equal(rt.isMain, false, 'a new explicit table was created and associated');
-  assert.deepEqual(rt.routes, [{ destCidr: '0.0.0.0/0', target: 'igw' }]);
-
-  // Second route intent on the same subnet extends the SAME table.
-  const { arch: a2, pub: p2, nat: n2 } = fixture();
-  const first = connectionIntent({ type: 'subnet', id: p2.id }, { type: 'nat', id: n2.id }, a2);
-  first.apply(a2, {});
-  const t2 = effectiveRouteTable(a2, p2.id);
-  assert.equal(t2.name, 'public', 'existing explicit table reused');
-  assert.equal(t2.routes.length, 2);
-});
-
-test('connectionIntent: warns when routing to a detached IGW but still applies', () => {
-  const { arch, priv } = fixture();
-  arch.vpc.igwAttached = false;
-  const intent = connectionIntent({ type: 'subnet', id: priv.id }, { type: 'igw' }, arch);
-  assert.match(intent.warning, /not attached/i);
-  intent.apply(arch, {});
-  assert.equal(effectiveRouteTable(arch, priv.id).routes.length, 1);
-});
-
-test('connectionIntent: subnet → NAT routes to that NAT', () => {
-  const { arch, priv, nat } = fixture();
-  const intent = connectionIntent({ type: 'subnet', id: priv.id }, { type: 'nat', id: nat.id }, arch);
-  assert.equal(intent.kind, 'route-nat');
-  intent.apply(arch, {});
-  assert.deepEqual(effectiveRouteTable(arch, priv.id).routes, [
-    { destCidr: '0.0.0.0/0', target: `nat:${nat.id}` },
-  ]);
-});
-
-test('connectionIntent: illegal pairs return null', () => {
-  const { arch, pub, web, nat } = fixture();
-  for (const [from, to] of [
-    [{ type: 'workload', id: web.id }, { type: 'subnet', id: pub.id }],
-    [{ type: 'workload', id: web.id }, { type: 'internet' }],
-    [{ type: 'internet' }, { type: 'subnet', id: pub.id }],
-    [{ type: 'igw' }, { type: 'subnet', id: pub.id }],
-    [{ type: 'nat', id: nat.id }, { type: 'workload', id: web.id }],
-    [{ type: 'workload', id: web.id }, { type: 'workload', id: web.id }],
-    [{ type: 'internet' }, { type: 'igw' }],
-  ]) {
-    assert.equal(connectionIntent(from, to, arch), null, `${from.type}->${to.type}`);
-  }
-});
-
-test('connectionIntent descriptions name real resources', () => {
-  const { arch, web, db, priv, nat } = fixture();
-  assert.match(connectionIntent({ type: 'internet' }, { type: 'workload', id: web.id }, arch).description, /web-1/);
-  assert.match(connectionIntent({ type: 'workload', id: web.id }, { type: 'workload', id: db.id }, arch).description, /db-1/);
-  assert.match(connectionIntent({ type: 'subnet', id: priv.id }, { type: 'nat', id: nat.id }, arch).description, /private-a/);
-});
-
-test('connectionIntent applies are no-op when their target entities vanish', () => {
-  const { arch, pub, priv, web, nat } = fixture();
-  const sgCountBefore = arch.securityGroups.length;
-  const privRtBefore = effectiveRouteTable(arch, priv.id);
-
-  // Get intents before deleting targets.
-  const internetToWeb = connectionIntent({ type: 'internet' }, { type: 'workload', id: web.id }, arch);
-  const privToNat = connectionIntent({ type: 'subnet', id: priv.id }, { type: 'nat', id: nat.id }, arch);
-
-  // Delete the web workload and the NAT.
-  removeWorkload(arch, web.id);
-  removeNat(arch, nat.id);
-
-  // Apply both intents — should be safe no-ops.
-  internetToWeb.apply(arch, { port: 80 });
-  privToNat.apply(arch, {});
-
-  // Verify nothing was written.
-  assert.equal(arch.securityGroups.length, sgCountBefore, 'no new SGs created');
-  assert.equal(effectiveRouteTable(arch, priv.id).routes.length, privRtBefore.routes.length, 'no new routes');
-  assert.deepEqual(
-    effectiveRouteTable(arch, priv.id).routes,
-    privRtBefore.routes,
-    'routes unchanged'
-  );
+  assert.deepEqual(web.sgIds, [sg.id]);
+  assert.equal(ensureWorkloadSg(arch, web.id), sg, 'second call reuses');
+  assert.equal(ensureWorkloadSg(arch, 'ec2-99'), null);
 });
 
 test('derivedEdges: route edges from every subnet on a shared table', () => {
@@ -192,16 +108,17 @@ test('derivedEdges: route edges from every subnet on a shared table', () => {
 
 test('derivedEdges: nat route edge targets the nat ref', () => {
   const { arch, priv, nat } = fixture();
-  connectionIntent({ type: 'subnet', id: priv.id }, { type: 'nat', id: nat.id }, arch).apply(arch, {});
+  addSubnetRoute(arch, priv.id, '0.0.0.0/0', `nat:${nat.id}`);
   const edge = derivedEdges(arch).find((e) => e.kind === 'route' && e.from.id === priv.id);
   assert.deepEqual(edge.to, { type: 'nat', id: nat.id });
 });
 
 test('derivedEdges: internet, sg-ref, and external-CIDR rule edges', () => {
   const { arch, web, db } = fixture();
-  connectionIntent({ type: 'internet' }, { type: 'workload', id: web.id }, arch).apply(arch, { port: 80 });
-  connectionIntent({ type: 'workload', id: web.id }, { type: 'workload', id: db.id }, arch).apply(arch, {});
-  const dbSg = getSecurityGroup(arch, db.sgIds[0]);
+  const webSg = ensureWorkloadSg(arch, web.id);
+  addSgRule(arch, webSg.id, { portFrom: 80, source: '0.0.0.0/0' });
+  const dbSg = ensureWorkloadSg(arch, db.id);
+  addSgRule(arch, dbSg.id, { portFrom: 5432, source: `sg:${webSg.id}` });
   addSgRule(arch, dbSg.id, { portFrom: 22, source: '203.0.113.0/24' });
 
   const edges = derivedEdges(arch).filter((e) => e.kind === 'sg-rule');
@@ -216,7 +133,8 @@ test('derivedEdges: internet, sg-ref, and external-CIDR rule edges', () => {
 test('derivedEdges: an SG shared by two workloads fans edges to both', () => {
   const { arch, pub, web } = fixture();
   const web2 = addWorkload(arch, { type: 'ec2', name: 'web-2', subnetIds: [pub.id] });
-  connectionIntent({ type: 'internet' }, { type: 'workload', id: web.id }, arch).apply(arch, {});
+  const sg = ensureWorkloadSg(arch, web.id);
+  addSgRule(arch, sg.id, { portFrom: 80, source: '0.0.0.0/0' });
   web2.sgIds = [...web.sgIds];
   const targets = derivedEdges(arch).filter((e) => e.kind === 'sg-rule').map((e) => e.to.id).sort();
   assert.deepEqual(targets, [web.id, web2.id].sort());
@@ -224,8 +142,9 @@ test('derivedEdges: an SG shared by two workloads fans edges to both', () => {
 
 test('derivedEdges: facts point at the exact rule/route for deletion', () => {
   const { arch, web } = fixture();
-  connectionIntent({ type: 'internet' }, { type: 'workload', id: web.id }, arch).apply(arch, {});
+  const sg = ensureWorkloadSg(arch, web.id);
+  addSgRule(arch, sg.id, { portFrom: 80, source: '0.0.0.0/0' });
   const edge = derivedEdges(arch).find((e) => e.kind === 'sg-rule');
-  const sg = getSecurityGroup(arch, edge.fact.sgId);
-  assert.equal(sg.inbound[edge.fact.index].source, '0.0.0.0/0');
+  const sgFromEdge = getSecurityGroup(arch, edge.fact.sgId);
+  assert.equal(sgFromEdge.inbound[edge.fact.index].source, '0.0.0.0/0');
 });

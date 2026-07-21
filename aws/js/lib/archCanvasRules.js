@@ -8,7 +8,7 @@
 
 import {
   getSubnet, getWorkload, getNat, getSecurityGroup, effectiveRouteTable,
-  addSecurityGroup, addSgRule, addRouteTable, addRoute, associateSubnet,
+  addSecurityGroup, addRouteTable, addRoute, associateSubnet,
   updateWorkload,
 } from './archModel.js';
 import { parseCidrStrict } from './vpcMath.js';
@@ -79,69 +79,23 @@ function ensureOwnRouteTable(arch, subnet) {
   return rt;
 }
 
-export function connectionIntent(fromRef, toRef, arch) {
-  // Internet → workload: open the workload's port to 0.0.0.0/0.
-  if (fromRef.type === 'internet' && toRef.type === 'workload') {
-    const wl = getWorkload(arch, toRef.id);
-    if (!wl) return null;
-    return {
-      kind: 'sg-rule-internet',
-      defaultPort: wl.port,
-      warning: null,
-      description: `Allow TCP {port} to ${wl.name} from the internet (0.0.0.0/0) in its security group`,
-      apply(a, options = {}) {
-        const target = getWorkload(a, toRef.id);
-        if (!target) return;
-        const sg = ensureSg(a, target);
-        addSgRule(a, sg.id, { portFrom: options.port ?? target.port, source: '0.0.0.0/0' });
-      },
-    };
-  }
-  // workload → workload: SG-reference chaining on the destination.
-  if (fromRef.type === 'workload' && toRef.type === 'workload' && fromRef.id !== toRef.id) {
-    const from = getWorkload(arch, fromRef.id);
-    const to = getWorkload(arch, toRef.id);
-    if (!from || !to) return null;
-    return {
-      kind: 'sg-rule-chain',
-      defaultPort: to.port,
-      warning: null,
-      description: `Allow TCP {port} to ${to.name} from ${from.name}'s security group`,
-      apply(a, options = {}) {
-        const srcWl = getWorkload(a, fromRef.id);
-        const dstWl = getWorkload(a, toRef.id);
-        if (!srcWl || !dstWl) return;
-        const src = ensureSg(a, srcWl);
-        const dst = ensureSg(a, dstWl);
-        addSgRule(a, dst.id, { portFrom: options.port ?? dstWl.port, source: `sg:${src.id}` });
-      },
-    };
-  }
-  // subnet → IGW / subnet → NAT: default route in the subnet's own table.
-  if (fromRef.type === 'subnet' && (toRef.type === 'igw' || toRef.type === 'nat')) {
-    const subnet = getSubnet(arch, fromRef.id);
-    if (!subnet) return null;
-    if (toRef.type === 'nat' && !getNat(arch, toRef.id)) return null;
-    const viaNat = toRef.type === 'nat';
-    return {
-      kind: viaNat ? 'route-nat' : 'route-igw',
-      defaultPort: null,
-      warning: !viaNat && !arch.vpc.igwAttached
-        ? 'The internet gateway is not attached to the VPC yet — this route will be flagged until you attach it.'
-        : null,
-      description: viaNat
-        ? `Route ${subnet.name}'s internet traffic (0.0.0.0/0) through NAT gateway ${toRef.id}`
-        : `Route ${subnet.name}'s internet traffic (0.0.0.0/0) out the internet gateway (makes it a public subnet)`,
-      apply(a) {
-        const s = getSubnet(a, fromRef.id);
-        if (!s) return;
-        if (viaNat && !getNat(a, toRef.id)) return;
-        const rt = ensureOwnRouteTable(a, s);
-        addRoute(a, rt.id, { destCidr: '0.0.0.0/0', target: viaNat ? `nat:${toRef.id}` : 'igw' });
-      },
-    };
-  }
-  return null;
+// Console-editor entry points. These carry the exact semantics the old
+// connect gestures had: routes go in the subnet's OWN table (never main),
+// and rule-authoring on a bare workload creates and attaches "<name>-sg".
+// Both are null-safe no-ops when their targets don't exist.
+export function addSubnetRoute(arch, subnetId, destCidr, target) {
+  const subnet = getSubnet(arch, subnetId);
+  if (!subnet) return null;
+  if (typeof target === 'string' && target.startsWith('nat:') && !getNat(arch, target.slice(4))) return null;
+  const rt = ensureOwnRouteTable(arch, subnet);
+  addRoute(arch, rt.id, { destCidr, target });
+  return rt;
+}
+
+export function ensureWorkloadSg(arch, workloadId) {
+  const wl = getWorkload(arch, workloadId);
+  if (!wl) return null;
+  return ensureSg(arch, wl);
 }
 
 // Arrows are always derived from the model, never stored. Route edges come

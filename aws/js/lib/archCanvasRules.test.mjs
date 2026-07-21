@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   createArch, addSubnet, addNat, addRouteTable, addRoute, associateSubnet,
-  addSecurityGroup, addSgRule, addWorkload, getSecurityGroup,
-  effectiveRouteTable, removeWorkload, removeNat,
+  addSgRule, addWorkload, getSecurityGroup,
+  effectiveRouteTable,
 } from './archModel.js';
 import { canDrop, addSubnetRoute, ensureWorkloadSg, derivedEdges } from './archCanvasRules.js';
 

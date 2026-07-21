@@ -174,6 +174,20 @@ export function createStore(backend) {
         /* ignore */
       }
     },
+    getArchCfnText(challengeId) {
+      const value = load(b, `arch-cfn:${challengeId}`, null);
+      return typeof value === 'string' ? value : null;
+    },
+    setArchCfnText(challengeId, text) {
+      save(b, `arch-cfn:${challengeId}`, text);
+    },
+    clearArchCfnText(challengeId) {
+      try {
+        b.removeItem(`${NAMESPACE}:arch-cfn:${challengeId}`);
+      } catch {
+        /* ignore */
+      }
+    },
     clearQuizHistory() {
       try {
         b.removeItem(`${NAMESPACE}:quiz-history`);

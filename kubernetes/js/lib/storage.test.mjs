@@ -250,3 +250,18 @@ test('a minimally-shaped arch draft round-trips non-null', () => {
   const raw = '{"vpc":{},"subnets":[],"natGateways":[],"routeTables":[],"securityGroups":[],"workloads":[]}';
   assert.notEqual(storeWithRaw(raw).getArchDraft('x'), null);
 });
+
+test('arch CFN text: set/get/clear round-trip per challenge id', () => {
+  const store = createStore(fakeBackend());
+  assert.equal(store.getArchCfnText('two-tier'), null);
+  store.setArchCfnText('two-tier', 'Resources: {}\n');
+  assert.equal(store.getArchCfnText('two-tier'), 'Resources: {}\n');
+  assert.equal(store.getArchCfnText('sandbox'), null, 'ids are independent');
+  store.clearArchCfnText('two-tier');
+  assert.equal(store.getArchCfnText('two-tier'), null);
+});
+
+test('arch CFN text getter survives a non-string stored value', () => {
+  assert.equal(storeWithRaw('{"foo":1}').getArchCfnText('x'), null);
+  assert.equal(storeWithRaw('42').getArchCfnText('x'), null);
+});

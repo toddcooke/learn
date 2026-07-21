@@ -139,15 +139,21 @@ function chip(r, label, sel) {
 // direction vector so it lands on whichever half-extent it reaches first),
 // so edge lines start/stop at box borders instead of crossing interiors or
 // (for a wide card like a subnet) ending in empty space in the middle.
-// Degenerate directions (zero-length segments, e.g. two overlapping boxes
-// sharing a center) have no well-defined border crossing — fall back to the
-// center itself rather than divide-by-zero into NaN.
+// The scale is a parameter t along the cx,cy -> (cx+dx,cy+dy) segment, and
+// MUST be clamped to [0, 1]: an unclamped t can exceed 1 whenever the two
+// elements are close together or overlapping relative to their own size
+// (this box's border in that direction lies AT OR BEYOND the other
+// element's center), which would shoot the point past the segment entirely
+// instead of stopping at a border between the two centers. Clamping to 1
+// pins the point at the other element's center instead — i.e. degenerate/
+// overlapping boxes (including a true zero-length segment, where both
+// scales are Infinity) fall back to the plain center-to-center line rather
+// than a NaN or an overshoot.
 function clampToBorder(cx, cy, dx, dy, halfW, halfH) {
   const scaleX = dx !== 0 ? halfW / Math.abs(dx) : Infinity;
   const scaleY = dy !== 0 ? halfH / Math.abs(dy) : Infinity;
-  const scale = Math.min(scaleX, scaleY);
-  if (!Number.isFinite(scale)) return { x: cx, y: cy };
-  return { x: cx + dx * scale, y: cy + dy * scale };
+  const t = Math.min(scaleX, scaleY, 1);
+  return { x: cx + dx * t, y: cy + dy * t };
 }
 
 // Route edges store just the destination CIDR as `label` (matches the
@@ -173,6 +179,7 @@ function drawEdges(mount, ctx) {
     return el ? el.getBoundingClientRect() : null;
   };
   const paths = [];
+  const labels = []; // { kind, x, y, text }, placed once the lines are known
   derivedEdges(ctx.arch).forEach((edge, i) => {
     const a = anchor(edge.from);
     const b = anchor(edge.to);
@@ -185,18 +192,44 @@ function drawEdges(mount, ctx) {
     const start = clampToBorder(ax, ay, bx - ax, by - ay, a.width / 2, a.height / 2);
     const end = clampToBorder(bx, by, ax - bx, ay - by, b.width / 2, b.height / 2);
     const d = `M ${start.x} ${start.y} L ${end.x} ${end.y}`;
-    const mx = (start.x + end.x) / 2;
-    const my = (start.y + end.y) / 2;
+    // Offset the label a few px perpendicular to the line so its pill sits
+    // beside the line rather than centered directly on top of it.
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const offset = 9;
+    const mx = (start.x + end.x) / 2 + (-dy / len) * offset;
+    const my = (start.y + end.y) / 2 + (dx / len) * offset;
     paths.push(`<path class="${edge.kind}" d="${d}" marker-end="url(#cv-arrow)"><title>${escapeHtml(edge.label)}</title></path>`);
-    // pointer-events none (belt-and-suspenders with the CSS default) so the
-    // label never steals a click from the .hit path drawn right after it.
-    paths.push(`<text class="cv-edge-label ${edge.kind}" x="${mx}" y="${my}" text-anchor="middle" dominant-baseline="middle" pointer-events="none">${escapeHtml(edgeLabelText(edge))}</text>`);
     paths.push(`<path class="hit" d="${d}" data-edge-index="${i}"></path>`);
+    labels.push({ kind: edge.kind, x: mx, y: my, text: edgeLabelText(edge) });
   });
   svg.innerHTML = `
     <defs><marker id="cv-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
       <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path></marker></defs>
-    ${paths.join('')}`;
+    ${paths.join('')}
+    ${labels.map((l) => `<text class="cv-edge-label ${l.kind}" data-kind="${l.kind}" x="${l.x}" y="${l.y}"
+      text-anchor="middle" dominant-baseline="middle" pointer-events="none">${escapeHtml(l.text)}</text>`).join('')}`;
+  // Second pass: an opaque background rect sized to each label's measured
+  // text (only known once the <text> is actually laid out), inserted right
+  // before it so the pill reads clearly over lines/cards instead of the
+  // transparent text-only render. pointer-events stays none on both so the
+  // fat .hit path (drawn earlier, so it stays under the pill) still handles
+  // clicks anywhere along the line.
+  svg.querySelectorAll('text.cv-edge-label').forEach((textEl) => {
+    const box = textEl.getBBox();
+    const padX = 4;
+    const padY = 3;
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('class', `cv-edge-label-bg ${textEl.dataset.kind}`);
+    rect.setAttribute('x', box.x - padX);
+    rect.setAttribute('y', box.y - padY);
+    rect.setAttribute('width', box.width + padX * 2);
+    rect.setAttribute('height', box.height + padY * 2);
+    rect.setAttribute('rx', 3);
+    rect.setAttribute('pointer-events', 'none');
+    textEl.before(rect);
+  });
 }
 
 // Console-style source control: a type select plus a conditional field.

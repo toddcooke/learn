@@ -103,13 +103,15 @@
     #arch-edges path.route { stroke: var(--color-primary); }
     #arch-edges path.sg-rule { stroke: var(--color-success); }
     #arch-edges path.hit { pointer-events: stroke; stroke: transparent; stroke-width: 10; }
-    /* Midpoint label pills: paint-order stroke gives each <text> a solid
-       halo in the surface color so it reads over lines/cards without a
-       separate background <rect>; fill color matches its edge's stroke. */
-    #arch-edges text.cv-edge-label { font-size: 0.65rem; font-family: inherit; paint-order: stroke;
-                                      stroke: var(--arch-surface); stroke-width: 3px; stroke-linejoin: round; pointer-events: none; }
+    /* Midpoint label pills: an opaque rect (sized to the measured text in
+       arch-canvas.js) sits behind each <text> so it reads clearly over
+       lines/cards; fill/border color matches its edge's stroke. */
+    #arch-edges text.cv-edge-label { font-size: 0.65rem; font-family: inherit; pointer-events: none; }
     #arch-edges text.cv-edge-label.route { fill: var(--color-primary); }
     #arch-edges text.cv-edge-label.sg-rule { fill: var(--color-success); }
+    #arch-edges rect.cv-edge-label-bg { fill: var(--arch-surface); stroke-width: 1; pointer-events: none; }
+    #arch-edges rect.cv-edge-label-bg.route { stroke: var(--color-primary); }
+    #arch-edges rect.cv-edge-label-bg.sg-rule { stroke: var(--color-success); }
     .cv-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 0.3rem; margin: 0.6rem 0 0; }
     .cv-legend-line { width: 1.4rem; height: 0.6rem; overflow: visible; flex: none; }
     .cv-legend-line line { stroke-width: 2; }

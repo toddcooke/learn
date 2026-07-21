@@ -128,7 +128,7 @@ export function emit(arch) {
     out(`      VpcId: !Ref ${vpcId}`);
     out('      Tags:');
     out('        - Key: Name');
-    out(`          Value: ${name}`);
+    out(`          Value: ${yamlScalar(name)}`);
     routes.forEach((route, i) => {
       if (route.target !== 'igw' && !natIds[route.target.slice(4)]) return; // dangling NAT route
       const rid = nextId(`${lid}Route${i + 1}`);

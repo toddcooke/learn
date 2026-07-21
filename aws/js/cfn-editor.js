@@ -82,8 +82,26 @@ function cfnCompletions(getCompile, getRoles) {
     const line = state.doc.lineAt(pos);
     const before = line.text.slice(0, pos - line.from);
 
+    // Enum values after "Prop: " when the schema constrains that property.
+    // Must precede resource-type branch so schema-constrained Type properties
+    // (e.g. ALB Type: application) complete their enum; resource-level Type
+    // values contain ":" and fall through to resource-type completion.
+    let m = /^\s*-?\s*([A-Za-z0-9]+):\s+([A-Za-z0-9.-]*)$/.exec(before);
+    if (m) {
+      const { typeName } = enclosingResource(state, line.number);
+      const spec = typeName ? RESOURCE_TYPES[typeName] : null;
+      const propSpec = spec ? spec.props[m[1]] : null;
+      if (propSpec && propSpec.enum) {
+        return {
+          from: pos - m[2].length,
+          options: propSpec.enum.map((v) => ({ label: String(v), type: 'constant' })),
+          validFor: /^[A-Za-z0-9.-]*$/,
+        };
+      }
+    }
+
     // Resource type names after "Type:".
-    let m = /Type:\s*([A-Za-z0-9:]*)$/.exec(before);
+    m = /Type:\s*([A-Za-z0-9:]*)$/.exec(before);
     if (m) {
       return {
         from: pos - m[1].length,
@@ -110,21 +128,6 @@ function cfnCompletions(getCompile, getRoles) {
         .filter(([, kind]) => !wanted || kind === wanted)
         .map(([id]) => ({ label: id, type: 'variable' }));
       return { from: pos - m[2].length, options, validFor: /^[A-Za-z0-9]*$/ };
-    }
-
-    // Enum values after "Prop: " when the schema constrains that property.
-    m = /^\s*-?\s*([A-Za-z0-9]+):\s+([A-Za-z0-9.-]*)$/.exec(before);
-    if (m) {
-      const { typeName } = enclosingResource(state, line.number);
-      const spec = typeName ? RESOURCE_TYPES[typeName] : null;
-      const propSpec = spec ? spec.props[m[1]] : null;
-      if (propSpec && propSpec.enum) {
-        return {
-          from: pos - m[2].length,
-          options: propSpec.enum.map((v) => ({ label: String(v), type: 'constant' })),
-          validFor: /^[A-Za-z0-9.-]*$/,
-        };
-      }
     }
 
     // Property names inside a known resource.

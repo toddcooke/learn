@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { emit } from './cfnEmit.js';
 import { compile } from './cfnCompile.js';
 import {
-  createArch, getSubnet, effectiveRouteTable, getSecurityGroup, addSubnet, addSecurityGroup, addWorkload,
+  createArch, getSubnet, effectiveRouteTable, getSecurityGroup, addSubnet, addSecurityGroup, addWorkload, addRouteTable, associateSubnet,
 } from './archModel.js';
 import { validateStructure } from './archValidate.js';
 import { evaluateGoals } from './archGoals.js';
@@ -109,9 +109,12 @@ test('free-text names with YAML-significant characters survive the round trip', 
   const s = addSubnet(arch, { name: 'a: b', az: 'a', cidr: '10.0.1.0/24' });
   const sg = addSecurityGroup(arch, "web: sg 'quoted'");
   addWorkload(arch, { type: 'ec2', name: 'web #1', subnetIds: [s.id], sgIds: [sg.id] });
+  const rt = addRouteTable(arch, 'web: a-rt');
+  associateSubnet(arch, rt.id, s.id);
   const r = compile(emit(arch));
   assert.deepEqual(r.diagnostics.filter((d) => d.severity === 'error'), [], emit(arch));
   assert.equal(r.arch.subnets[0].name, 'a: b');
   assert.equal(r.arch.securityGroups[0].name, "web: sg 'quoted'");
   assert.equal(r.arch.workloads[0].name, 'web #1');
+  assert.equal(r.arch.routeTables.find((t) => !t.isMain).name, 'web: a-rt');
 });

@@ -286,6 +286,7 @@ function renderTask(mount) {
       ${reveal}
     </div>
     ${blocked ? '<p class="arch-mini">Fix the template errors (red underlines) to enable Check.</p>' : ''}
+    ${hintsHtml}
     ${results ? resultsHtml : '<p class="arch-mini">Edit the template, then hit Check. Results explain every pass and fail.</p>'}`;
 }
 

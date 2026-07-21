@@ -396,6 +396,26 @@ function cancelGesture() {
   gesture = null;
 }
 
+// document.elementFromPoint only returns the topmost element at a point, but
+// every arrow drawn by drawEdges() STARTS at a node's own center and the
+// #arch-edges overlay's invisible path.hit companions are 10px wide with
+// pointer-events: stroke — so once any arrow touches a node, that node's own
+// center (and everywhere along the arrow) reports path.hit as the topmost
+// hit, silently masking the container/node underneath during drag/connect
+// targeting. Scan the full elementsFromPoint stack, skipping anything inside
+// the #arch-edges SVG, and return the first element matching `selector`.
+// Clicking an arrow to inspect/delete its fact is unaffected — that's a
+// direct click listener on path.hit, not a hit-test scan.
+function hitTarget(x, y, selector) {
+  const stack = document.elementsFromPoint(x, y);
+  for (const el of stack) {
+    if (el.closest('#arch-edges')) continue;
+    const hit = el.closest(selector);
+    if (hit) return hit;
+  }
+  return null;
+}
+
 // Palette placement and chip re-homing share one drag loop: a ghost chip
 // follows the pointer; drop containers highlight when canDrop() says yes.
 function startDrag(spec, event, mount, ctx) {
@@ -409,7 +429,7 @@ function startDrag(spec, event, mount, ctx) {
   const move = (e) => {
     ghost.style.left = `${e.clientX + 8}px`;
     ghost.style.top = `${e.clientY + 8}px`;
-    const el = document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-drop]');
+    const el = hitTarget(e.clientX, e.clientY, '[data-drop]');
     mount.querySelectorAll('.cv-drop-ok').forEach((n) => n.classList.remove('cv-drop-ok'));
     target = null;
     if (el) {
@@ -519,7 +539,7 @@ function startConnect(fromRef, event, mount, ctx) {
   let toRef = null;
 
   const refAt = (e) => {
-    const el = document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-node]');
+    const el = hitTarget(e.clientX, e.clientY, '[data-node]');
     return el ? JSON.parse(el.dataset.node) : null;
   };
   const move = (e) => {
@@ -528,7 +548,7 @@ function startConnect(fromRef, event, mount, ctx) {
     toRef = null;
     const candidate = refAt(e);
     if (candidate && connectionIntent(fromRef, candidate, ctx.arch)) {
-      const el = document.elementFromPoint(e.clientX, e.clientY).closest('[data-node]');
+      const el = hitTarget(e.clientX, e.clientY, '[data-node]');
       el.classList.add('cv-drop-ok');
       toRef = candidate;
     }

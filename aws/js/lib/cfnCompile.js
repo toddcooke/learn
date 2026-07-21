@@ -115,7 +115,12 @@ export function compile(text) {
     }
     const propsPair = body.items.find((p) => isScalar(p.key) && p.key.value === 'Properties');
     let propsNode = null;
-    if (propsPair && propsPair.value != null) {
+    // `Properties:` with nothing after it parses to a Scalar node wrapping
+    // JS null, not JS null itself — so it's excluded here the same as an
+    // absent Properties key (no value supplied yet is not a mapping error,
+    // just no properties to check).
+    const propsIsEmptyScalar = propsPair && isScalar(propsPair.value) && propsPair.value.value == null;
+    if (propsPair && propsPair.value != null && !propsIsEmptyScalar) {
       if (isMap(propsPair.value)) propsNode = propsPair.value;
       else diag('error', propsPair.key, `Properties of "${id}" must be a mapping.`);
     }

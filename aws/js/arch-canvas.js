@@ -1,20 +1,21 @@
 // aws/js/arch-canvas.js
 //
-// Drag-and-drop canvas for the Architecture Challenge. All judgment calls
-// (drop legality, connection meaning, which arrows exist) live in
+// Drag-and-drop canvas for the Architecture Challenge. Drop legality and
+// which arrows exist (derived from routes and security-group rules) live in
 // js/lib/archCanvasRules.js; this module renders DOM, wires pointer events,
-// and applies confirmed intents through ctx.onChange. Dragging changes
-// PARENTAGE only — no coordinates are ever stored.
+// and the console-style route/rule editors below the canvas, applying edits
+// through ctx.onChange. Dragging changes PARENTAGE only — no coordinates are
+// ever stored.
 
 import { escapeHtml } from './lib/html.js';
 import {
-  AZS, getSubnet, getWorkload, getNat, getSecurityGroup,
+  AZS, getSubnet, getWorkload, getNat, getSecurityGroup, getRouteTable,
   isPublicSubnet, effectiveRouteTable,
   addSubnet, addNat, addWorkload, addSecurityGroup,
   updateWorkload, updateSubnet, removeSubnet, removeNat, removeWorkload, removeSecurityGroup,
   removeRoute, addSgRule, removeSgRule, associateSubnet, disassociateSubnet,
 } from './lib/archModel.js';
-import { derivedEdges, canDrop, connectionIntent } from './lib/archCanvasRules.js';
+import { derivedEdges, canDrop, addSubnetRoute, ensureWorkloadSg } from './lib/archCanvasRules.js';
 
 const PALETTE = [
   { kind: 'subnet', label: '+ Subnet' },
@@ -58,7 +59,6 @@ export function renderCanvas(mount, ctx) {
              data-node="${ref({ type: 'subnet', id: s.id })}" data-drop="${ref({ type: 'subnet', id: s.id })}">
           <strong>${escapeHtml(s.name)}</strong> <span class="cidr">${escapeHtml(s.cidr)}</span>
           <span class="arch-mini">${pub ? 'public' : 'private'} · ${escapeHtml(rt ? rt.name : '?')}</span>
-          <span class="cv-handle" data-connect="${ref({ type: 'subnet', id: s.id })}" title="Draw route">⇢</span>
           <div>${nodes}</div>
         </div>`;
     }).join('');
@@ -76,11 +76,9 @@ export function renderCanvas(mount, ctx) {
     <div class="cv-palette">
       ${PALETTE.map((p) => `<button type="button" data-palette="${p.kind}">${p.label}</button>`).join('')}
     </div>
-    <p class="arch-mini">Drag onto the canvas (or click to add). Drag the ⇢ handle between nodes to connect. Click anything to edit it below.</p>
+    <p class="arch-mini">Drag onto the canvas (or click to add). Click anything to edit its properties, routes, and rules below.</p>
     <div class="cv-surface">
-      <div class="cv-internet ${sel({ type: 'internet' })}" data-node="${ref({ type: 'internet' })}">🌐 Internet
-        <span class="cv-handle" data-connect="${ref({ type: 'internet' })}" title="Draw connection">⇢</span>
-      </div>
+      <div class="cv-internet ${sel({ type: 'internet' })}" data-node="${ref({ type: 'internet' })}">🌐 Internet</div>
       <div class="cv-vpc" data-drop="${ref({ type: 'vpc' })}">
         <button type="button" class="cv-igw-chip ${arch.vpc.igwAttached ? 'attached' : ''}"
                 data-node="${ref({ type: 'igw' })}" data-action="toggle-igw">
@@ -115,12 +113,7 @@ export function unmountCanvas() {
 }
 
 function chip(r, label, sel) {
-  // NAT gateways are never the `from` side of any connection intent (only
-  // workloads originate connections), so giving them a handle would let a
-  // drag start a connect gesture that can never find a legal endpoint.
-  const connectable = r.type === 'workload';
-  return `<span class="cv-chip ${sel(r)}" data-node="${ref(r)}">${escapeHtml(label)}
-    ${connectable ? `<span class="cv-handle" data-connect="${ref(r)}" title="Draw connection">⇢</span>` : ''}</span>`;
+  return `<span class="cv-chip ${sel(r)}" data-node="${ref(r)}">${escapeHtml(label)}</span>`;
 }
 
 // Straight-line arrows between element edge midpoints, in cv-surface coords.
@@ -152,6 +145,47 @@ function drawEdges(mount, ctx) {
       <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path></marker></defs>
     ${paths.join('')}`;
 }
+
+// Console-style source control: a type select plus a conditional field.
+// Presentation only — the stored value stays '0.0.0.0/0' | CIDR | 'sg:<id>'.
+function sourceControls(arch, source, insPrefix, dataAttrs) {
+  const kind = source === '0.0.0.0/0' ? 'anywhere' : source.startsWith('sg:') ? 'sg' : 'cidr';
+  const sgOpts = arch.securityGroups.map((g) =>
+    `<option value="sg:${escapeHtml(g.id)}" ${source === `sg:${g.id}` ? 'selected' : ''}>${escapeHtml(g.name)}</option>`).join('');
+  return `
+    <select data-ins="${insPrefix}-srctype" ${dataAttrs} aria-label="Source type">
+      <option value="anywhere" ${kind === 'anywhere' ? 'selected' : ''}>Anywhere-IPv4 (0.0.0.0/0)</option>
+      <option value="cidr" ${kind === 'cidr' ? 'selected' : ''}>Custom CIDR</option>
+      <option value="sg" ${kind === 'sg' ? 'selected' : ''} ${arch.securityGroups.length === 0 ? 'disabled' : ''}>Security group</option>
+    </select>
+    ${kind === 'cidr' ? `<input type="text" value="${escapeHtml(source)}" data-ins="${insPrefix}-srccidr" ${dataAttrs} aria-label="Source CIDR" />` : ''}
+    ${kind === 'sg' ? `<select data-ins="${insPrefix}-srcsg" ${dataAttrs} aria-label="Source security group">${sgOpts}</select>` : ''}`;
+}
+
+// Reads the sourceControls trio back into a stored source string. The type
+// select's value always reflects the user's latest pick even before a
+// re-render, but the conditional cidr/sg field it implies may not exist in
+// the DOM yet (first switch to that type) — fall back to a value that isn't
+// '0.0.0.0/0' or 'sg:...' itself, so the next render classifies it as the
+// intended kind instead of springing back to "anywhere".
+function readSourceControls(row, prefix, arch) {
+  const kind = row.querySelector(`[data-ins="${prefix}-srctype"]`).value;
+  if (kind === 'anywhere') return '0.0.0.0/0';
+  if (kind === 'sg') {
+    const picked = row.querySelector(`[data-ins="${prefix}-srcsg"]`)?.value;
+    return picked || (arch.securityGroups[0] ? `sg:${arch.securityGroups[0].id}` : '0.0.0.0/0');
+  }
+  return row.querySelector(`[data-ins="${prefix}-srccidr"]`)?.value.trim() || '10.0.0.0/16';
+}
+
+// Workload add-rule row is draft-only until "Add rule" commits it via
+// addSgRule, but switching the Source-type select still needs a live
+// re-render to show/hide the CIDR or SG field with no model write — and a
+// port typed before that switch shouldn't be lost when it happens.
+// wlruleDraft holds that in-progress { port, source } state across those
+// re-renders; forId scopes it to the selected workload, reset when
+// selection changes (in renderInspector) or the rule is committed (wlrule-add).
+let wlruleDraft = { forId: null, port: null, source: '0.0.0.0/0' };
 
 // The inspector's own delegated change/click listeners are guarded the same
 // way as renderInspector's parent template: mount.innerHTML on the OUTER
@@ -186,6 +220,28 @@ function renderInspector(mount, ctx) {
         <p class="arch-mini">Route table: ${escapeHtml(rt ? rt.name : 'main')}${rt && !rt.isMain ? ` (shared by ${rt.subnetIds.length})` : ''}
           <select data-ins="subnet-rtb" aria-label="Associate route table">
             <option value="">main (implicit)</option>${tables}</select></p>`;
+      const targetOpts = (selected) => `
+        <option value="igw" ${selected === 'igw' ? 'selected' : ''}>Internet gateway</option>
+        ${arch.natGateways.map((n) => `<option value="nat:${escapeHtml(n.id)}" ${selected === `nat:${n.id}` ? 'selected' : ''}>NAT gateway ${escapeHtml(n.id)} — in ${escapeHtml(getSubnet(arch, n.subnetId)?.name || '?')}</option>`).join('')}`;
+      const routeRows = (rt && !rt.isMain ? rt.routes : []).map((route, i) => `
+        <div class="arch-row">
+          <input type="text" value="${escapeHtml(route.destCidr)}" data-ins="route-dest" data-rtb="${escapeHtml(rt.id)}" data-index="${i}" aria-label="Destination" />
+          <span class="arch-mini">→</span>
+          <select data-ins="route-target" data-rtb="${escapeHtml(rt.id)}" data-index="${i}" aria-label="Target">${targetOpts(route.target)}</select>
+          <button type="button" class="arch-del" data-ins="route-del" data-rtb="${escapeHtml(rt.id)}" data-index="${i}">✕</button>
+        </div>`).join('');
+      const sharedNote = rt && !rt.isMain && rt.subnetIds.length > 1
+        ? ` <span class="arch-mini">(shared by ${rt.subnetIds.length} subnets — edits affect all)</span>` : '';
+      html += `
+        <h3>Routes${sharedNote}</h3>
+        <p class="arch-mini">${escapeHtml(arch.vpc.cidr)} — local (implicit)</p>
+        ${routeRows}
+        <div class="arch-row">
+          <input type="text" value="0.0.0.0/0" data-ins="route-new-dest" aria-label="New route destination" />
+          <span class="arch-mini">→</span>
+          <select data-ins="route-new-target" aria-label="New route target">${targetOpts('igw')}</select>
+          <button type="button" data-ins="route-add">Add route</button>
+        </div>`;
     }
   } else if (sel.type === 'nat') {
     const n = getNat(arch, sel.id);
@@ -198,6 +254,7 @@ function renderInspector(mount, ctx) {
   } else if (sel.type === 'workload') {
     const w = getWorkload(arch, sel.id);
     if (w) {
+      if (wlruleDraft.forId !== w.id) wlruleDraft = { forId: w.id, port: null, source: '0.0.0.0/0' };
       const subnetBoxes = arch.subnets.map((s) => `
         <label class="arch-mini"><input type="checkbox" value="${s.id}" data-ins="wl-subnet"
           ${w.subnetIds.includes(s.id) ? 'checked' : ''} ${w.type === 'ec2' ? 'disabled' : ''} /> ${escapeHtml(s.name)}</label>`).join(' ');
@@ -213,7 +270,24 @@ function renderInspector(mount, ctx) {
           <button type="button" class="arch-del" data-ins="delete">✕ delete</button>
         </div>
         <p class="arch-mini">Subnets${w.type === 'ec2' ? ' (drag the chip to move an EC2)' : ''}: ${subnetBoxes || '<em>none</em>'}</p>
-        <p class="arch-mini">Security groups: ${sgBoxes || '<em>none — draw a connection to auto-create one</em>'}</p>`;
+        <p class="arch-mini">Security groups: ${sgBoxes || '<em>none — add an inbound rule below to auto-create one</em>'}</p>`;
+      const attachedRules = w.sgIds.flatMap((gid) => {
+        const g = getSecurityGroup(arch, gid);
+        return g ? g.inbound.map((r) => {
+          const srcLabel = r.source === '0.0.0.0/0' ? 'anywhere (0.0.0.0/0)'
+            : r.source.startsWith('sg:') ? (getSecurityGroup(arch, r.source.slice(3))?.name || r.source) : r.source;
+          const ports = r.portFrom === r.portTo ? r.portFrom : `${r.portFrom}–${r.portTo}`;
+          return `<p class="arch-mini">${escapeHtml(g.name)}: TCP ${escapeHtml(String(ports))} from ${escapeHtml(srcLabel)}</p>`;
+        }) : [];
+      }).join('');
+      html += `
+        <h3>Inbound rules</h3>
+        ${attachedRules || '<p class="arch-mini">No inbound rules — all inbound traffic is denied.</p>'}
+        <div class="arch-row">
+          <label class="arch-mini">port <input type="number" value="${wlruleDraft.port ?? w.port}" data-ins="wlrule-port" /></label>
+          ${sourceControls(arch, wlruleDraft.source, 'wlrule', '')}
+          <button type="button" data-ins="wlrule-add">Add rule</button>
+        </div>`;
     }
   } else if (sel.type === 'sg') {
     const g = getSecurityGroup(arch, sel.id);
@@ -224,12 +298,10 @@ function renderInspector(mount, ctx) {
           <span class="arch-mini">–</span>
           <input type="number" value="${r.portTo}" data-ins="rule-portto" data-index="${i}" aria-label="Port to" />
           <span class="arch-mini">from</span>
-          <input type="text" value="${escapeHtml(r.source)}" list="cv-sg-sources" data-ins="rule-source" data-index="${i}" aria-label="Source" />
+          ${sourceControls(arch, r.source, 'rule', `data-index="${i}"`)}
           <button type="button" class="arch-del" data-ins="rule-del" data-index="${i}">✕</button></div>`).join('');
       html = `<h3>SG <input type="text" value="${escapeHtml(g.name)}" data-ins="sg-name" aria-label="Name" />
           <button type="button" class="arch-del" data-ins="delete">✕ delete</button></h3>
-        <datalist id="cv-sg-sources"><option value="0.0.0.0/0"></option>
-          ${arch.securityGroups.map((o) => `<option value="sg:${o.id}">${escapeHtml(o.name)}</option>`).join('')}</datalist>
         ${rows || '<p class="arch-mini">No inbound rules — denies all inbound.</p>'}
         <button type="button" class="arch-add" data-ins="rule-add">+ inbound rule</button>`;
     }
@@ -287,8 +359,52 @@ function applyInspector(event, ctx, phase) {
     case 'rule-add': if (sg) addSgRule(arch, sg.id, { portFrom: 80, source: '0.0.0.0/0' }); break;
     case 'rule-portfrom': if (sg && sg.inbound[idx]) sg.inbound[idx].portFrom = Number(el.value); break;
     case 'rule-portto': if (sg && sg.inbound[idx]) sg.inbound[idx].portTo = Number(el.value); break;
-    case 'rule-source': if (sg && sg.inbound[idx]) sg.inbound[idx].source = el.value.trim(); break;
     case 'rule-del': if (sg) removeSgRule(arch, sg.id, idx); break;
+    case 'route-dest': {
+      const rt = getRouteTable(arch, el.dataset.rtb);
+      if (rt && rt.routes[el.dataset.index]) rt.routes[el.dataset.index].destCidr = el.value.trim();
+      break;
+    }
+    case 'route-target': {
+      const rt = getRouteTable(arch, el.dataset.rtb);
+      if (rt && rt.routes[el.dataset.index]) rt.routes[el.dataset.index].target = el.value;
+      break;
+    }
+    case 'route-del': if (getRouteTable(arch, el.dataset.rtb)) removeRoute(arch, el.dataset.rtb, Number(el.dataset.index)); break;
+    case 'route-add': {
+      if (!sub) return;
+      const row = el.closest('.arch-row');
+      addSubnetRoute(arch, sub.id, row.querySelector('[data-ins="route-new-dest"]').value.trim(),
+        row.querySelector('[data-ins="route-new-target"]').value);
+      break;
+    }
+    case 'rule-srctype': case 'rule-srccidr': case 'rule-srcsg': {
+      if (!sg || !sg.inbound[idx]) return;
+      sg.inbound[idx].source = readSourceControls(el.closest('.arch-row'), 'rule', arch);
+      break;
+    }
+    case 'wlrule-add': {
+      if (!wl) return;
+      const row = el.closest('.arch-row');
+      const target = ensureWorkloadSg(arch, wl.id);
+      if (!target) return;
+      addSgRule(arch, target.id, {
+        portFrom: Number(row.querySelector('[data-ins="wlrule-port"]').value) || wl.port,
+        source: readSourceControls(row, 'wlrule', arch),
+      });
+      wlruleDraft = { forId: null, port: null, source: '0.0.0.0/0' }; // reset draft after commit
+      break;
+    }
+    // Draft-only: nothing is stored in the model until wlrule-add commits it.
+    // srctype/srccidr/srcsg update wlruleDraft.source and re-render directly
+    // (bypassing ctx.onChange) so the conditional cidr/sg field shows up
+    // without a spurious "unsaved changes" write; port just remembers itself
+    // so a later srctype-triggered re-render doesn't drop the typed value.
+    case 'wlrule-port': wlruleDraft.port = Number(el.value); return;
+    case 'wlrule-srctype': case 'wlrule-srccidr': case 'wlrule-srcsg':
+      wlruleDraft.source = readSourceControls(el.closest('.arch-row'), 'wlrule', arch);
+      renderInspector(event.currentTarget, ctx);
+      return;
     case 'delete': deleteSelection(ctx); return; // deleteSelection calls onSelect+onChange itself
     default: return;
   }
@@ -307,7 +423,7 @@ function deleteSelection(ctx) {
   ctx.onChange();
 }
 
-// One in-flight drag/connect gesture per page; cleared on drop/cancel.
+// One in-flight drag gesture per page; cleared on drop/cancel.
 let gesture = null;
 // The document-level keydown listener (Escape to cancel/close, Delete or
 // Backspace to remove the selection) is attached once for the page's
@@ -333,7 +449,7 @@ function wireCanvas(mount) { wireStaticHandlers(mount); }
 // listener here reads currentCtx (set at the top of renderCanvas) rather
 // than closing over the ctx from whichever render first attached it, so it
 // always sees the live arch/selection/challenge. A gesture in flight
-// (startDrag/startConnect) threads that currentCtx snapshot through its own
+// (startDrag) threads that currentCtx snapshot through its own
 // synchronous pointermove/pointerup lifecycle — it never re-reads
 // currentCtx mid-gesture, but no render (and thus no ctx change) happens
 // until the gesture applies its result through ctx.onChange().
@@ -363,20 +479,16 @@ function wireStaticHandlers(mount) {
       return;
     }
     const nodeEl = event.target.closest('[data-node]');
-    if (nodeEl && !event.target.closest('[data-connect]')) {
+    if (nodeEl) {
       currentCtx.onSelect(JSON.parse(nodeEl.dataset.node));
     }
   });
 
   mount.addEventListener('pointerdown', (event) => {
     if (event.button !== 0) return;
-    const handle = event.target.closest('[data-connect]');
     const pal = event.target.closest('[data-palette]');
     const nodeEl = event.target.closest('[data-node]');
-    if (handle) {
-      startConnect(JSON.parse(handle.dataset.connect), event, mount, currentCtx);
-      event.preventDefault();
-    } else if (pal) {
+    if (pal) {
       startDrag({ mode: 'place', kind: pal.dataset.palette, label: pal.textContent }, event, mount, currentCtx);
     } else if (nodeEl) {
       const r = JSON.parse(nodeEl.dataset.node);
@@ -410,7 +522,7 @@ function wireStaticHandlers(mount) {
 function onDocumentKeydown(event) {
   // Popovers are post-gesture artifacts (the gesture that opened them has
   // already ended), so Escape must close them too, not just cancel an
-  // in-flight drag/connect.
+  // in-flight drag.
   if (event.key === 'Escape') { cancelGesture(); closePopover(); return; }
   // Delete/Backspace removes the current selection, but only when focus
   // isn't in a form field (so backspacing inside a subnet-name input, say,
@@ -435,7 +547,7 @@ function cancelGesture() {
 // #arch-edges overlay's invisible path.hit companions are 10px wide with
 // pointer-events: stroke — so once any arrow touches a node, that node's own
 // center (and everywhere along the arrow) reports path.hit as the topmost
-// hit, silently masking the container/node underneath during drag/connect
+// hit, silently masking the container/node underneath during drag
 // targeting. Scan the full elementsFromPoint stack, skipping anything inside
 // the #arch-edges SVG, and return the first element matching `selector`.
 // Clicking an arrow to inspect/delete its fact is unaffected — that's a
@@ -556,82 +668,6 @@ function applyDrop(spec, targetRef, dropAt, mount, ctx) {
     updateWorkload(arch, wl.id, { subnetIds: [...new Set(next)] });
   }
   ctx.onChange();
-}
-
-// Connect gesture: rubber-band line in the SVG overlay; legal endpoints are
-// any [data-node] (or the IGW chip) whose ref yields a non-null intent.
-function startConnect(fromRef, event, mount, ctx) {
-  cancelGesture();
-  const surface = mount.querySelector('.cv-surface');
-  const svg = mount.querySelector('#arch-edges');
-  const band = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  band.setAttribute('class', 'route');
-  band.setAttribute('stroke-dasharray', '4 3');
-  svg.appendChild(band);
-  const box = () => surface.getBoundingClientRect();
-  const start = { x: event.clientX - box().left, y: event.clientY - box().top };
-  let toRef = null;
-
-  const refAt = (e) => {
-    const el = hitTarget(e.clientX, e.clientY, '[data-node]');
-    return el ? JSON.parse(el.dataset.node) : null;
-  };
-  const move = (e) => {
-    band.setAttribute('d', `M ${start.x} ${start.y} L ${e.clientX - box().left} ${e.clientY - box().top}`);
-    mount.querySelectorAll('.cv-drop-ok').forEach((n) => n.classList.remove('cv-drop-ok'));
-    toRef = null;
-    const candidate = refAt(e);
-    if (candidate && connectionIntent(fromRef, candidate, ctx.arch)) {
-      const el = hitTarget(e.clientX, e.clientY, '[data-node]');
-      el.classList.add('cv-drop-ok');
-      toRef = candidate;
-    }
-  };
-  const up = (e) => {
-    const dropAt = { x: e.clientX, y: e.clientY };
-    const finalTo = toRef;
-    cancelGesture();
-    if (finalTo) showIntentPopover(fromRef, finalTo, dropAt, mount, ctx);
-  };
-  window.addEventListener('pointermove', move);
-  window.addEventListener('pointerup', up, { once: true });
-  gesture = {
-    cleanup() {
-      window.removeEventListener('pointermove', move);
-      window.removeEventListener('pointerup', up);
-      band.remove();
-      mount.querySelectorAll('.cv-drop-ok').forEach((n) => n.classList.remove('cv-drop-ok'));
-    },
-  };
-}
-
-function showIntentPopover(fromRef, toRef, dropAt, mount, ctx) {
-  const intent = connectionIntent(fromRef, toRef, ctx.arch);
-  if (!intent) return;
-  const portInput = intent.defaultPort !== null
-    ? `<input type="number" id="cv-port" value="${intent.defaultPort}" aria-label="Port" />`
-    : '';
-  // escapeHtml runs first and leaves the literal "{port}" marker untouched
-  // (it contains no HTML-special characters), so splitting on it directly
-  // is safe even if the intent's own text (e.g. a user-edited workload
-  // name) happens to contain the word "PORT" — there's no intermediate
-  // sentinel for such text to collide with.
-  const parts = escapeHtml(intent.description).split('{port}');
-  const description = parts.join(portInput || '');
-  showPopover(mount, dropAt, `
-    <p><span>${description}</span></p>
-    ${intent.warning ? `<p class="arch-mini">⚠ ${escapeHtml(intent.warning)}</p>` : ''}
-    <div class="arch-row"><button type="button" data-ok>Confirm</button> <button type="button" data-cancel>Cancel</button></div>`,
-  (pop) => {
-    pop.addEventListener('click', (e) => {
-      if (e.target.closest('[data-ok]')) {
-        const port = pop.querySelector('#cv-port');
-        intent.apply(ctx.arch, port ? { port: Number(port.value) } : {});
-        closePopover(); ctx.onChange();
-      }
-      if (e.target.closest('[data-cancel]')) closePopover();
-    });
-  });
 }
 
 function showEdgePopover(index, event, mount, ctx) {

@@ -16,7 +16,7 @@ import {
   addSecurityGroup, addSgRule, addWorkload,
 } from './archModel.js';
 import {
-  RESOURCE_TYPES, KNOWN_UNSUPPORTED, ENGINE_DEFAULT_PORTS, KIND_LABELS,
+  RESOURCE_TYPES, RESOURCE_ATTRIBUTES, KNOWN_UNSUPPORTED, ENGINE_DEFAULT_PORTS, KIND_LABELS,
 } from './cfnSchema.js';
 
 // !Ref / !GetAtt short forms parse as tagged nodes; registering them stops
@@ -29,7 +29,6 @@ const CFN_TAGS = [
 ];
 
 const IGNORED_SECTIONS = ['Parameters', 'Mappings', 'Conditions', 'Outputs', 'Metadata', 'Rules', 'Transform'];
-const RESOURCE_ATTRS = ['Type', 'Properties', 'DependsOn', 'Condition', 'Metadata', 'DeletionPolicy', 'UpdateReplacePolicy'];
 const AZ_RE = /^[a-z]{2}(-[a-z]+)+-\d[a-z]$/;
 
 export function compile(text) {
@@ -99,7 +98,7 @@ export function compile(text) {
     if (!isMap(body)) { diag('error', keyNode, `Resource "${id}" must be a mapping with a Type.`); continue; }
     for (const p of body.items) {
       const k = isScalar(p.key) ? String(p.key.value) : '';
-      if (!RESOURCE_ATTRS.includes(k)) diag('warning', p.key, `Unknown resource attribute "${k}".`);
+      if (!RESOURCE_ATTRIBUTES.includes(k)) diag('warning', p.key, `Unknown resource attribute "${k}".`);
     }
     const typePair = body.items.find((p) => isScalar(p.key) && p.key.value === 'Type');
     if (!typePair || !isScalar(typePair.value)) { diag('error', keyNode, `Resource "${id}" has no Type.`); continue; }

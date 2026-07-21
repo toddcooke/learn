@@ -41,6 +41,11 @@ export const KNOWN_UNSUPPORTED = [
   'AWS::CertificateManager::Certificate',
 ];
 
+// Resource-level attribute keys (the siblings of Type/Properties). Shared
+// by cfnCompile's unknown-attribute warning and the editor's completion at
+// the attribute indent level.
+export const RESOURCE_ATTRIBUTES = ['Type', 'Properties', 'DependsOn', 'Condition', 'Metadata', 'DeletionPolicy', 'UpdateReplacePolicy'];
+
 // Prop spec fields: required (bool), check ('cidr'|'az'|'bool'|'port'|
 // 'string'|'tags'|'ingress'), ref/refList (kind the !Ref must target),
 // getAtt ({kind, attr}), enum (allowed scalars), ignored (accepted, not

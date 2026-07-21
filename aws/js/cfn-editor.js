@@ -16,7 +16,7 @@ import {
   forceLinting, autocompletion, closeBrackets, completionKeymap,
   closeBracketsKeymap, searchKeymap, highlightSelectionMatches, yaml, tags,
 } from './vendor/codemirror.js';
-import { RESOURCE_TYPES, typeDoc, propDoc } from './lib/cfnSchema.js';
+import { RESOURCE_TYPES, RESOURCE_ATTRIBUTES, typeDoc, propDoc } from './lib/cfnSchema.js';
 
 // CodeMirror injects these as literal CSS values, so var() references keep
 // working across the site's light/dark palettes with no per-theme styles.
@@ -61,19 +61,22 @@ const cfnHighlight = HighlightStyle.define([
 function enclosingResource(state, lineNo) {
   for (let n = lineNo; n >= 1; n -= 1) {
     const lineText = state.doc.line(n).text;
-    if (/^[A-Za-z]/.test(lineText)) return { logicalId: null, typeName: null };
+    if (/^[A-Za-z]/.test(lineText)) return { logicalId: null, typeName: null, typeIndent: null };
     const m = /^ {2}([A-Za-z0-9]+):\s*$/.exec(lineText);
     if (m) {
       for (let k = n + 1; k <= state.doc.lines; k += 1) {
         const t = state.doc.line(k).text;
         if (/^ {0,2}\S/.test(t)) break;
-        const tm = /^\s*Type:\s*([A-Za-z0-9:]+)\s*$/.exec(t);
-        if (tm) return { logicalId: m[1], typeName: tm[1] };
+        const tm = /^(\s*)Type:\s*([A-Za-z0-9:]+)\s*$/.exec(t);
+        // typeIndent (the Type line's own indent) marks the resource's
+        // attribute level: completion offers attributes at that depth and
+        // the type's properties below it.
+        if (tm) return { logicalId: m[1], typeName: tm[2], typeIndent: tm[1].length };
       }
-      return { logicalId: m[1], typeName: null };
+      return { logicalId: m[1], typeName: null, typeIndent: null };
     }
   }
-  return { logicalId: null, typeName: null };
+  return { logicalId: null, typeName: null, typeIndent: null };
 }
 
 function cfnCompletions(getCompile, getRoles) {
@@ -130,17 +133,30 @@ function cfnCompletions(getCompile, getRoles) {
       return { from: pos - m[2].length, options, validFor: /^[A-Za-z0-9]*$/ };
     }
 
-    // Property names inside a known resource.
-    m = /^(\s+)([A-Za-z0-9]+)$/.exec(before);
-    if (m) {
-      const { typeName } = enclosingResource(state, line.number);
+    // Property or attribute names inside a resource. The typed prefix may
+    // be empty only on explicit invocation (Ctrl-Space), so the list opens
+    // on a blank indented line without popping up on every newline. Lines
+    // deeper than the Type line's indent complete the type's properties;
+    // lines at (or above) it — or in a resource with no Type yet — complete
+    // the resource ATTRIBUTES, IntelliJ-style.
+    m = /^(\s+)([A-Za-z0-9]*)$/.exec(before);
+    if (m && (m[2].length > 0 || context.explicit)) {
+      const { logicalId, typeName, typeIndent } = enclosingResource(state, line.number);
       const spec = typeName ? RESOURCE_TYPES[typeName] : null;
-      if (spec) {
+      if (spec && (typeIndent === null || m[1].length > typeIndent)) {
         return {
           from: pos - m[2].length,
           options: Object.entries(spec.props).map(([name, ps]) => ({
             label: name, type: 'property', info: ps.doc || undefined,
           })),
+          validFor: /^[A-Za-z0-9]*$/,
+        };
+      }
+      if (logicalId) {
+        return {
+          from: pos - m[2].length,
+          options: RESOURCE_ATTRIBUTES.filter((a) => a !== 'Type' || !typeName)
+            .map((name) => ({ label: name, type: 'property' })),
           validFor: /^[A-Za-z0-9]*$/,
         };
       }

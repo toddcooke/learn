@@ -11,7 +11,8 @@ import {
   AZS, getSubnet, getWorkload, getNat, getSecurityGroup,
   isPublicSubnet, effectiveRouteTable,
   addSubnet, addNat, addWorkload, addSecurityGroup,
-  updateWorkload, removeRoute, removeSgRule,
+  updateWorkload, updateSubnet, removeSubnet, removeNat, removeWorkload, removeSecurityGroup,
+  removeRoute, addSgRule, removeSgRule, associateSubnet, disassociateSubnet,
 } from './lib/archModel.js';
 import { derivedEdges, canDrop, connectionIntent } from './lib/archCanvasRules.js';
 
@@ -135,17 +136,169 @@ function drawEdges(mount, ctx) {
     ${paths.join('')}`;
 }
 
-// Filled in by Task 5.
-function renderInspector(mount, ctx) { mount.innerHTML = ''; }
+// The inspector's own delegated change/click listeners are guarded the same
+// way as renderInspector's parent template: mount.innerHTML on the OUTER
+// canvas mount replaces this #arch-inspector element wholesale every render,
+// so a fresh node (and a fresh `wired` dataset) shows up each time regardless
+// — but the listeners still read currentCtx rather than closing over the
+// `ctx` param, for the same stale-context reasons as wireStaticHandlers.
+function renderInspector(mount, ctx) {
+  const { arch, challenge, selection } = ctx;
+  const sel = selection;
+  const roleOpts = (current) => ['', ...challenge.roles.map((r) => r.id)]
+    .map((id) => `<option value="${escapeHtml(id)}" ${id === (current || '') ? 'selected' : ''}>${escapeHtml(id || '(none)')}</option>`).join('');
+
+  let html = '';
+  if (!sel || sel.type === 'internet' || sel.type === 'igw' || sel.type === 'vpc') {
+    html = `<h3>VPC</h3><div class="arch-row">
+      <label class="arch-mini">CIDR <input type="text" value="${escapeHtml(arch.vpc.cidr)}" data-ins="vpc-cidr" /></label>
+      <span class="arch-mini">Select any node on the canvas to edit it here.</span></div>`;
+  } else if (sel.type === 'subnet') {
+    const s = getSubnet(arch, sel.id);
+    if (s) {
+      const rt = effectiveRouteTable(arch, s.id);
+      const tables = arch.routeTables.filter((t) => !t.isMain).map((t) =>
+        `<option value="${t.id}" ${rt && rt.id === t.id ? 'selected' : ''}>${escapeHtml(t.name)}</option>`).join('');
+      html = `<h3>Subnet ${escapeHtml(s.name)}</h3>
+        <div class="arch-row">
+          <input type="text" value="${escapeHtml(s.name)}" data-ins="subnet-name" aria-label="Name" />
+          <select data-ins="subnet-az" aria-label="AZ">${AZS.map((az) => `<option ${az === s.az ? 'selected' : ''}>${az}</option>`).join('')}</select>
+          <input type="text" value="${escapeHtml(s.cidr)}" data-ins="subnet-cidr" aria-label="CIDR" placeholder="10.0.1.0/24" />
+          <button type="button" class="arch-del" data-ins="delete" title="Delete subnet">✕ delete</button>
+        </div>
+        <p class="arch-mini">Route table: ${escapeHtml(rt ? rt.name : 'main')}${rt && !rt.isMain ? ` (shared by ${rt.subnetIds.length})` : ''}
+          <select data-ins="subnet-rtb" aria-label="Associate route table">
+            <option value="">main (implicit)</option>${tables}</select></p>`;
+    }
+  } else if (sel.type === 'nat') {
+    const n = getNat(arch, sel.id);
+    if (n) {
+      html = `<h3>NAT gateway ${escapeHtml(n.id)}</h3>
+        <div class="arch-row"><span class="arch-mini">in ${escapeHtml(getSubnet(arch, n.subnetId)?.name || '?')}
+          — drag the chip to move it</span>
+          <button type="button" class="arch-del" data-ins="delete">✕ delete</button></div>`;
+    }
+  } else if (sel.type === 'workload') {
+    const w = getWorkload(arch, sel.id);
+    if (w) {
+      const subnetBoxes = arch.subnets.map((s) => `
+        <label class="arch-mini"><input type="checkbox" value="${s.id}" data-ins="wl-subnet"
+          ${w.subnetIds.includes(s.id) ? 'checked' : ''} ${w.type === 'ec2' ? 'disabled' : ''} /> ${escapeHtml(s.name)}</label>`).join(' ');
+      const sgBoxes = arch.securityGroups.map((g) => `
+        <label class="arch-mini"><input type="checkbox" value="${g.id}" data-ins="wl-sg"
+          ${w.sgIds.includes(g.id) ? 'checked' : ''} /> ${escapeHtml(g.name)}</label>`).join(' ');
+      html = `<h3>${w.type.toUpperCase()} <input type="text" value="${escapeHtml(w.name)}" data-ins="wl-name" aria-label="Name" /></h3>
+        <div class="arch-row">
+          ${challenge.roles.length ? `<label class="arch-mini">role <select data-ins="wl-role">${roleOpts(w.role)}</select></label>` : ''}
+          <label class="arch-mini">port <input type="number" value="${w.port}" data-ins="wl-port" /></label>
+          ${w.type === 'ec2' ? `<label class="arch-mini"><input type="checkbox" data-ins="wl-publicip" ${w.publicIp ? 'checked' : ''} /> public IP</label>` : ''}
+          ${w.type === 'rds' ? `<label class="arch-mini"><input type="checkbox" data-ins="wl-multiaz" ${w.multiAz ? 'checked' : ''} /> Multi-AZ</label>` : ''}
+          <button type="button" class="arch-del" data-ins="delete">✕ delete</button>
+        </div>
+        <p class="arch-mini">Subnets${w.type === 'ec2' ? ' (drag the chip to move an EC2)' : ''}: ${subnetBoxes || '<em>none</em>'}</p>
+        <p class="arch-mini">Security groups: ${sgBoxes || '<em>none — draw a connection to auto-create one</em>'}</p>`;
+    }
+  } else if (sel.type === 'sg') {
+    const g = getSecurityGroup(arch, sel.id);
+    if (g) {
+      const rows = g.inbound.map((r, i) => `
+        <div class="arch-row"><span class="arch-mini">TCP</span>
+          <input type="number" value="${r.portFrom}" data-ins="rule-portfrom" data-index="${i}" aria-label="Port from" />
+          <span class="arch-mini">–</span>
+          <input type="number" value="${r.portTo}" data-ins="rule-portto" data-index="${i}" aria-label="Port to" />
+          <span class="arch-mini">from</span>
+          <input type="text" value="${escapeHtml(r.source)}" list="cv-sg-sources" data-ins="rule-source" data-index="${i}" aria-label="Source" />
+          <button type="button" class="arch-del" data-ins="rule-del" data-index="${i}">✕</button></div>`).join('');
+      html = `<h3>SG <input type="text" value="${escapeHtml(g.name)}" data-ins="sg-name" aria-label="Name" />
+          <button type="button" class="arch-del" data-ins="delete">✕ delete</button></h3>
+        <datalist id="cv-sg-sources"><option value="0.0.0.0/0"></option>
+          ${arch.securityGroups.map((o) => `<option value="sg:${o.id}">${escapeHtml(o.name)}</option>`).join('')}</datalist>
+        ${rows || '<p class="arch-mini">No inbound rules — denies all inbound.</p>'}
+        <button type="button" class="arch-add" data-ins="rule-add">+ inbound rule</button>`;
+    }
+  }
+  mount.innerHTML = html;
+
+  if (!mount.dataset.wired) {
+    mount.dataset.wired = '1';
+    mount.addEventListener('change', (e) => applyInspector(e, currentCtx, 'change'));
+    mount.addEventListener('click', (e) => applyInspector(e, currentCtx, 'click'));
+  }
+}
+
+function applyInspector(event, ctx, phase) {
+  const el = event.target.closest('[data-ins]');
+  if (!el) return;
+  if (phase === 'click' && el.tagName !== 'BUTTON') return;
+  if (phase === 'change' && el.tagName === 'BUTTON') return;
+  const { arch, selection } = ctx;
+  const ins = el.dataset.ins;
+  const idx = Number(el.dataset.index);
+  const sub = selection && selection.type === 'subnet' ? getSubnet(arch, selection.id) : null;
+  const wl = selection && selection.type === 'workload' ? getWorkload(arch, selection.id) : null;
+  const sg = selection && selection.type === 'sg' ? getSecurityGroup(arch, selection.id) : null;
+
+  switch (ins) {
+    case 'vpc-cidr': arch.vpc.cidr = el.value.trim(); break;
+    case 'subnet-name': if (sub) updateSubnet(arch, sub.id, { name: el.value.trim() }); break;
+    case 'subnet-az': if (sub) updateSubnet(arch, sub.id, { az: el.value }); break;
+    case 'subnet-cidr': if (sub) updateSubnet(arch, sub.id, { cidr: el.value.trim() }); break;
+    case 'subnet-rtb':
+      if (sub) {
+        if (el.value) associateSubnet(arch, el.value, sub.id);
+        else disassociateSubnet(arch, sub.id);
+      }
+      break;
+    case 'wl-name': if (wl) updateWorkload(arch, wl.id, { name: el.value.trim() }); break;
+    case 'wl-role': if (wl) updateWorkload(arch, wl.id, { role: el.value || null }); break;
+    case 'wl-port': if (wl) updateWorkload(arch, wl.id, { port: Number(el.value) }); break;
+    case 'wl-publicip': if (wl) updateWorkload(arch, wl.id, { publicIp: el.checked }); break;
+    case 'wl-multiaz': if (wl) updateWorkload(arch, wl.id, { multiAz: el.checked }); break;
+    case 'wl-subnet':
+      if (wl) {
+        wl.subnetIds = el.checked
+          ? [...wl.subnetIds, el.value]
+          : wl.subnetIds.filter((sid) => sid !== el.value);
+      }
+      break;
+    case 'wl-sg':
+      if (wl) {
+        wl.sgIds = el.checked ? [...wl.sgIds, el.value] : wl.sgIds.filter((gid) => gid !== el.value);
+      }
+      break;
+    case 'sg-name': if (sg) sg.name = el.value.trim(); break;
+    case 'rule-add': if (sg) addSgRule(arch, sg.id, { portFrom: 80, source: '0.0.0.0/0' }); break;
+    case 'rule-portfrom': if (sg && sg.inbound[idx]) sg.inbound[idx].portFrom = Number(el.value); break;
+    case 'rule-portto': if (sg && sg.inbound[idx]) sg.inbound[idx].portTo = Number(el.value); break;
+    case 'rule-source': if (sg && sg.inbound[idx]) sg.inbound[idx].source = el.value.trim(); break;
+    case 'rule-del': if (sg) removeSgRule(arch, sg.id, idx); break;
+    case 'delete': deleteSelection(ctx); return; // deleteSelection calls onSelect+onChange itself
+    default: return;
+  }
+  ctx.onChange();
+}
+
+function deleteSelection(ctx) {
+  const { arch, selection } = ctx;
+  if (!selection) return;
+  if (selection.type === 'subnet') removeSubnet(arch, selection.id);
+  else if (selection.type === 'nat') removeNat(arch, selection.id);
+  else if (selection.type === 'workload') removeWorkload(arch, selection.id);
+  else if (selection.type === 'sg') removeSecurityGroup(arch, selection.id);
+  else return;
+  ctx.onSelect(null); // triggers renderAll; onChange persists
+  ctx.onChange();
+}
 
 // One in-flight drag/connect gesture per page; cleared on drop/cancel.
 let gesture = null;
-// The document-level Escape listener is attached once for the page's
+// The document-level keydown listener (Escape to cancel/close, Delete or
+// Backspace to remove the selection) is attached once for the page's
 // lifetime, independent of (and in addition to) the mount's own attach-once
 // guard below — guarded by its own module-level flag rather than piggy-
 // backing on mount.dataset.cvWired so it stays correct even if a second
 // mount is ever wired.
-let escWired = false;
+let docKeydownWired = false;
 
 function wireCanvas(mount) { wireStaticHandlers(mount); }
 
@@ -214,17 +367,27 @@ function wireStaticHandlers(mount) {
     }
   });
 
-  if (!escWired) {
-    escWired = true;
-    document.addEventListener('keydown', onEscape);
+  if (!docKeydownWired) {
+    docKeydownWired = true;
+    document.addEventListener('keydown', onDocumentKeydown);
   }
 }
 
-function onEscape(event) {
+function onDocumentKeydown(event) {
   // Popovers are post-gesture artifacts (the gesture that opened them has
   // already ended), so Escape must close them too, not just cancel an
   // in-flight drag/connect.
-  if (event.key === 'Escape') { cancelGesture(); closePopover(); }
+  if (event.key === 'Escape') { cancelGesture(); closePopover(); return; }
+  // Delete/Backspace removes the current selection, but only when focus
+  // isn't in a form field (so backspacing inside a subnet-name input, say,
+  // doesn't also delete the subnet out from under it). Reads currentCtx
+  // (not a closed-over ctx) for the same stale-context reasons as every
+  // other long-lived listener in this file.
+  if ((event.key === 'Delete' || event.key === 'Backspace')
+      && currentCtx && currentCtx.selection
+      && !/^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement?.tagName || '')) {
+    deleteSelection(currentCtx);
+  }
 }
 
 function cancelGesture() {

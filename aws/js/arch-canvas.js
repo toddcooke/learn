@@ -38,10 +38,21 @@ let currentCtx = null;
 // so the module-level resize handler (attached once, below) can re-run
 // drawEdges against live state without a render having to thread it through.
 let lastMount = null;
+// The arch object identity from the most recent renderCanvas call. Arch id
+// counters restart from scratch on every challenge switch, Reset, and Reveal
+// (see arch-challenge.js, which clears its own `selection` for the same
+// reason), so a same-id workload in a NEW arch would otherwise alias
+// wlruleDraft's stale port/source prefill from the old one. Compared by
+// reference (not id) below so any such swap is caught even when ids match.
+let lastArch = null;
 
 export function renderCanvas(mount, ctx) {
   currentCtx = ctx;
   const { arch, selection } = ctx;
+  if (arch !== lastArch) {
+    wlruleDraft = { forId: null, port: null, source: '0.0.0.0/0' };
+    lastArch = arch;
+  }
   const sel = (r) => (selection && JSON.stringify(selection) === JSON.stringify(r) ? 'cv-selected' : '');
 
   const azsInUse = AZS.filter((az) => arch.subnets.some((s) => s.az === az));
@@ -184,7 +195,8 @@ function readSourceControls(row, prefix, arch) {
 // port typed before that switch shouldn't be lost when it happens.
 // wlruleDraft holds that in-progress { port, source } state across those
 // re-renders; forId scopes it to the selected workload, reset when
-// selection changes (in renderInspector) or the rule is committed (wlrule-add).
+// selection changes (in renderInspector), the rule is committed
+// (wlrule-add), or the arch itself is swapped out (in renderCanvas).
 let wlruleDraft = { forId: null, port: null, source: '0.0.0.0/0' };
 
 // The inspector's own delegated change/click listeners are guarded the same
@@ -232,9 +244,19 @@ function renderInspector(mount, ctx) {
         </div>`).join('');
       const sharedNote = rt && !rt.isMain && rt.subnetIds.length > 1
         ? ` <span class="arch-mini">(shared by ${rt.subnetIds.length} subnets — edits affect all)</span>` : '';
+      // A start/reference arch can legitimately carry routes on rtb-main
+      // (e.g. private-egress's refSolution routes 0.0.0.0/0 → NAT on main),
+      // so the canvas draws an arrow for them even though main isn't one of
+      // the editable `tables` above. Surface those facts read-only here
+      // rather than silently showing an arrow the inspector can't explain.
+      const mainRouteRows = (rt && rt.isMain ? rt.routes : []).map((route) => {
+        const targetLabel = route.target === 'igw' ? 'Internet gateway' : `NAT gateway ${route.target.slice(4)}`;
+        return `<p class="arch-mini">${escapeHtml(route.destCidr)} → ${escapeHtml(targetLabel)} (main route table — read-only here)</p>`;
+      }).join('');
       html += `
         <h3>Routes${sharedNote}</h3>
         <p class="arch-mini">${escapeHtml(arch.vpc.cidr)} — local (implicit)</p>
+        ${mainRouteRows}
         ${routeRows}
         <div class="arch-row">
           <input type="text" value="0.0.0.0/0" data-ins="route-new-dest" aria-label="New route destination" />

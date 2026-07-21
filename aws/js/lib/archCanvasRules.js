@@ -1,10 +1,10 @@
 // aws/js/lib/archCanvasRules.js
 //
 // Pure decision logic behind the drag-and-drop canvas: which drops are
-// legal, what a drawn connection means (as a popover description plus an
-// apply() that performs the real archModel mutations), and which arrows to
-// draw (derived from the model, never stored). The canvas DOM defers every
-// judgment call here so it stays testable under node --test.
+// legal (canDrop), the shared route/SG-attach semantics behind the
+// console-style inspector editors (addSubnetRoute, ensureWorkloadSg), and
+// which arrows to draw (derived from the model, never stored). The canvas
+// DOM defers every judgment call here so it stays testable under node --test.
 
 import {
   getSubnet, getWorkload, getNat, getSecurityGroup, effectiveRouteTable,

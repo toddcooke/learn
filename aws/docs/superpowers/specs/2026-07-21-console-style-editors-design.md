@@ -63,6 +63,10 @@ Below the existing name/AZ/CIDR row and route-table association dropdown:
 - An **Add route** row: Destination text (default `0.0.0.0/0`) + the same
   Target select + Add button, applied via `addSubnetRoute` (create-or-
   extend own table; adding never touches main).
+  **(Amended during implementation):** the plan's `natOpts` local was
+  computed but never referenced anywhere else in the given code (dead
+  code), so it was omitted rather than adding unused state; the `Target`
+  select's NAT options are built inline via `targetOpts` instead.
 - When the effective table is explicit and shared, the section header notes
   `(shared by N subnets — edits affect all)`. When the subnet sits on
   main, the section shows only the local row + Add row (main is never
@@ -77,6 +81,15 @@ Below the existing name/AZ/CIDR row and route-table association dropdown:
   SGs by name). The stored model value is unchanged (`'0.0.0.0/0'`, a CIDR
   string, or `'sg:<id>'`); the dropdown is presentation only, initialized
   from the stored value. The add-rule button stays.
+  **(Amended during implementation):** `readSourceControls` takes `arch`
+  as a third parameter (not in the original bare signature) so its
+  "first switch to a type with no field yet" fallback can cover the `sg`
+  branch too, not just `cidr` as originally called out — otherwise picking
+  "Security group" before its `<select>` exists in the DOM would read back
+  as `'0.0.0.0/0'` and snap the type select back to "Anywhere-IPv4" on the
+  next render. The `Security group` option is disabled in the type select
+  when the arch has no security groups, so there's always a real `sg:<id>`
+  to fall back to whenever the option is pickable.
 - **Workload inspector** gains an **Inbound rules** section (like the
   console's instance Security tab): a read-only list of every rule on the
   workload's attached SGs (`<sg name>: TCP <ports> from <source label>`),

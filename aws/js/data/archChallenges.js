@@ -85,7 +85,7 @@ function haWebSolution() {
   addSgRule(arch, webSg.id, { portFrom: 80, source: `sg:${albSg.id}` });
   addWorkload(arch, {
     type: 'alb', name: 'web-alb', role: 'lb',
-    subnetIds: [pubA.id, pubB.id], sgIds: [albSg.id], port: 443,
+    subnetIds: [pubA.id, pubB.id], sgIds: [albSg.id], port: 443, publicIp: true,
   });
   addWorkload(arch, {
     type: 'ec2', name: 'web-1', role: 'web',
@@ -126,7 +126,7 @@ function threeTierSolution() {
   addSgRule(arch, dbSg.id, { portFrom: 5432, source: `sg:${appSg.id}` });
   addWorkload(arch, {
     type: 'alb', name: 'app-alb', role: 'lb',
-    subnetIds: [pubA.id, pubB.id], sgIds: [albSg.id], port: 443,
+    subnetIds: [pubA.id, pubB.id], sgIds: [albSg.id], port: 443, publicIp: true,
   });
   addWorkload(arch, {
     type: 'ec2', name: 'app-1', role: 'app',

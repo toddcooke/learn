@@ -16,6 +16,7 @@
       --arch-surface-muted: #f3f4f6;
       --arch-fail-bg: #fef2f2;
       --arch-ok-bg: #f0fdf4;
+      --oc-dot: #dfe2e8;  /* canvas grid dots */
     }
     @media (prefers-color-scheme: dark) {
       :root {
@@ -33,6 +34,7 @@
         --arch-surface-muted: #334155;
         --arch-fail-bg: #450a0a;
         --arch-ok-bg: #052e16;
+        --oc-dot: #33415c;
       }
     }
     #arch-content { max-width: 1400px; margin: 0 auto; padding: 1.5rem; }
@@ -45,26 +47,64 @@
     /* Workbench: form builder + task pane, stacking on narrow screens */
     .arch-workbench { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 1rem; align-items: start; }
     @media (max-width: 1100px) { .arch-workbench { grid-template-columns: 1fr; } }
-    /* CloudFormation-shaped resource cards */
-    .cg-card { border: 1px solid var(--color-border); border-radius: 8px; padding: 0.6rem 0.8rem; margin-bottom: 0.7rem; }
-    .cg-head { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; }
-    .cg-head input[data-act="res-id"] { font-family: ui-monospace, monospace; font-weight: 600; width: 12rem; }
-    .cg-type { font-family: ui-monospace, monospace; font-size: 0.78rem; color: var(--color-primary); cursor: help; }
-    .cg-actions { margin-left: auto; display: flex; gap: 0.15rem; align-items: center; }
-    button.cg-move { background: transparent; color: var(--color-muted); border: none; padding: 0 0.25rem; font-size: 0.95rem; }
-    button.cg-move:hover:not(:disabled) { color: var(--color-primary); }
-    button.cg-move:disabled { opacity: 0.35; cursor: default; }
-    .cg-row { display: grid; grid-template-columns: 13rem minmax(0, 1fr); gap: 0.3rem 0.8rem;
-              align-items: center; margin-bottom: 0.35rem; }
-    .cg-label { font-family: ui-monospace, monospace; font-size: 0.78rem; color: var(--color-muted); cursor: help; }
-    .cg-field { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+    /* Obsidian-style resource canvas */
+    .cg-add-row { margin-bottom: 0.6rem; }
+    .oc-canvas { position: relative; overflow: auto; height: 75vh; min-height: 560px;
+                 border: 1px solid var(--color-border); border-radius: 8px; background: var(--arch-surface); }
+    .oc-surface { position: relative;
+                  background-image: radial-gradient(circle, var(--oc-dot) 1px, transparent 1px);
+                  background-size: 24px 24px; }
+    .oc-lane { position: absolute; top: 0; border-left: 1px dashed var(--color-border); pointer-events: none; }
+    .oc-lane-global { border-left: none; }
+    .oc-lane-label { display: inline-block; margin: 8px 0 0 10px; font-size: 0.7rem;
+                     text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-muted); }
+    .oc-card { position: absolute; background: var(--arch-surface); border: 1px solid var(--color-border);
+               border-radius: 10px; padding: 0.5rem 0.65rem; cursor: grab; user-select: none; }
+    .oc-card.oc-dragging { cursor: grabbing; z-index: 30; opacity: 0.92; }
+    .oc-card.oc-selected { border-color: var(--color-primary); outline: 1.5px solid var(--color-primary); }
+    .oc-card.oc-can-accept { outline: 2px dashed var(--color-success); outline-offset: 2px; }
+    .oc-card input, .oc-card select, .oc-card button { cursor: auto; user-select: auto; }
+    .oc-dot { position: absolute; width: 11px; height: 11px; border-radius: 50%; background: var(--arch-surface);
+              border: 1.5px solid var(--color-primary); opacity: 0; transition: opacity 80ms; cursor: crosshair; z-index: 5; }
+    .oc-card:hover .oc-dot, .oc-card.oc-selected .oc-dot { opacity: 1; }
+    .oc-dot[data-side="n"] { top: -6px; left: calc(50% - 6px); }
+    .oc-dot[data-side="s"] { bottom: -6px; left: calc(50% - 6px); }
+    .oc-dot[data-side="e"] { right: -6px; top: calc(50% - 6px); }
+    .oc-dot[data-side="w"] { left: -6px; top: calc(50% - 6px); }
+    .oc-az-badge { font-size: 0.68rem; color: var(--color-muted); margin: 0.1rem 0 0.3rem; }
+    .oc-edges { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+    .oc-edges path.oc-edge { fill: none; stroke: var(--color-muted); stroke-width: 1.6; }
+    .oc-edges path.oc-edge-selected { stroke: var(--color-primary); stroke-width: 2.2; }
+    .oc-edges path.oc-edge-temp { stroke: var(--color-primary); stroke-dasharray: 6 5; }
+    .oc-edges path.oc-hit { fill: none; pointer-events: stroke; stroke: transparent; stroke-width: 12; cursor: pointer; }
+    .oc-arrhead { fill: var(--color-muted); }
+    .oc-arrhead-selected { fill: var(--color-primary); }
+    .oc-labels { position: absolute; inset: 0; pointer-events: none; }
+    .oc-label { position: absolute; transform: translate(-50%, -50%); font-family: ui-monospace, monospace;
+                font-size: 0.66rem; color: var(--color-muted); background: var(--arch-surface);
+                border: 1px solid var(--color-border); border-radius: 999px; padding: 0 0.4rem; white-space: nowrap; }
+    .oc-label-selected { color: var(--color-primary); border-color: var(--color-primary); }
+    .oc-toolbar { position: absolute; z-index: 40; background: var(--arch-surface); border: 1px solid var(--color-border);
+                  border-radius: 8px; padding: 2px 4px; box-shadow: 0 4px 14px rgba(0,0,0,0.3); }
+    .oc-toolbar button { background: transparent; border: none; color: var(--color-danger); font-size: 0.9rem; }
+    .oc-ref { font-family: ui-monospace, monospace; font-size: 0.74rem; }
+    .oc-unset { color: var(--color-muted); font-style: italic; }
+    .cg-head { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.15rem; }
+    .cg-head input[data-act="res-id"] { font-family: ui-monospace, monospace; font-weight: 600; width: 100%; }
+    .cg-type { font-family: ui-monospace, monospace; font-size: 0.72rem; color: var(--color-primary);
+               cursor: help; margin-bottom: 0.3rem; }
+    .cg-row { display: grid; grid-template-columns: 104px minmax(0, 1fr); gap: 0.2rem 0.5rem;
+              align-items: center; margin-bottom: 0.3rem; }
+    .cg-label { font-family: ui-monospace, monospace; font-size: 0.7rem; color: var(--color-muted); cursor: help; }
+    .cg-field { display: flex; flex-wrap: wrap; gap: 0.3rem; align-items: center; }
     .cg-problem { border-left: 3px solid var(--color-danger); background: var(--arch-fail-bg);
-                  font-size: 0.8rem; padding: 0.25rem 0.5rem; margin: 0.3rem 0; }
+                  font-size: 0.75rem; padding: 0.2rem 0.4rem; margin: 0.25rem 0; }
     button.fm-add { background: transparent; color: var(--color-primary); border: 1px dashed var(--color-border); }
-    #arch-forms input, #arch-forms select { font: inherit; padding: 0.25rem 0.4rem; border: 1px solid var(--color-border);
+    #arch-forms input, #arch-forms select { font: inherit; padding: 0.2rem 0.35rem; border: 1px solid var(--color-border);
                                             border-radius: 4px; background: var(--arch-surface); color: inherit; min-width: 0; }
-    #arch-forms input[type="text"] { width: 11rem; font-family: ui-monospace, monospace; }
-    #arch-forms input[type="number"] { width: 5rem; }
+    #arch-forms .oc-card input[type="text"] { width: 100%; font-family: ui-monospace, monospace; font-size: 0.8rem; }
+    #arch-forms input[type="number"] { width: 4.2rem; font-size: 0.8rem; }
+    #arch-forms .oc-card select { font-size: 0.8rem; }
     button.arch-del { background: transparent; color: var(--color-danger); border: none; padding: 0 0.3rem; font-size: 1rem; }
     .arch-panel { border: 1px solid var(--color-border); border-radius: 8px;
                   background: var(--arch-surface); padding: 1rem; }

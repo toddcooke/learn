@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { graphToArch, archToGraph, createGraph, pascal } from './archGraph.js';
+import {
+  graphToArch, archToGraph, createGraph, pascal,
+  layoutGraph, laneForX, laneX, CANVAS,
+} from './archGraph.js';
 import { createArch, getSubnet, getSecurityGroup, effectiveRouteTable } from './archModel.js';
 import { validateStructure } from './archValidate.js';
 import { evaluateGoals } from './archGoals.js';
@@ -227,6 +230,43 @@ test('an empty required ref list reads as missing', () => {
   const { problems } = graphToArch(g);
   assert.ok(problems.some((p) => p.id === 'Lb' && /Subnets is required/.test(p.message)));
   assert.ok(!problems.some((p) => /SecurityGroups/.test(p.message)), 'optional empty lists stay silent');
+});
+
+test('layoutGraph places subnets in their AZ lane and members beneath their subnet', () => {
+  const model = ARCH_CHALLENGES.find((c) => c.id === 'ha-web').refSolution();
+  const graph = layoutGraph(archToGraph(model));
+  for (const r of graph.resources) {
+    assert.ok(r.pos && Number.isFinite(r.pos.x) && Number.isFinite(r.pos.y), `${r.id} has pos`);
+  }
+  const byId = (id) => graph.resources.find((r) => r.id === id);
+  for (const r of graph.resources.filter((x) => x.type === 'AWS::EC2::Subnet')) {
+    const az = String(r.props.AvailabilityZone).slice(-1);
+    assert.equal(laneForX(r.pos.x + CANVAS.cardWidth / 2), az, `${r.id} sits in lane ${az}`);
+  }
+  const web1 = byId('Web1');
+  const homeLane = laneForX(byId(web1.props.SubnetId).pos.x + CANVAS.cardWidth / 2);
+  assert.equal(laneForX(web1.pos.x + CANVAS.cardWidth / 2), homeLane, 'instance shares its subnet lane');
+  // Stacked cards in one column never overlap vertically.
+  const columns = new Map();
+  for (const r of graph.resources) {
+    const lane = laneForX(r.pos.x + CANVAS.cardWidth / 2) || 'global';
+    if (!columns.has(lane)) columns.set(lane, []);
+    columns.get(lane).push(r);
+  }
+  for (const cards of columns.values()) {
+    const sorted = [...cards].sort((a, b) => a.pos.y - b.pos.y);
+    for (let i = 1; i < sorted.length; i += 1) {
+      assert.ok(sorted[i].pos.y >= sorted[i - 1].pos.y, 'stacking is ordered');
+    }
+  }
+  assert.equal(laneForX(laneX('b') + 10), 'b');
+  assert.equal(laneForX(CANVAS.globalX + 10), null);
+});
+
+test('layoutGraph leaves existing positions alone', () => {
+  const graph = { resources: [{ id: 'Vpc', type: 'AWS::EC2::VPC', props: { CidrBlock: '10.0.0.0/16' }, pos: { x: 500, y: 300 } }] };
+  layoutGraph(graph);
+  assert.deepEqual(graph.resources[0].pos, { x: 500, y: 300 });
 });
 
 test('archToGraph tolerates legacy drafts that pass the shallow storage gate', () => {

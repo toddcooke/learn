@@ -48,6 +48,91 @@ export function createGraph() {
 }
 
 // ---------------------------------------------------------------------------
+// Canvas geometry + auto-layout. pos is presentation metadata on each graph
+// resource ({ x, y }); graphToArch ignores it entirely. The canvas DOM and
+// this pure layout share one geometry so lane math stays testable.
+// ---------------------------------------------------------------------------
+
+export const CANVAS = {
+  globalX: 20,      // x of the "VPC and global" column's cards
+  lanesX: 320,      // where AZ lane a begins
+  laneWidth: 360,
+  cardWidth: 280,
+  topY: 46,
+  gapY: 18,
+};
+
+export function laneX(letter) {
+  return CANVAS.lanesX + (letter.charCodeAt(0) - 97) * CANVAS.laneWidth + 24;
+}
+
+// Which AZ lane a card CENTER x falls in; null = the global column.
+export function laneForX(centerX) {
+  if (centerX < CANVAS.lanesX) return null;
+  const i = Math.floor((centerX - CANVAS.lanesX) / CANVAS.laneWidth);
+  return ['a', 'b', 'c'][Math.max(0, Math.min(2, i))];
+}
+
+// Rough card height from what the card renders: header + one row per
+// visible prop (+ ingress rules) + sugar rows. Only used to stack initial
+// positions without overlap; user drags overwrite everything.
+export function estimateCardHeight(res) {
+  const spec = RESOURCE_TYPES[res.type];
+  if (!spec) return 90;
+  let rows = 0;
+  for (const [name, ps] of Object.entries(spec.props)) {
+    if (ps.ignored || ps.check === 'tags') continue;
+    if (res.type === 'AWS::EC2::Subnet' && name === 'AvailabilityZone') continue;
+    rows += 1;
+    if (ps.check === 'ingress') {
+      rows += (Array.isArray(res.props?.SecurityGroupIngress) ? res.props.SecurityGroupIngress.length : 0) + 1;
+    }
+  }
+  if (spec.kind === 'workload') rows += 2; // Role/Port sugar
+  // Zero-row cards render a two-line "works by being referenced" note.
+  return 84 + (rows === 0 ? 48 : rows * 30);
+}
+
+// Assigns pos to every resource that lacks one: subnets stack in their AZ
+// lane, Instances/NAT gateways stack beneath the subnet they reference,
+// everything else stacks in the global column in graph order.
+export function layoutGraph(graph) {
+  const resources = Array.isArray(graph?.resources) ? graph.resources : [];
+  const bottoms = { global: CANVAS.topY, a: CANVAS.topY, b: CANVAS.topY, c: CANVAS.topY };
+  const hasPos = (r) => r.pos && Number.isFinite(r.pos.x) && Number.isFinite(r.pos.y);
+  // Positioned cards push their column's stacking floor down first.
+  for (const r of resources) {
+    if (!hasPos(r)) continue;
+    const lane = laneForX(r.pos.x + CANVAS.cardWidth / 2) || 'global';
+    bottoms[lane] = Math.max(bottoms[lane], r.pos.y + estimateCardHeight(r) + CANVAS.gapY);
+  }
+  const place = (r, lane) => {
+    const x = lane === 'global' ? CANVAS.globalX : laneX(lane);
+    r.pos = { x, y: bottoms[lane] };
+    bottoms[lane] += estimateCardHeight(r) + CANVAS.gapY;
+  };
+  const kindOfType = (t) => (RESOURCE_TYPES[t] ? RESOURCE_TYPES[t].kind : null);
+  const subnetLane = {};
+  for (const r of resources) {
+    if (kindOfType(r.type) !== 'subnet') continue;
+    const az = String(r.props?.AvailabilityZone ?? `${AZ_PREFIX}a`).slice(-1);
+    const lane = ['a', 'b', 'c'].includes(az) ? az : 'a';
+    subnetLane[r.id] = lane;
+    if (!hasPos(r)) place(r, lane);
+    else subnetLane[r.id] = laneForX(r.pos.x + CANVAS.cardWidth / 2) || lane;
+  }
+  for (const r of resources) {
+    if (hasPos(r)) continue;
+    const kind = kindOfType(r.type);
+    if (kind === 'subnet') continue;
+    const memberSubnet = (kind === 'nat' || r.type === 'AWS::EC2::Instance')
+      ? subnetLane[r.props?.SubnetId] : undefined;
+    place(r, memberSubnet || 'global');
+  }
+  return graph;
+}
+
+// ---------------------------------------------------------------------------
 // graph -> arch
 // ---------------------------------------------------------------------------
 

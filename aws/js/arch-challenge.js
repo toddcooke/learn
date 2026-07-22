@@ -3,8 +3,8 @@
 // Standalone page logic for architecture-challenge.html. Not part of the
 // hash-router SPA and not in scripts/check-drift.mjs's SHARED list. The
 // CloudFormation-shaped resource graph is the single source of truth: the
-// form builder (arch-graph-forms.js) edits it card by card, and every edit
-// maps through js/lib/archGraph.js into the arch model that Check
+// canvas builder (arch-graph-canvas.js) edits it card by card, and every
+// edit maps through js/lib/archGraph.js into the arch model that Check
 // validates. All model logic lives in js/lib/ (pure, node --test covered);
 // this file wires the forms and the task panel together.
 
@@ -15,7 +15,7 @@ import { createArch } from './lib/archModel.js';
 import { validateStructure, evaluateBestPractices } from './lib/archValidate.js';
 import { evaluateGoals } from './lib/archGoals.js';
 import { graphToArch, archToGraph } from './lib/archGraph.js';
-import { renderGraphForms, unmountGraphForms } from './arch-graph-forms.js';
+import { renderGraphCanvas, unmountGraphCanvas } from './arch-graph-canvas.js';
 
 const store = createStore();
 
@@ -75,6 +75,10 @@ function recompute() {
 }
 
 function openFromHash() {
+  // Direct hash jumps between challenges never pass through the landing
+  // branch — clear canvas selection/gesture state here so nothing (like a
+  // same-named edge selection) survives into the next challenge.
+  unmountGraphCanvas();
   const id = window.location.hash.replace(/^#\/?/, '');
   challenge = findChallenge(id);
   results = null;
@@ -98,19 +102,25 @@ function changed() {
   renderAll();
 }
 
+// Card moves are presentation-only: persist positions without touching
+// Check results or forcing a re-render (the canvas already moved the DOM).
+function layoutChanged() {
+  store.setArchGraph(challenge.id, graph);
+}
+
 function renderAll() {
   const landing = document.getElementById('arch-landing');
   const workbench = document.getElementById('arch-workbench');
   landing.hidden = !!challenge;
   workbench.hidden = !challenge;
   if (!challenge) {
-    unmountGraphForms();
+    unmountGraphCanvas();
     renderLanding(landing);
     return;
   }
   renderHead(document.getElementById('arch-head'));
-  renderGraphForms(document.getElementById('arch-forms'), {
-    graph, challenge, problems: mapped.problems, onChange: changed,
+  renderGraphCanvas(document.getElementById('arch-forms'), {
+    graph, challenge, problems: mapped.problems, onChange: changed, onLayout: layoutChanged,
   });
   renderTask(document.getElementById('arch-task'));
 }

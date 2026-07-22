@@ -138,12 +138,29 @@ function sugarRows(res, challenge) {
   return roleRow + portRow;
 }
 
+// Empty-bodied resources must say HOW they get used, or they read as
+// dead ends ("no way to attach the internet gateway").
+const EMPTY_NOTES = {
+  'AWS::EC2::InternetGateway': 'No properties — attach it to the VPC with an AWS::EC2::VPCGatewayAttachment.',
+  'AWS::EC2::EIP': 'No properties — a NAT gateway references it via AllocationId.',
+};
+
 function card(graph, res, challenge, problems) {
   const spec = RESOURCE_TYPES[res.type];
   const rows = Object.entries(spec.props)
     .filter(([, ps]) => !ps.ignored && ps.check !== 'tags')
     .map(([name, ps]) => propRow(graph, res, name, ps))
     .join('');
+  // One-click shortcut for the classic gotcha: an IGW does nothing until a
+  // VPCGatewayAttachment exists; offer to create it pre-wired.
+  const unattachedIgw = kindOf(res.type) === 'igw'
+    && graph.resources.some((r) => kindOf(r.type) === 'vpc')
+    && !graph.resources.some((r) => r.type === 'AWS::EC2::VPCGatewayAttachment'
+      && r.props.InternetGatewayId === res.id);
+  const attachButton = unattachedIgw
+    ? `<button type="button" class="fm-add" data-act="igw-attach" data-res="${esc(res.id)}"
+         title="Creates an AWS::EC2::VPCGatewayAttachment wired to this gateway and the VPC">+ Attach to VPC</button>`
+    : '';
   const cardProblems = problems.filter((pr) => pr.id === res.id).map((pr) =>
     `<p class="cg-problem">${esc(pr.message)}</p>`).join('');
   const azBadge = res.type === 'AWS::EC2::Subnet'
@@ -158,7 +175,8 @@ function card(graph, res, challenge, problems) {
       <div class="cg-type" ${typeDoc(res.type) ? `title="${esc(typeDoc(res.type))}"` : ''}>${esc(res.type)}</div>
       ${azBadge}
       ${cardProblems}
-      ${rows || '<p class="arch-mini">No properties — this resource works by being referenced.</p>'}
+      ${rows || `<p class="arch-mini">${esc(EMPTY_NOTES[res.type] || 'No properties — this resource works by being referenced.')}</p>`}
+      ${attachButton}
       ${sugarRows(res, challenge)}
     </div>`;
 }
@@ -669,6 +687,17 @@ function applyForm(event, phase) {
       const type = el.dataset.type;
       const base = type.split('::').pop();
       graph.resources.push({ id: uniqueId(graph, base === 'VPC' ? 'Vpc' : base), type, props: prefills(graph, type) });
+      break;
+    }
+    case 'igw-attach': {
+      if (!res) return;
+      const vpc = graph.resources.find((r) => kindOf(r.type) === 'vpc');
+      if (!vpc) return;
+      graph.resources.push({
+        id: uniqueId(graph, 'GatewayAttachment'),
+        type: 'AWS::EC2::VPCGatewayAttachment',
+        props: { VpcId: vpc.id, InternetGatewayId: res.id },
+      });
       break;
     }
     case 'res-id': {

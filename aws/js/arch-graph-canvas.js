@@ -211,8 +211,9 @@ export function renderGraphCanvas(mount, ctx) {
   const maxBottom = Math.max(760, ...graph.resources.map((r) => (r.pos?.y ?? 0) + estimateCardHeight(r) + 200));
   const globalProblems = problems.filter((pr) => pr.id === null).map((pr) =>
     `<p class="cg-problem">${esc(pr.message)}</p>`).join('');
-  const typeOpts = Object.keys(RESOURCE_TYPES).map((t) =>
-    `<option value="${esc(t)}">${esc(t)}</option>`).join('');
+  const addChips = Object.keys(RESOURCE_TYPES).map((t) => `
+    <button type="button" class="oc-add-chip" data-act="res-add" data-type="${esc(t)}"
+      title="${esc(t)}${typeDoc(t) ? ` — ${typeDoc(t)}` : ''}">+ ${esc(t.split('::').pop())}</button>`).join('');
   const lanes = AZS.map((az, i) => `
     <div class="oc-lane" style="left: ${CANVAS.lanesX + i * CANVAS.laneWidth}px; width: ${CANVAS.laneWidth}px; height: ${maxBottom}px;">
       <span class="oc-lane-label">${AZ_PREFIX}${az}</span>
@@ -220,10 +221,7 @@ export function renderGraphCanvas(mount, ctx) {
 
   mount.innerHTML = `
     <h2>Resources</h2>
-    <div class="arch-row cg-add-row">
-      <select data-act="add-type" aria-label="Resource type">${typeOpts}</select>
-      <button type="button" class="fm-add" data-act="res-add">+ Add resource</button>
-    </div>
+    <div class="arch-row cg-add-row">${addChips}</div>
     ${globalProblems}
     <div class="oc-canvas" data-graph-for="${esc(challenge.id)}">
       <div class="oc-surface" style="width: ${surfaceW}px; height: ${maxBottom}px;">
@@ -620,7 +618,6 @@ function applyForm(event, phase) {
   if (!el || !currentCtx) return;
   if (phase === 'click' && el.tagName !== 'BUTTON') return;
   if (phase === 'change' && el.tagName === 'BUTTON') return;
-  if (el.dataset.act === 'add-type') return;
   const { graph } = currentCtx;
   const res = graph.resources.find((r) => r.id === el.dataset.res);
   const act = el.dataset.act;
@@ -628,7 +625,7 @@ function applyForm(event, phase) {
   switch (act) {
     case 'tb-del': deleteSelection(mountOf()); return;
     case 'res-add': {
-      const type = el.closest('.arch-row').querySelector('[data-act="add-type"]').value;
+      const type = el.dataset.type;
       const base = type.split('::').pop();
       graph.resources.push({ id: uniqueId(graph, base === 'VPC' ? 'Vpc' : base), type, props: prefills(graph, type) });
       break;

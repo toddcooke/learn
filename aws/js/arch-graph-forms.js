@@ -149,13 +149,13 @@ export function renderGraphForms(mount, ctx) {
     `<option value="${esc(t)}">${esc(t)}</option>`).join('');
   mount.innerHTML = `
     <h2>Resources</h2>
-    ${globalProblems}
-    ${graph.resources.map((res) => card(graph, res, challenge, problems)).join('')
-      || '<p class="arch-mini">No resources yet — add an AWS::EC2::VPC to start.</p>'}
-    <div class="arch-row">
+    <div class="arch-row cg-add-row">
       <select data-act="add-type" aria-label="Resource type">${typeOpts}</select>
       <button type="button" class="fm-add" data-act="res-add">+ Add resource</button>
     </div>
+    ${globalProblems}
+    ${graph.resources.map((res) => card(graph, res, challenge, problems)).join('')
+      || '<p class="arch-mini">No resources yet — add an AWS::EC2::VPC to start.</p>'}
     <p class="arch-mini">References are dropdowns instead of !Ref; hover a property name for its docs.
       Security groups are inbound-only here; outbound is treated as allow-all.</p>`;
   wire(mount);

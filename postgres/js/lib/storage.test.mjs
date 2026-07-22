@@ -250,3 +250,20 @@ test('a minimally-shaped arch draft round-trips non-null', () => {
   const raw = '{"vpc":{},"subnets":[],"natGateways":[],"routeTables":[],"securityGroups":[],"workloads":[]}';
   assert.notEqual(storeWithRaw(raw).getArchDraft('x'), null);
 });
+
+test('arch graphs: set/get/clear round-trip per challenge id', () => {
+  const store = createStore(fakeBackend());
+  const graph = { resources: [{ id: 'Vpc', type: 'AWS::EC2::VPC', props: { CidrBlock: '10.0.0.0/16' } }] };
+  assert.equal(store.getArchGraph('two-tier'), null);
+  store.setArchGraph('two-tier', graph);
+  assert.deepEqual(store.getArchGraph('two-tier'), graph);
+  assert.equal(store.getArchGraph('sandbox'), null, 'ids are independent');
+  store.clearArchGraph('two-tier');
+  assert.equal(store.getArchGraph('two-tier'), null);
+});
+
+test('arch graph getter survives wrong-shape stored values', () => {
+  assert.equal(storeWithRaw('42').getArchGraph('x'), null);
+  assert.equal(storeWithRaw('{"foo":1}').getArchGraph('x'), null);
+  assert.equal(storeWithRaw('{"resources":{}}').getArchGraph('x'), null);
+});

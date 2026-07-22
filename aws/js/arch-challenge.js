@@ -2,11 +2,11 @@
 //
 // Standalone page logic for architecture-challenge.html. Not part of the
 // hash-router SPA and not in scripts/check-drift.mjs's SHARED list. The
-// arch model is edited directly by the form builder (arch-forms.js); this
-// file wires the forms and the task panel together, persists drafts, and
-// runs Check. All model logic lives in js/lib/ (pure, node --test
-// covered). Re-renders happen on 'change' (committed edits), so text
-// inputs keep focus while typing.
+// CloudFormation-shaped resource graph is the single source of truth: the
+// form builder (arch-graph-forms.js) edits it card by card, and every edit
+// maps through js/lib/archGraph.js into the arch model that Check
+// validates. All model logic lives in js/lib/ (pure, node --test covered);
+// this file wires the forms and the task panel together.
 
 import { escapeHtml } from './lib/html.js';
 import { createStore } from './lib/storage.js';
@@ -14,7 +14,8 @@ import { ARCH_CHALLENGES } from './data/archChallenges.js';
 import { createArch } from './lib/archModel.js';
 import { validateStructure, evaluateBestPractices } from './lib/archValidate.js';
 import { evaluateGoals } from './lib/archGoals.js';
-import { renderForms, unmountForms } from './arch-forms.js';
+import { graphToArch, archToGraph } from './lib/archGraph.js';
+import { renderGraphForms, unmountGraphForms } from './arch-graph-forms.js';
 
 const store = createStore();
 
@@ -33,7 +34,8 @@ const SANDBOX = {
 };
 
 let challenge = null; // null = landing
-let arch = null;
+let graph = null;
+let mapped = { arch: createArch(), problems: [] }; // graphToArch of the current graph
 let results = null;   // { errors, goalRows, bpRows } from the last Check
 let hintsShown = 0;
 let failedChecks = 0;
@@ -43,6 +45,35 @@ function findChallenge(id) {
   return ARCH_CHALLENGES.find((c) => c.id === id) || null;
 }
 
+function startGraph() {
+  return archToGraph(challenge.startState ? challenge.startState() : createArch());
+}
+
+// The draft is a resource graph. Legacy model-JSON drafts (both builder
+// eras) migrate by converting once; a corrupted draft must degrade to the
+// start state, never a blank page, and is only cleared on success.
+function draftGraph() {
+  const saved = store.getArchGraph(challenge.id);
+  if (saved) return saved;
+  const legacy = store.getArchDraft(challenge.id);
+  if (legacy) {
+    let migrated;
+    try {
+      migrated = archToGraph(legacy);
+    } catch {
+      return startGraph(); // leave the legacy draft in place
+    }
+    store.setArchGraph(challenge.id, migrated);
+    store.clearArchDraft(challenge.id);
+    return migrated;
+  }
+  return startGraph();
+}
+
+function recompute() {
+  mapped = graphToArch(graph);
+}
+
 function openFromHash() {
   const id = window.location.hash.replace(/^#\/?/, '');
   challenge = findChallenge(id);
@@ -50,10 +81,10 @@ function openFromHash() {
   hintsShown = 0;
   failedChecks = 0;
   if (challenge) {
-    arch = store.getArchDraft(challenge.id)
-      || (challenge.startState ? challenge.startState() : createArch());
+    graph = draftGraph();
+    recompute();
   } else {
-    arch = null;
+    graph = null;
   }
   renderAll();
 }
@@ -61,8 +92,9 @@ function openFromHash() {
 // Every committed edit funnels through here: persist the draft, invalidate
 // stale results, re-render everything.
 function changed() {
-  store.setArchDraft(challenge.id, arch);
+  store.setArchGraph(challenge.id, graph);
   results = null;
+  recompute();
   renderAll();
 }
 
@@ -72,12 +104,14 @@ function renderAll() {
   landing.hidden = !!challenge;
   workbench.hidden = !challenge;
   if (!challenge) {
-    unmountForms();
+    unmountGraphForms();
     renderLanding(landing);
     return;
   }
   renderHead(document.getElementById('arch-head'));
-  renderForms(document.getElementById('arch-forms'), { arch, challenge, onChange: changed });
+  renderGraphForms(document.getElementById('arch-forms'), {
+    graph, challenge, problems: mapped.problems, onChange: changed,
+  });
   renderTask(document.getElementById('arch-task'));
 }
 
@@ -97,12 +131,12 @@ function renderLanding(mount) {
       </a>`;
   }).join('');
   mount.innerHTML = `
-    <p>Each challenge gives you a scenario; build the architecture that satisfies it
-       with console-style forms — subnets, route tables, security groups, and
-       workloads. Designs are checked three ways: <strong>structural</strong> (would
-       AWS accept it), <strong>functional</strong> (a connectivity simulation of the
-       scenario's goals), and <strong>best practices</strong> (advisory score).
-       Drafts autosave locally.</p>
+    <p>Each challenge gives you a scenario; build the CloudFormation resource graph
+       that satisfies it with forms — real resource types and property names, but
+       every reference is a dropdown instead of a !Ref. Designs are checked three
+       ways: <strong>structural</strong> (would AWS accept it), <strong>functional</strong>
+       (a connectivity simulation of the scenario's goals), and
+       <strong>best practices</strong> (advisory score). Drafts autosave locally.</p>
     <div class="arch-cards">
       ${cards}
       <a class="arch-card" href="#sandbox"><h3>Sandbox</h3>
@@ -118,7 +152,13 @@ function renderHead(mount) {
 }
 
 function runCheck() {
-  const { errors } = validateStructure(arch);
+  const { arch, problems } = mapped;
+  // Card-level problems are structural failures too — a missing required
+  // property or dangling pick must fail Check, not silently vanish.
+  const problemErrors = problems.map((p) => ({
+    message: p.id ? `${p.id}: ${p.message}` : p.message,
+  }));
+  const errors = [...problemErrors, ...validateStructure(arch).errors];
   const goalRows = errors.length === 0 ? evaluateGoals(arch, challenge) : null;
   const bpRows = evaluateBestPractices(arch, challenge.bestPractices);
   results = { errors, goalRows, bpRows };
@@ -138,11 +178,12 @@ function runCheck() {
 }
 
 function renderTask(mount) {
+  const arch = mapped.arch;
   const rolesHtml = challenge.roles.map((role) => {
     const assigned = arch.workloads.filter((w) => w.role === role.id);
     return `<li>${escapeHtml(role.label)}: ${assigned.length
       ? escapeHtml(assigned.map((w) => w.name).join(', '))
-      : '<em>unassigned — set a workload\'s role</em>'}</li>`;
+      : '<em>unassigned — set a Role tag</em>'}</li>`;
   }).join('');
 
   let resultsHtml = '';
@@ -202,14 +243,18 @@ document.getElementById('arch-task').addEventListener('click', (event) => {
   if (el.dataset.action === 'hint') { hintsShown += 1; renderAll(); }
   if (el.dataset.action === 'reveal'
       && window.confirm('Replace your current design with the reference solution?')) {
-    arch = challenge.refSolution();
+    graph = archToGraph(challenge.refSolution());
     changed();
   }
   if (el.dataset.action === 'reset'
       && window.confirm('Discard your design and start this challenge over?')) {
+    store.clearArchGraph(challenge.id);
     store.clearArchDraft(challenge.id);
-    arch = challenge.startState ? challenge.startState() : createArch();
+    graph = startGraph();
     results = null;
+    hintsShown = 0;   // a fresh attempt starts with hints and the
+    failedChecks = 0; // reference-solution reveal re-gated, like openFromHash
+    recompute();
     renderAll();
   }
 });

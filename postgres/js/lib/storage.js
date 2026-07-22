@@ -174,6 +174,20 @@ export function createStore(backend) {
         /* ignore */
       }
     },
+    getArchGraph(challengeId) {
+      const value = load(b, `arch-graph:${challengeId}`, null);
+      return isPlainObject(value) && Array.isArray(value.resources) ? value : null;
+    },
+    setArchGraph(challengeId, graph) {
+      save(b, `arch-graph:${challengeId}`, graph);
+    },
+    clearArchGraph(challengeId) {
+      try {
+        b.removeItem(`${NAMESPACE}:arch-graph:${challengeId}`);
+      } catch {
+        /* ignore */
+      }
+    },
     clearQuizHistory() {
       try {
         b.removeItem(`${NAMESPACE}:quiz-history`);

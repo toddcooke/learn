@@ -175,7 +175,10 @@ function cfnCompletions(getCompile, getRoles) {
   };
 }
 
-function cfnHover(getCompile) {
+// Docs only: the lint extension already shows its own tooltip for the
+// diagnostic under the pointer, so repeating diagnostics here would print
+// every message twice on hover.
+function cfnHover() {
   return hoverTooltip((view, pos) => {
     const line = view.state.doc.lineAt(pos);
     const col = pos - line.from;
@@ -196,8 +199,7 @@ function cfnHover(getCompile) {
         body = propDoc(typeName, word) || 'No documentation found.';
       }
     }
-    const under = (getCompile().diagnostics || []).filter((d) => d.from <= pos && pos <= d.to);
-    if (!body && under.length === 0) return null;
+    if (!body) return null;
     return {
       pos: line.from + match.index,
       end: line.from + match.index + word.length,
@@ -205,18 +207,10 @@ function cfnHover(getCompile) {
       create() {
         const dom = document.createElement('div');
         dom.className = 'cfn-hover';
-        for (const d of under) {
-          const p = document.createElement('div');
-          p.className = `cfn-hover-diag cfn-${d.severity}`;
-          p.textContent = d.message;
-          dom.appendChild(p);
-        }
-        if (body) {
-          const p = document.createElement('div');
-          p.className = 'cfn-hover-doc';
-          p.textContent = body;
-          dom.appendChild(p);
-        }
+        const p = document.createElement('div');
+        p.className = 'cfn-hover-doc';
+        p.textContent = body;
+        dom.appendChild(p);
         return { dom };
       },
     };
@@ -285,7 +279,7 @@ export function createCfnEditor(mount, {
         siteTheme,
         linter(lintSource, { delay: 300 }),
         lintGutter(),
-        cfnHover(getCompile),
+        cfnHover(),
         updateListener,
         EditorView.lineWrapping,
       ],

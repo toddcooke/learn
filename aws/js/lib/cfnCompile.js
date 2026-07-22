@@ -156,7 +156,12 @@ export function compile(text) {
         if (!isScalar(p.key)) continue;
         const name = String(p.key.value);
         if (!r.spec.props[name]) diag('warning', p.key, `Unknown property "${name}" for ${r.typeName}.`);
-        else map.set(name, p.value);
+        // A key with no value (yaml: a Scalar wrapping null, whose range is
+        // a zero-width point wherever the next token starts) is the
+        // mid-typing state. Treat it exactly like an absent property, so a
+        // required prop reports missing-required on the resource instead of
+        // a shape error squiggling whatever line happens to follow.
+        else if (p.value != null && !(isScalar(p.value) && p.value.value == null)) map.set(name, p.value);
       }
     }
     for (const [name, ps] of Object.entries(r.spec.props)) {

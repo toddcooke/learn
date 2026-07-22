@@ -481,6 +481,59 @@ test('a valueless Properties key acts like an absent one; a scalar value stays a
   assert.ok(messages(errs(scalar)).some((m) => m === 'Properties of "W" must be a mapping.'));
 });
 
+test('a valueless property key acts like an absent one', () => {
+  // Mid-typing "Subnets:" must NOT anchor a shape error to the phantom
+  // null value (whose range points at whatever line follows) — it reads as
+  // a missing required property on the resource instead.
+  const required = compile(`${VPC_ONLY}  Alb:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Subnets:
+      Scheme: internet-facing
+`);
+  assert.deepEqual(messages(errs(required)).filter((m) => /must be a list/.test(m)), []);
+  assert.ok(messages(errs(required)).some((m) => m === 'Missing required property "Subnets" for AWS::ElasticLoadBalancingV2::LoadBalancer.'));
+  const optional = compile(`${VPC_ONLY}  S:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: us-east-1a
+      Tags:
+`);
+  assert.deepEqual(errs(optional), []);
+});
+
+test('real ALB properties are accepted without unknown-property warnings', () => {
+  const r = compile(`${VPC_ONLY}  SubA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: us-east-1a
+  SubB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: us-east-1b
+  Alb:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: my-alb
+      IpAddressType: ipv4
+      LoadBalancerAttributes:
+        - Key: idle_timeout.timeout_seconds
+          Value: "60"
+      Subnets:
+        - !Ref SubA
+        - !Ref SubB
+      Scheme: internet-facing
+`);
+  assert.deepEqual(r.diagnostics.filter((d) => /Unknown property/.test(d.message)), []);
+  assert.deepEqual(errs(r), []);
+});
+
 test('compile never throws on garbage', () => {
   for (const text of ['', ':', '\t', 'Resources: 3', 'Resources:\n  X: 4', '[1,2', 'a: *anchor']) {
     assert.doesNotThrow(() => compile(text), text);

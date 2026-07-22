@@ -67,13 +67,13 @@
     .oc-card.oc-selected { border-color: var(--color-primary); outline: 1.5px solid var(--color-primary); }
     .oc-card.oc-can-accept { outline: 2px dashed var(--color-success); outline-offset: 2px; }
     .oc-card input, .oc-card select, .oc-card button { cursor: auto; user-select: auto; }
-    .oc-dot { position: absolute; width: 11px; height: 11px; border-radius: 50%; background: var(--arch-surface);
-              border: 1.5px solid var(--color-primary); opacity: 0; transition: opacity 80ms; cursor: crosshair; z-index: 5; }
-    .oc-card:hover .oc-dot, .oc-card.oc-selected .oc-dot { opacity: 1; }
-    .oc-dot[data-side="n"] { top: -6px; left: calc(50% - 6px); }
-    .oc-dot[data-side="s"] { bottom: -6px; left: calc(50% - 6px); }
-    .oc-dot[data-side="e"] { right: -6px; top: calc(50% - 6px); }
-    .oc-dot[data-side="w"] { left: -6px; top: calc(50% - 6px); }
+    .oc-ref-row { position: relative; }
+    .oc-fdot { position: absolute; width: 11px; height: 11px; border-radius: 50%; background: var(--arch-surface);
+               border: 1.5px solid var(--color-primary); opacity: 0; transition: opacity 80ms;
+               cursor: crosshair; z-index: 5; top: 50%; margin-top: -6px; }
+    .oc-card:hover .oc-fdot, .oc-card.oc-selected .oc-fdot { opacity: 1; }
+    .oc-fdot-e { right: calc(-0.65rem - 6px); }
+    .oc-fdot-w { left: calc(-0.65rem - 6px); }
     .oc-az-badge { font-size: 0.68rem; color: var(--color-muted); margin: 0.1rem 0 0.3rem; }
     .oc-edges { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
     .oc-edges path.oc-edge { fill: none; stroke: var(--color-muted); stroke-width: 1.6; }

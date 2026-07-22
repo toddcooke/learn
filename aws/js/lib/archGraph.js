@@ -85,7 +85,8 @@ export function estimateCardHeight(res) {
     if (res.type === 'AWS::EC2::Subnet' && name === 'AvailabilityZone') continue;
     rows += 1;
     if (ps.check === 'ingress') {
-      rows += (Array.isArray(res.props?.SecurityGroupIngress) ? res.props.SecurityGroupIngress.length : 0) + 1;
+      // Ingress rule rows wrap to ~2 lines at card width.
+      rows += (Array.isArray(res.props?.SecurityGroupIngress) ? res.props.SecurityGroupIngress.length * 2 : 0) + 1;
     }
   }
   if (spec.kind === 'workload') rows += 2; // Role/Port sugar
@@ -108,7 +109,10 @@ export function layoutGraph(graph) {
   }
   const place = (r, lane) => {
     const x = lane === 'global' ? CANVAS.globalX : laneX(lane);
-    r.pos = { x, y: bottoms[lane] };
+    // auto marks estimate-placed cards; the canvas re-packs them once with
+    // MEASURED heights after the first render (estimates can undershoot),
+    // then clears the flag. User drags write pos without it.
+    r.pos = { x, y: bottoms[lane], auto: true };
     bottoms[lane] += estimateCardHeight(r) + CANVAS.gapY;
   };
   const kindOfType = (t) => (RESOURCE_TYPES[t] ? RESOURCE_TYPES[t].kind : null);

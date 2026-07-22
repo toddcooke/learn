@@ -24,20 +24,12 @@ let docWired = false;
 
 const esc = escapeHtml;
 const kindOf = (type) => RESOURCE_TYPES[type].kind;
-const displayKind = (type) => RESOURCE_TYPES[type].workloadType || RESOURCE_TYPES[type].kind;
 
-// targetKind -> { prop, list } per source type; a dropped arrow uses this
-// to pick the property. Ambiguity would be a schema bug — fail loudly.
-const ACCEPTS = {};
-for (const [type, spec] of Object.entries(RESOURCE_TYPES)) {
-  ACCEPTS[type] = {};
-  for (const [name, ps] of Object.entries(spec.props)) {
-    if (ps.ignored || ps.check === 'tags' || ps.check === 'ingress') continue;
-    const kind = ps.ref || ps.refList || (ps.getAtt && ps.getAtt.kind);
-    if (!kind) continue;
-    if (ACCEPTS[type][kind]) throw new Error(`ambiguous ref target kind ${kind} on ${type}`);
-    ACCEPTS[type][kind] = { prop: name, list: !!ps.refList };
-  }
+// The kind a ref-shaped property points at — drives which cards accept a
+// drag from that property's nub.
+function refKind(type, prop) {
+  const ps = RESOURCE_TYPES[type].props[prop];
+  return ps ? ps.ref || ps.refList || (ps.getAtt && ps.getAtt.kind) || null : null;
 }
 
 function idsOfKind(graph, kind) {
@@ -51,6 +43,8 @@ function soleId(graph, kind) {
 
 const AZS = ['a', 'b', 'c'];
 
+// Reference rows carry their own connection nubs on both card edges at
+// the row's height — dragging from a nub authors THAT property.
 function refStatus(res, name, spec, value) {
   const doc = propDoc(res.type, name);
   const label = `<label class="cg-label" ${doc ? `title="${esc(doc)}"` : ''}>${esc(name)}${spec.required ? ' *' : ''}</label>`;
@@ -58,13 +52,17 @@ function refStatus(res, name, spec, value) {
   if (spec.refList) {
     status = Array.isArray(value) && value.length
       ? `→ ${value.map(esc).join(', ')}`
-      : '<span class="oc-unset">drag from a dot to add</span>';
+      : '<span class="oc-unset">drag its ○ to add</span>';
   } else {
     status = value !== undefined && value !== ''
       ? `→ ${esc(String(value))}`
-      : '<span class="oc-unset">drag from a dot to set</span>';
+      : '<span class="oc-unset">drag its ○ to set</span>';
   }
-  return `<div class="cg-row">${label}<div class="cg-field oc-ref">${status}</div></div>`;
+  return `<div class="cg-row oc-ref-row" data-prop-row="${esc(name)}">${label}
+    <div class="cg-field oc-ref">${status}</div>
+    <span class="oc-fdot oc-fdot-w" data-prop="${esc(name)}" title="Drag onto a card to set ${esc(name)}"></span>
+    <span class="oc-fdot oc-fdot-e" data-prop="${esc(name)}" title="Drag onto a card to set ${esc(name)}"></span>
+  </div>`;
 }
 
 function propRow(graph, res, name, spec) {
@@ -154,8 +152,6 @@ function card(graph, res, challenge, problems) {
   return `
     <div class="oc-card ${sel?.kind === 'card' && sel.id === res.id ? 'oc-selected' : ''}" data-card="${esc(res.id)}"
          style="left: ${Number(pos.x)}px; top: ${Number(pos.y)}px; width: ${CANVAS.cardWidth}px;">
-      <span class="oc-dot" data-side="n"></span><span class="oc-dot" data-side="e"></span>
-      <span class="oc-dot" data-side="s"></span><span class="oc-dot" data-side="w"></span>
       <div class="cg-head">
         <input type="text" value="${esc(res.id)}" data-act="res-id" data-res="${esc(res.id)}" aria-label="Logical id" />
       </div>
@@ -235,15 +231,52 @@ export function renderGraphCanvas(mount, ctx) {
         <div class="oc-toolbar" hidden><button type="button" data-act="tb-del" title="Delete">🗑</button></div>
       </div>
     </div>
-    <p class="arch-mini">Drag cards to arrange — a subnet's lane sets its AvailabilityZone. Drag a ○ dot
-      onto another card to set that reference; click an arrow to select it, Delete removes it.
-      Security groups are inbound-only here; outbound is treated as allow-all.</p>`;
+    <p class="arch-mini">Drag cards to arrange — a subnet's lane sets its AvailabilityZone. Each reference
+      row has a ○ nub on the card edge: drag it onto a card to set that reference; click an arrow
+      to select it, Delete removes it. Security groups are inbound-only here; outbound is treated
+      as allow-all.</p>`;
 
   const canvas = mount.querySelector('.oc-canvas');
   if (scroll) { canvas.scrollLeft = scroll.left; canvas.scrollTop = scroll.top; }
+  packAutoPlaced(mount, ctx);
   redrawEdges(mount);
   positionToolbar(mount);
   wire(mount);
+}
+
+// Estimate-placed cards (pos.auto) get one measured re-pack after the DOM
+// exists: real heights can exceed the layout estimate (wrapping ingress
+// rows), and overlapping cards would swallow each other's arrow drops.
+// User-positioned cards define the floors and are never moved.
+function packAutoPlaced(mount, ctx) {
+  const { graph } = ctx;
+  const columns = new Map();
+  for (const res of graph.resources) {
+    if (!res.pos) continue;
+    const lane = laneForX(res.pos.x + CANVAS.cardWidth / 2) || 'global';
+    if (!columns.has(lane)) columns.set(lane, []);
+    columns.get(lane).push(res);
+  }
+  let movedAny = false;
+  for (const cards of columns.values()) {
+    cards.sort((a, b) => a.pos.y - b.pos.y);
+    let bottom = 0;
+    for (const res of cards) {
+      const rect = cardRect(mount, res.id);
+      if (!rect) continue;
+      if (res.pos.auto) {
+        if (res.pos.y < bottom) {
+          res.pos.y = bottom;
+          rect.el.style.top = `${bottom}px`;
+          movedAny = true;
+        }
+        delete res.pos.auto;
+        movedAny = true; // flag removal must persist too
+      }
+      bottom = Math.max(bottom, res.pos.y + rect.el.offsetHeight + CANVAS.gapY);
+    }
+  }
+  if (movedAny) ctx.onLayout();
 }
 
 export function unmountGraphCanvas() {
@@ -269,26 +302,34 @@ function cardRect(mount, id) {
   return { x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight, el };
 }
 
-// Obsidian-style edge: leave/enter on facing sides with an S-curve.
-function edgePath(a, b) {
-  const acx = a.x + a.w / 2; const acy = a.y + a.h / 2;
+// Arrows START at the property row that owns the reference: the anchor
+// sits on the card edge (left or right, whichever faces the target) at
+// that row's height — the visual mate of the row's ○ nub.
+function fieldAnchor(mount, resId, prop, towardX) {
+  const rect = cardRect(mount, resId);
+  if (!rect) return null;
+  const row = rect.el.querySelector(`[data-prop-row="${CSS.escape(prop)}"]`);
+  const y = rect.y + (row ? row.offsetTop + row.offsetHeight / 2 : rect.h / 2);
+  const dir = towardX >= rect.x + rect.w / 2 ? 1 : -1;
+  return { x: dir > 0 ? rect.x + rect.w : rect.x, y, dir };
+}
+
+// Obsidian-style S-curve from a field anchor into the facing side of the
+// target rect.
+function edgePathFrom(a, b) {
   const bcx = b.x + b.w / 2; const bcy = b.y + b.h / 2;
-  const dx = bcx - acx; const dy = bcy - acy;
-  let sx; let sy; let tx; let ty; let c1x; let c1y; let c2x; let c2y;
+  const dx = bcx - a.x; const dy = bcy - a.y;
+  const k = Math.max(40, Math.min(90, Math.hypot(dx, dy) / 2));
+  const c1x = a.x + k * a.dir; const c1y = a.y;
+  let tx; let ty; let c2x; let c2y;
   if (Math.abs(dx) >= Math.abs(dy)) {
-    const dir = dx > 0 ? 1 : -1;
-    sx = a.x + (dir > 0 ? a.w : 0); sy = acy;
-    tx = b.x + (dir > 0 ? 0 : b.w); ty = bcy;
-    const k = Math.max(40, Math.min(90, Math.abs(dx) / 2));
-    c1x = sx + k * dir; c1y = sy; c2x = tx - k * dir; c2y = ty;
+    tx = dx > 0 ? b.x : b.x + b.w; ty = bcy;
+    c2x = tx + (dx > 0 ? -k : k); c2y = ty;
   } else {
-    const dir = dy > 0 ? 1 : -1;
-    sx = acx; sy = a.y + (dir > 0 ? a.h : 0);
-    tx = bcx; ty = b.y + (dir > 0 ? 0 : b.h);
-    const k = Math.max(40, Math.min(90, Math.abs(dy) / 2));
-    c1x = sx; c1y = sy + k * dir; c2x = tx; c2y = ty - k * dir;
+    tx = bcx; ty = dy > 0 ? b.y : b.y + b.h;
+    c2x = tx; c2y = ty + (dy > 0 ? -k : k);
   }
-  return { d: `M ${sx} ${sy} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${tx} ${ty}`, mx: (sx + tx) / 2, my: (sy + ty) / 2 };
+  return { d: `M ${a.x} ${a.y} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${tx} ${ty}`, mx: (a.x + tx) / 2, my: (a.y + ty) / 2 };
 }
 
 function redrawEdges(mount) {
@@ -298,10 +339,11 @@ function redrawEdges(mount) {
   const paths = [];
   const labelHtml = [];
   for (const edge of edgesOf(currentCtx.graph)) {
-    const a = cardRect(mount, edge.res);
     const b = cardRect(mount, edge.target);
-    if (!a || !b) continue;
-    const { d, mx, my } = edgePath(a, b);
+    if (!b) continue;
+    const a = fieldAnchor(mount, edge.res, edge.prop, b.x + b.w / 2);
+    if (!a) continue;
+    const { d, mx, my } = edgePathFrom(a, b);
     const selected = sel?.kind === 'edge' && sel.res === edge.res && sel.prop === edge.prop && sel.target === edge.target;
     const ref = esc(JSON.stringify(edge));
     paths.push(`<path class="oc-edge ${selected ? 'oc-edge-selected' : ''}" d="${d}"
@@ -332,10 +374,10 @@ function positionToolbar(mount) {
     tb.querySelector('button').title = 'Delete resource';
     tb.hidden = false;
   } else {
-    const a = cardRect(mount, sel.res);
     const b = cardRect(mount, sel.target);
+    const a = b ? fieldAnchor(mount, sel.res, sel.prop, b.x + b.w / 2) : null;
     if (!a || !b) { tb.hidden = true; return; }
-    const { mx, my } = edgePath(a, b);
+    const { mx, my } = edgePathFrom(a, b);
     tb.style.left = `${mx - 20}px`;
     tb.style.top = `${my - 48}px`;
     tb.querySelector('button').title = 'Delete reference';
@@ -426,28 +468,22 @@ function uniqueId(graph, base) {
   return `${base}${n}`;
 }
 
-// Sets the inferred property for a dot-drag dropped on `target`.
-function applyLink(graph, source, target) {
-  const accepts = ACCEPTS[source.type];
-  const entry = accepts[displayKindSafe(graph, target.id)] || accepts[kindOf(target.type)];
-  if (!entry) return false;
-  if (entry.list) {
-    const list = Array.isArray(source.props[entry.prop]) ? source.props[entry.prop] : [];
-    if (!list.includes(target.id)) source.props[entry.prop] = [...list, target.id];
+// Writes a nub-drag's property when dropped on `target`.
+function applyLink(source, prop, target) {
+  const ps = RESOURCE_TYPES[source.type].props[prop];
+  if (!ps) return false;
+  if (ps.refList) {
+    const list = Array.isArray(source.props[prop]) ? source.props[prop] : [];
+    if (!list.includes(target.id)) source.props[prop] = [...list, target.id];
   } else {
-    source.props[entry.prop] = target.id;
+    source.props[prop] = target.id;
     // A route takes exactly one target, as CloudFormation would reject both.
     if (source.type === 'AWS::EC2::Route') {
-      if (entry.prop === 'GatewayId') delete source.props.NatGatewayId;
-      if (entry.prop === 'NatGatewayId') delete source.props.GatewayId;
+      if (prop === 'GatewayId') delete source.props.NatGatewayId;
+      if (prop === 'NatGatewayId') delete source.props.GatewayId;
     }
   }
   return true;
-}
-
-function displayKindSafe(graph, id) {
-  const res = graph.resources.find((r) => r.id === id);
-  return res ? kindOf(res.type) : null;
 }
 
 function beginMove(mount, cardEl, event) {
@@ -506,16 +542,17 @@ function beginMove(mount, cardEl, event) {
   };
 }
 
-function beginLink(mount, cardEl, event) {
+function beginLink(mount, cardEl, event, prop) {
   cancelGesture();
   const { graph } = currentCtx;
   const source = graph.resources.find((r) => r.id === cardEl.dataset.card);
   if (!source) return;
-  const acceptKinds = new Set(Object.keys(ACCEPTS[source.type]));
+  const wantedKind = refKind(source.type, prop);
+  if (!wantedKind) return;
   const candidates = [...surfaceEl(mount).querySelectorAll('.oc-card')].filter((el) => {
     if (el === cardEl) return false;
     const res = graph.resources.find((r) => r.id === el.dataset.card);
-    return res && acceptKinds.has(kindOf(res.type));
+    return res && kindOf(res.type) === wantedKind;
   });
   for (const el of candidates) el.classList.add('oc-can-accept');
   const svg = mount.querySelector('.oc-edges');
@@ -527,22 +564,26 @@ function beginLink(mount, cardEl, event) {
     const box = surface.getBoundingClientRect();
     return { x: e.clientX - box.left, y: e.clientY - box.top };
   };
-  const a = cardRect(mount, source.id);
   const move = (e) => {
     const p = toSurface(e);
-    const { d } = edgePath(a, { x: p.x - 1, y: p.y - 1, w: 2, h: 2 });
+    const a = fieldAnchor(mount, source.id, prop, p.x);
+    if (!a) return;
+    const { d } = edgePathFrom(a, { x: p.x - 1, y: p.y - 1, w: 2, h: 2 });
     temp.setAttribute('d', d);
   };
   // Geometric drop detection (not elementsFromPoint): deterministic under
   // overlays and works even when the embedding viewport can't hit-test.
+  // Topmost wins on overlap: later DOM order paints on top, so take the
+  // LAST containing candidate, not the first.
   const up = (e) => {
     const p = toSurface(e);
-    const hitCard = candidates.find((el) => p.x >= el.offsetLeft && p.x <= el.offsetLeft + el.offsetWidth
+    const hits = candidates.filter((el) => p.x >= el.offsetLeft && p.x <= el.offsetLeft + el.offsetWidth
       && p.y >= el.offsetTop && p.y <= el.offsetTop + el.offsetHeight);
+    const hitCard = hits[hits.length - 1];
     cancelGesture();
     if (!hitCard) return;
     const target = graph.resources.find((r) => r.id === hitCard.dataset.card);
-    if (target && applyLink(graph, source, target)) currentCtx.onChange();
+    if (target && applyLink(source, prop, target)) currentCtx.onChange();
   };
   window.addEventListener('pointermove', move);
   window.addEventListener('pointerup', up, { once: true });
@@ -565,10 +606,10 @@ function wire(mount) {
 
     mount.addEventListener('pointerdown', (event) => {
       if (event.button !== 0 || !currentCtx) return;
-      const dot = event.target.closest('.oc-dot');
+      const dot = event.target.closest('.oc-fdot');
       if (dot) {
         event.preventDefault();
-        beginLink(mount, dot.closest('.oc-card'), event);
+        beginLink(mount, dot.closest('.oc-card'), event, dot.dataset.prop);
         return;
       }
       const cardEl = event.target.closest('.oc-card');

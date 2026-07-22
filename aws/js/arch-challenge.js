@@ -3,11 +3,11 @@
 // Standalone page logic for architecture-challenge.html. Not part of the
 // hash-router SPA and not in scripts/check-drift.mjs's SHARED list. The
 // CloudFormation template text is the single source of truth: every edit
-// compiles (js/lib/cfnCompile.js) into the arch model that the read-only
-// canvas renders and Check validates; startState/refSolution model
-// builders enter this world through js/lib/cfnEmit.js. All model logic
-// lives in js/lib/ (pure, node --test covered); this file only wires the
-// editor, the diagram, and the task panel together.
+// compiles (js/lib/cfnCompile.js) into the arch model that Check
+// validates; startState/refSolution model builders enter this world
+// through js/lib/cfnEmit.js. All model logic lives in js/lib/ (pure,
+// node --test covered); this file only wires the editor and the task
+// panel together.
 
 import { escapeHtml } from './lib/html.js';
 import { createStore } from './lib/storage.js';
@@ -17,7 +17,6 @@ import { validateStructure, evaluateBestPractices } from './lib/archValidate.js'
 import { evaluateGoals } from './lib/archGoals.js';
 import { compile } from './lib/cfnCompile.js';
 import { emit } from './lib/cfnEmit.js';
-import { renderCanvas, unmountCanvas } from './arch-canvas.js';
 import { createCfnEditor } from './cfn-editor.js';
 
 const store = createStore();
@@ -38,13 +37,11 @@ const SANDBOX = {
 
 let challenge = null;   // null = landing
 let compiled = { arch: null, diagnostics: [], sourceMap: {}, idMap: null, kinds: {} };
-let lastGoodArch = createArch(); // diagram fallback while the template has errors
-let lastGoodIdMap = null;
+let lastGoodArch = createArch(); // roles-list fallback while the template has errors
 let checkDiagnostics = [];      // Check-time structural errors mapped onto the text
 let results = null;             // { errors, goalRows, bpRows } from the last Check
 let hintsShown = 0;
 let failedChecks = 0;
-let highlightId = null;         // model id of the resource under the editor cursor
 let editor = null;
 
 function findChallenge(id) {
@@ -90,10 +87,7 @@ function errorCount() {
 function recompile(text) {
   compiled = compile(text);
   checkDiagnostics = []; // stale the moment the text changes
-  if (compiled.arch) {
-    lastGoodArch = compiled.arch;
-    lastGoodIdMap = compiled.idMap;
-  }
+  if (compiled.arch) lastGoodArch = compiled.arch;
 }
 
 function ensureEditor() {
@@ -108,13 +102,7 @@ function ensureEditor() {
       recompile(text);
       store.setArchCfnText(challenge.id, text); // text autosaves even while invalid
       results = null;
-      renderDiagram();
       renderTask(document.getElementById('arch-task'));
-    },
-    onCursorResource: (logicalId) => {
-      const idMap = compiled.idMap || lastGoodIdMap;
-      highlightId = idMap && logicalId ? idMap.logicalToModel[logicalId] || null : null;
-      if (challenge) renderDiagram();
     },
   });
 }
@@ -127,7 +115,6 @@ function swapText(text) {
   ensureEditor();
   editor.setText(text);
   results = null;
-  highlightId = null;
 }
 
 function openFromHash() {
@@ -136,11 +123,9 @@ function openFromHash() {
   results = null;
   hintsShown = 0;
   failedChecks = 0;
-  highlightId = null;
   checkDiagnostics = [];
   if (challenge) {
     lastGoodArch = createArch();
-    lastGoodIdMap = null;
     swapText(draftText());
   }
   renderAll();
@@ -152,26 +137,11 @@ function renderAll() {
   landing.hidden = !!challenge;
   workbench.hidden = !challenge;
   if (!challenge) {
-    unmountCanvas();
     renderLanding(landing);
     return;
   }
   renderHead(document.getElementById('arch-head'));
-  renderDiagram();
   renderTask(document.getElementById('arch-task'));
-}
-
-function renderDiagram() {
-  renderCanvas(document.getElementById('arch-canvas'), {
-    arch: compiled.arch || lastGoodArch,
-    highlightId,
-    stale: compiled.arch ? null : { errors: errorCount() },
-    onNodeClick: (modelId) => {
-      const idMap = compiled.idMap || lastGoodIdMap;
-      const logicalId = idMap ? idMap.modelToLogical[modelId] : null;
-      if (logicalId) editor.revealResource(logicalId);
-    },
-  });
 }
 
 function renderLanding(mount) {
@@ -192,7 +162,7 @@ function renderLanding(mount) {
   mount.innerHTML = `
     <p>Each challenge gives you a scenario; write the CloudFormation template that
        satisfies it in a live editor with error checking, docs on hover, and
-       autocompletion. The diagram renders your template as you type. Designs are
+       autocompletion. Designs are
        checked three ways: <strong>structural</strong> (would AWS accept it),
        <strong>functional</strong> (a connectivity simulation of the scenario's goals), and
        <strong>best practices</strong> (advisory score). Drafts autosave locally.</p>

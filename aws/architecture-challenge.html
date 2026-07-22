@@ -14,8 +14,6 @@
     :root {
       --arch-surface: #fff;
       --arch-surface-muted: #f3f4f6;
-      --arch-public: #ecfdf3;   /* public-subnet tint */
-      --arch-private: #eff6ff;  /* private-subnet tint */
       --arch-fail-bg: #fef2f2;
       --arch-ok-bg: #f0fdf4;
     }
@@ -33,8 +31,6 @@
         --color-danger: #f87171;
         --arch-surface: #1e293b;
         --arch-surface-muted: #334155;
-        --arch-public: #14532d;
-        --arch-private: #172554;
         --arch-fail-bg: #450a0a;
         --arch-ok-bg: #052e16;
       }
@@ -46,10 +42,9 @@
                  background: var(--arch-surface); text-decoration: none; color: inherit; display: block; }
     .arch-card:hover { border-color: var(--color-primary); }
     .arch-card .badge-done { color: var(--color-success); font-weight: 600; }
-    /* Workbench: canvas + task pane, stacking on narrow screens */
-    .arch-workbench { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 1rem; align-items: start; }
+    /* Workbench: editor + task pane, stacking on narrow screens */
+    .arch-workbench { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 1rem; align-items: start; }
     @media (max-width: 1100px) { .arch-workbench { grid-template-columns: 1fr; } }
-    .arch-col { display: flex; flex-direction: column; gap: 1rem; min-width: 0; }
     #arch-editor-host { height: 72vh; }
     #arch-editor-host .cm-editor { height: 100%; border: 1px solid var(--color-border); border-radius: 6px; }
     #arch-editor-host .cm-scroller { overflow: auto; }
@@ -74,52 +69,6 @@
     .arch-trace li.ok::marker { content: "✓ "; color: var(--color-success); }
     .arch-trace li.fail::marker { content: "✗ "; color: var(--color-danger); }
     .arch-score { font-size: 1.4rem; font-weight: 700; }
-
-    /* Canvas */
-    #arch-canvas { position: relative; overflow: hidden; }
-    .cv-surface { position: relative; }
-    .cv-internet { display: inline-flex; align-items: center; gap: 0.4rem; border: 1px solid var(--color-border);
-                   border-radius: 999px; padding: 0.3rem 0.8rem; margin-bottom: 0.9rem; background: var(--arch-surface-muted); }
-    .cv-vpc { border: 2px solid var(--color-primary); border-radius: 10px; padding: 1rem 0.75rem 0.75rem; position: relative; min-height: 220px; }
-    .cv-igw-chip { position: absolute; top: -0.95rem; left: 1rem; border-radius: 999px; padding: 0.15rem 0.7rem;
-                   font-size: 0.75rem; border: 1px solid var(--color-primary);
-                   background: var(--arch-surface); color: var(--color-muted); }
-    .cv-igw-chip.attached { background: var(--color-primary); color: #fff; }
-    .cv-az-grid { display: grid; grid-auto-columns: 1fr; grid-auto-flow: column; gap: 0.75rem; margin-top: 0.6rem; }
-    .cv-az h4 { margin: 0 0 0.4rem; font-size: 0.75rem; color: var(--color-muted); }
-    .cv-subnet { border: 1px solid var(--color-border); border-radius: 8px; padding: 0.5rem; margin-bottom: 0.6rem; min-height: 3.2rem; }
-    .cv-subnet.is-public { background: var(--arch-public); }
-    .cv-subnet.is-private { background: var(--arch-private); }
-    .cidr { font-family: ui-monospace, monospace; font-size: 0.75rem; color: var(--color-muted); }
-    .cv-chip { display: inline-flex; align-items: center; gap: 0.25rem; border: 1px solid var(--color-border);
-               background: var(--arch-surface); border-radius: 6px; padding: 0.2rem 0.45rem; font-size: 0.78rem;
-               margin: 0.15rem 0.2rem 0 0; }
-    .cv-tray { border-top: 1px dashed var(--color-border); margin-top: 0.75rem; padding-top: 0.5rem; }
-    .cv-hl { outline: 2px solid var(--color-primary); outline-offset: 1px; }
-    .cv-stale { opacity: 0.55; }
-    .cv-stale-badge { position: absolute; top: 0.3rem; right: 0.4rem; z-index: 5;
-                      background: var(--arch-fail-bg); color: var(--color-danger);
-                      border: 1px solid var(--color-danger); border-radius: 6px;
-                      padding: 0.15rem 0.5rem; font-size: 0.75rem; }
-    #arch-edges { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
-    #arch-edges path { fill: none; stroke-width: 1.5; }
-    #arch-edges path.route { stroke: var(--color-primary); }
-    #arch-edges path.sg-rule { stroke: var(--color-success); }
-    #arch-edges path.hit { pointer-events: stroke; stroke: transparent; stroke-width: 10; }
-    /* Midpoint label pills: an opaque rect (sized to the measured text in
-       arch-canvas.js) sits behind each <text> so it reads clearly over
-       lines/cards; fill/border color matches its edge's stroke. */
-    #arch-edges text.cv-edge-label { font-size: 0.65rem; font-family: inherit; pointer-events: none; }
-    #arch-edges text.cv-edge-label.route { fill: var(--color-primary); }
-    #arch-edges text.cv-edge-label.sg-rule { fill: var(--color-success); }
-    #arch-edges rect.cv-edge-label-bg { fill: var(--arch-surface); stroke-width: 1; pointer-events: none; }
-    #arch-edges rect.cv-edge-label-bg.route { stroke: var(--color-primary); }
-    #arch-edges rect.cv-edge-label-bg.sg-rule { stroke: var(--color-success); }
-    .cv-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 0.3rem; margin: 0.6rem 0 0; }
-    .cv-legend-line { width: 1.4rem; height: 0.6rem; overflow: visible; flex: none; }
-    .cv-legend-line line { stroke-width: 2; }
-    .cv-legend-line line.route { stroke: var(--color-primary); }
-    .cv-legend-line line.sg-rule { stroke: var(--color-success); }
   </style>
 </head>
 <body>
@@ -136,10 +85,7 @@
           <h2>Template</h2>
           <div id="arch-editor-host"></div>
         </div>
-        <div class="arch-col">
-          <div class="arch-panel" id="arch-canvas" aria-label="Architecture diagram"></div>
-          <div class="arch-panel" id="arch-task" aria-label="Task and results"></div>
-        </div>
+        <div class="arch-panel" id="arch-task" aria-label="Task and results"></div>
       </div>
     </section>
   </main>

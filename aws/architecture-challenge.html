@@ -50,7 +50,10 @@
     .cg-head { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; }
     .cg-head input[data-act="res-id"] { font-family: ui-monospace, monospace; font-weight: 600; width: 12rem; }
     .cg-type { font-family: ui-monospace, monospace; font-size: 0.78rem; color: var(--color-primary); cursor: help; }
-    .cg-head .arch-del { margin-left: auto; }
+    .cg-actions { margin-left: auto; display: flex; gap: 0.15rem; align-items: center; }
+    button.cg-move { background: transparent; color: var(--color-muted); border: none; padding: 0 0.25rem; font-size: 0.95rem; }
+    button.cg-move:hover:not(:disabled) { color: var(--color-primary); }
+    button.cg-move:disabled { opacity: 0.35; cursor: default; }
     .cg-row { display: grid; grid-template-columns: 13rem minmax(0, 1fr); gap: 0.3rem 0.8rem;
               align-items: center; margin-bottom: 0.35rem; }
     .cg-label { font-family: ui-monospace, monospace; font-size: 0.78rem; color: var(--color-muted); cursor: help; }

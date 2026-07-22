@@ -119,7 +119,7 @@ function sugarRows(graph, res, challenge) {
   return roleRow + portRow;
 }
 
-function card(graph, res, challenge, problems) {
+function card(graph, res, challenge, problems, index, total) {
   const spec = RESOURCE_TYPES[res.type];
   const rows = Object.entries(spec.props)
     .filter(([name, ps]) => !ps.ignored && ps.check !== 'tags')
@@ -132,7 +132,11 @@ function card(graph, res, challenge, problems) {
       <div class="cg-head">
         <input type="text" value="${esc(res.id)}" data-act="res-id" data-res="${esc(res.id)}" aria-label="Logical id" />
         <span class="cg-type" ${typeDoc(res.type) ? `title="${esc(typeDoc(res.type))}"` : ''}>${esc(res.type)}</span>
-        <button type="button" class="arch-del" data-act="res-del" data-res="${esc(res.id)}" title="Remove resource">✕</button>
+        <span class="cg-actions">
+          <button type="button" class="cg-move" data-act="res-up" data-res="${esc(res.id)}" aria-label="Move up" title="Move up" ${index === 0 ? 'disabled' : ''}>↑</button>
+          <button type="button" class="cg-move" data-act="res-down" data-res="${esc(res.id)}" aria-label="Move down" title="Move down" ${index === total - 1 ? 'disabled' : ''}>↓</button>
+          <button type="button" class="arch-del" data-act="res-del" data-res="${esc(res.id)}" title="Remove resource">✕</button>
+        </span>
       </div>
       ${cardProblems}
       ${rows || '<p class="arch-mini">No properties — this resource works by being referenced.</p>'}
@@ -154,7 +158,7 @@ export function renderGraphForms(mount, ctx) {
       <button type="button" class="fm-add" data-act="res-add">+ Add resource</button>
     </div>
     ${globalProblems}
-    ${graph.resources.map((res) => card(graph, res, challenge, problems)).join('')
+    ${graph.resources.map((res, i) => card(graph, res, challenge, problems, i, graph.resources.length)).join('')
       || '<p class="arch-mini">No resources yet — add an AWS::EC2::VPC to start.</p>'}
     <p class="arch-mini">References are dropdowns instead of !Ref; hover a property name for its docs.
       Security groups are inbound-only here; outbound is treated as allow-all.</p>`;
@@ -251,6 +255,15 @@ function apply(event, phase) {
       graph.resources = graph.resources.filter((r) => r !== res);
       replaceRefs(graph, res.id, null);
       break;
+    case 'res-up': case 'res-down': {
+      if (!res) return;
+      const list = graph.resources;
+      const i = list.indexOf(res);
+      const j = act === 'res-up' ? i - 1 : i + 1;
+      if (j < 0 || j >= list.length) return;
+      [list[i], list[j]] = [list[j], list[i]];
+      break;
+    }
     case 'res-id': {
       if (!res) return;
       let next = el.value.trim().replace(/[^A-Za-z0-9]/g, '');

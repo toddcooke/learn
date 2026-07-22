@@ -42,17 +42,26 @@
                  background: var(--arch-surface); text-decoration: none; color: inherit; display: block; }
     .arch-card:hover { border-color: var(--color-primary); }
     .arch-card .badge-done { color: var(--color-success); font-weight: 600; }
-    /* Workbench: editor + task pane, stacking on narrow screens */
+    /* Workbench: form builder + task pane, stacking on narrow screens */
     .arch-workbench { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 1rem; align-items: start; }
     @media (max-width: 1100px) { .arch-workbench { grid-template-columns: 1fr; } }
-    #arch-editor-host { height: 72vh; }
-    #arch-editor-host .cm-editor { height: 100%; border: 1px solid var(--color-border); border-radius: 6px; }
-    #arch-editor-host .cm-scroller { overflow: auto; }
-    .cfn-hover { max-width: 380px; font-size: 0.8rem; padding: 0.4rem 0.5rem; }
-    .cfn-hover-diag.cfn-error { color: var(--color-danger); }
-    .cfn-hover-diag.cfn-warning { color: #b45309; }
-    .cfn-hover-doc { color: var(--color-muted); margin-top: 0.25rem; }
-    @media (prefers-color-scheme: dark) { .cfn-hover-diag.cfn-warning { color: #fbbf24; } }
+    /* Form builder */
+    .fm-section { border: 1px solid var(--color-border); border-radius: 8px; padding: 0.75rem 0.9rem; margin-bottom: 0.75rem; }
+    .fm-section h3 { font-size: 0.85rem; margin: 0 0 0.6rem; text-transform: uppercase;
+                     letter-spacing: 0.04em; color: var(--color-muted); }
+    .fm-block { border: 1px solid var(--color-border); border-radius: 6px; padding: 0.5rem 0.6rem; margin-bottom: 0.6rem; }
+    .fm-name { font-size: 0.85rem; }
+    .fm-grid-subnet { display: grid; grid-template-columns: minmax(0, 1fr) 4.5rem minmax(0, 1fr) minmax(0, 1fr) 2rem;
+                      gap: 0.4rem; align-items: center; margin-bottom: 0.4rem; }
+    .fm-grid-head span { font-size: 0.72rem; color: var(--color-muted); }
+    button.fm-add { background: transparent; color: var(--color-primary); border: 1px dashed var(--color-border); }
+    button.fm-add:disabled { color: var(--color-muted); cursor: not-allowed; }
+    #arch-forms input, #arch-forms select { font: inherit; padding: 0.25rem 0.4rem; border: 1px solid var(--color-border);
+                                            border-radius: 4px; background: var(--arch-surface); color: inherit; min-width: 0; }
+    #arch-forms input[type="text"] { width: 8.5rem; }
+    #arch-forms .fm-grid-subnet input[type="text"] { width: auto; }
+    #arch-forms input[type="number"] { width: 5rem; }
+    button.arch-del { background: transparent; color: var(--color-danger); border: none; padding: 0 0.3rem; font-size: 1rem; }
     .arch-panel { border: 1px solid var(--color-border); border-radius: 8px;
                   background: var(--arch-surface); padding: 1rem; }
     .arch-panel h2 { font-size: 1rem; margin: 0 0 0.75rem; }
@@ -81,10 +90,7 @@
     <section id="arch-workbench" hidden>
       <div id="arch-head"></div>
       <div class="arch-workbench">
-        <div class="arch-panel" id="arch-editor-panel" aria-label="CloudFormation template">
-          <h2>Template</h2>
-          <div id="arch-editor-host"></div>
-        </div>
+        <div class="arch-panel" id="arch-forms" aria-label="Architecture design forms"></div>
         <div class="arch-panel" id="arch-task" aria-label="Task and results"></div>
       </div>
     </section>

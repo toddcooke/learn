@@ -2,12 +2,11 @@
 //
 // Standalone page logic for architecture-challenge.html. Not part of the
 // hash-router SPA and not in scripts/check-drift.mjs's SHARED list. The
-// CloudFormation template text is the single source of truth: every edit
-// compiles (js/lib/cfnCompile.js) into the arch model that Check
-// validates; startState/refSolution model builders enter this world
-// through js/lib/cfnEmit.js. All model logic lives in js/lib/ (pure,
-// node --test covered); this file only wires the editor and the task
-// panel together.
+// arch model is edited directly by the form builder (arch-forms.js); this
+// file wires the forms and the task panel together, persists drafts, and
+// runs Check. All model logic lives in js/lib/ (pure, node --test
+// covered). Re-renders happen on 'change' (committed edits), so text
+// inputs keep focus while typing.
 
 import { escapeHtml } from './lib/html.js';
 import { createStore } from './lib/storage.js';
@@ -15,9 +14,7 @@ import { ARCH_CHALLENGES } from './data/archChallenges.js';
 import { createArch } from './lib/archModel.js';
 import { validateStructure, evaluateBestPractices } from './lib/archValidate.js';
 import { evaluateGoals } from './lib/archGoals.js';
-import { compile } from './lib/cfnCompile.js';
-import { emit } from './lib/cfnEmit.js';
-import { createCfnEditor } from './cfn-editor.js';
+import { renderForms, unmountForms } from './arch-forms.js';
 
 const store = createStore();
 
@@ -35,86 +32,15 @@ const SANDBOX = {
   refSolution: null,
 };
 
-let challenge = null;   // null = landing
-let compiled = { arch: null, diagnostics: [], sourceMap: {}, idMap: null, kinds: {} };
-let lastGoodArch = createArch(); // roles-list fallback while the template has errors
-let checkDiagnostics = [];      // Check-time structural errors mapped onto the text
-let results = null;             // { errors, goalRows, bpRows } from the last Check
+let challenge = null; // null = landing
+let arch = null;
+let results = null;   // { errors, goalRows, bpRows } from the last Check
 let hintsShown = 0;
 let failedChecks = 0;
-let editor = null;
 
 function findChallenge(id) {
   if (id === 'sandbox') return SANDBOX;
   return ARCH_CHALLENGES.find((c) => c.id === id) || null;
-}
-
-function startText() {
-  return emit(challenge.startState ? challenge.startState() : createArch());
-}
-
-// The draft is YAML text. Legacy visual-builder drafts (JSON models) are
-// migrated by serializing them once, then cleared so this runs only once.
-// Migration is the one place this code touches years-old stored data: a
-// corrupted draft (storage only shape-checks it shallowly) must degrade to
-// the start state, never a blank page (emit throwing at module load) or
-// silent data loss (clearing the draft on a bogus "success").
-function draftText() {
-  const text = store.getArchCfnText(challenge.id);
-  if (text !== null) return text;
-  const legacy = store.getArchDraft(challenge.id);
-  if (legacy) {
-    let migrated;
-    try {
-      migrated = emit(legacy);
-    } catch {
-      return startText(); // leave the JSON draft in place
-    }
-    if (compile(migrated).diagnostics.some((d) => d.severity === 'error')) {
-      return startText(); // leave the JSON draft in place
-    }
-    store.setArchCfnText(challenge.id, migrated);
-    store.clearArchDraft(challenge.id);
-    return migrated;
-  }
-  return startText();
-}
-
-function errorCount() {
-  return compiled.diagnostics.filter((d) => d.severity === 'error').length;
-}
-
-function recompile(text) {
-  compiled = compile(text);
-  checkDiagnostics = []; // stale the moment the text changes
-  if (compiled.arch) lastGoodArch = compiled.arch;
-}
-
-function ensureEditor() {
-  if (editor) return;
-  editor = createCfnEditor(document.getElementById('arch-editor-host'), {
-    initialText: '',
-    getDiagnostics: () => [...compiled.diagnostics, ...checkDiagnostics],
-    getCompile: () => compiled,
-    getRoles: () => (challenge ? challenge.roles.map((r) => r.id) : []),
-    onDocChange: (text) => {
-      if (!challenge) return; // debounce survivor after navigating to landing
-      recompile(text);
-      store.setArchCfnText(challenge.id, text); // text autosaves even while invalid
-      results = null;
-      renderTask(document.getElementById('arch-task'));
-    },
-  });
-}
-
-// Programmatic text swaps (open/reveal/reset) recompile synchronously —
-// setText never fires onDocChange.
-function swapText(text) {
-  recompile(text);
-  store.setArchCfnText(challenge.id, text);
-  ensureEditor();
-  editor.setText(text);
-  results = null;
 }
 
 function openFromHash() {
@@ -123,11 +49,20 @@ function openFromHash() {
   results = null;
   hintsShown = 0;
   failedChecks = 0;
-  checkDiagnostics = [];
   if (challenge) {
-    lastGoodArch = createArch();
-    swapText(draftText());
+    arch = store.getArchDraft(challenge.id)
+      || (challenge.startState ? challenge.startState() : createArch());
+  } else {
+    arch = null;
   }
+  renderAll();
+}
+
+// Every committed edit funnels through here: persist the draft, invalidate
+// stale results, re-render everything.
+function changed() {
+  store.setArchDraft(challenge.id, arch);
+  results = null;
   renderAll();
 }
 
@@ -137,10 +72,12 @@ function renderAll() {
   landing.hidden = !!challenge;
   workbench.hidden = !challenge;
   if (!challenge) {
+    unmountForms();
     renderLanding(landing);
     return;
   }
   renderHead(document.getElementById('arch-head'));
+  renderForms(document.getElementById('arch-forms'), { arch, challenge, onChange: changed });
   renderTask(document.getElementById('arch-task'));
 }
 
@@ -160,12 +97,12 @@ function renderLanding(mount) {
       </a>`;
   }).join('');
   mount.innerHTML = `
-    <p>Each challenge gives you a scenario; write the CloudFormation template that
-       satisfies it in a live editor with error checking, docs on hover, and
-       autocompletion. Designs are
-       checked three ways: <strong>structural</strong> (would AWS accept it),
-       <strong>functional</strong> (a connectivity simulation of the scenario's goals), and
-       <strong>best practices</strong> (advisory score). Drafts autosave locally.</p>
+    <p>Each challenge gives you a scenario; build the architecture that satisfies it
+       with console-style forms — subnets, route tables, security groups, and
+       workloads. Designs are checked three ways: <strong>structural</strong> (would
+       AWS accept it), <strong>functional</strong> (a connectivity simulation of the
+       scenario's goals), and <strong>best practices</strong> (advisory score).
+       Drafts autosave locally.</p>
     <div class="arch-cards">
       ${cards}
       <a class="arch-card" href="#sandbox"><h3>Sandbox</h3>
@@ -181,23 +118,10 @@ function renderHead(mount) {
 }
 
 function runCheck() {
-  if (!compiled.arch) return;
-  const arch = compiled.arch;
   const { errors } = validateStructure(arch);
   const goalRows = errors.length === 0 ? evaluateGoals(arch, challenge) : null;
   const bpRows = evaluateBestPractices(arch, challenge.bestPractices);
   results = { errors, goalRows, bpRows };
-  // Mirror structural errors into the editor where a resource maps back to
-  // a template range (best-effort; the panel remains the full list).
-  checkDiagnostics = [];
-  for (const e of errors) {
-    for (const rid of e.resourceIds || []) {
-      const logicalId = compiled.idMap.modelToLogical[rid];
-      const ranges = logicalId ? compiled.sourceMap[logicalId] : null;
-      if (ranges) checkDiagnostics.push({ from: ranges.key[0], to: ranges.key[1], severity: 'error', message: e.message });
-    }
-  }
-  editor.relint();
   const complete = errors.length === 0 && challenge.goals.length > 0
     && goalRows.every((r) => r.ok);
   if (complete && challenge.id !== 'sandbox') {
@@ -214,12 +138,11 @@ function runCheck() {
 }
 
 function renderTask(mount) {
-  const arch = compiled.arch || lastGoodArch;
   const rolesHtml = challenge.roles.map((role) => {
     const assigned = arch.workloads.filter((w) => w.role === role.id);
     return `<li>${escapeHtml(role.label)}: ${assigned.length
       ? escapeHtml(assigned.map((w) => w.name).join(', '))
-      : '<em>unassigned — add a Role tag</em>'}</li>`;
+      : '<em>unassigned — set a workload\'s role</em>'}</li>`;
   }).join('');
 
   let resultsHtml = '';
@@ -257,19 +180,17 @@ function renderTask(mount) {
 
   const reveal = challenge.refSolution && failedChecks >= 1
     ? '<button type="button" data-action="reveal">Show reference solution</button>' : '';
-  const blocked = errorCount() > 0;
 
   mount.innerHTML = `
     <h2>${challenge.id === 'sandbox' ? 'Checks' : 'Task'}</h2>
     ${challenge.roles.length ? `<ul>${rolesHtml}</ul>` : ''}
     <div class="arch-row">
-      <button type="button" data-action="check" ${blocked ? 'disabled' : ''}>Check architecture</button>
+      <button type="button" data-action="check">Check architecture</button>
       <button type="button" data-action="reset">Reset</button>
       ${reveal}
     </div>
-    ${blocked ? '<p class="arch-mini">Fix the template errors (red underlines) to enable Check.</p>' : ''}
     ${hintsHtml}
-    ${results ? resultsHtml : '<p class="arch-mini">Edit the template, then hit Check. Results explain every pass and fail.</p>'}`;
+    ${results ? resultsHtml : '<p class="arch-mini">Build, then hit Check. Results explain every pass and fail.</p>'}`;
 }
 
 window.addEventListener('hashchange', openFromHash);
@@ -280,15 +201,15 @@ document.getElementById('arch-task').addEventListener('click', (event) => {
   if (el.dataset.action === 'check') runCheck();
   if (el.dataset.action === 'hint') { hintsShown += 1; renderAll(); }
   if (el.dataset.action === 'reveal'
-      && window.confirm('Replace your current template with the reference solution?')) {
-    swapText(emit(challenge.refSolution()));
-    renderAll();
+      && window.confirm('Replace your current design with the reference solution?')) {
+    arch = challenge.refSolution();
+    changed();
   }
   if (el.dataset.action === 'reset'
-      && window.confirm('Discard your template and start this challenge over?')) {
-    store.clearArchCfnText(challenge.id);
+      && window.confirm('Discard your design and start this challenge over?')) {
     store.clearArchDraft(challenge.id);
-    swapText(startText());
+    arch = challenge.startState ? challenge.startState() : createArch();
+    results = null;
     renderAll();
   }
 });

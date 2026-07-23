@@ -144,50 +144,6 @@ export function createStore(backend) {
         /* ignore */
       }
     },
-    getArchResults() {
-      return loadObject(b, 'arch-results');
-    },
-    recordArchResult(challengeId, result) {
-      const results = loadObject(b, 'arch-results');
-      const prev = results[challengeId];
-      const ratio = (r) => (r.bpApplicable > 0 ? r.bpPassed / r.bpApplicable : 1);
-      if (!prev || ratio(result) >= ratio(prev)) {
-        results[challengeId] = result;
-        save(b, 'arch-results', results);
-      }
-    },
-    getArchDraft(challengeId) {
-      // A wrong-shape draft would throw mid-render on the challenge page with
-      // no Reset button in reach, so every array field it iterates is checked.
-      const value = load(b, `arch-draft:${challengeId}`, null);
-      const arraysOk = ['subnets', 'natGateways', 'routeTables', 'securityGroups', 'workloads']
-        .every((k) => Array.isArray(value?.[k]));
-      return isPlainObject(value) && isPlainObject(value.vpc) && arraysOk ? value : null;
-    },
-    setArchDraft(challengeId, state) {
-      save(b, `arch-draft:${challengeId}`, state);
-    },
-    clearArchDraft(challengeId) {
-      try {
-        b.removeItem(`${NAMESPACE}:arch-draft:${challengeId}`);
-      } catch {
-        /* ignore */
-      }
-    },
-    getArchGraph(challengeId) {
-      const value = load(b, `arch-graph:${challengeId}`, null);
-      return isPlainObject(value) && Array.isArray(value.resources) ? value : null;
-    },
-    setArchGraph(challengeId, graph) {
-      save(b, `arch-graph:${challengeId}`, graph);
-    },
-    clearArchGraph(challengeId) {
-      try {
-        b.removeItem(`${NAMESPACE}:arch-graph:${challengeId}`);
-      } catch {
-        /* ignore */
-      }
-    },
     clearQuizHistory() {
       try {
         b.removeItem(`${NAMESPACE}:quiz-history`);

@@ -167,101 +167,6 @@ async function validateServices() {
   }
 }
 
-async function validateArchChallenges() {
-  if (!existsSync(new URL('../js/data/archChallenges.js', import.meta.url))) {
-    console.log('archChallenges.js not present yet, skipping');
-    return;
-  }
-  const { ARCH_CHALLENGES } = await import('../js/data/archChallenges.js');
-  const { GOAL_TYPES } = await import('../js/lib/archGoals.js');
-  const { BEST_PRACTICE_RULE_IDS } = await import('../js/lib/archValidate.js');
-  const { WORKLOAD_TYPES } = await import('../js/lib/archModel.js');
-  check(Array.isArray(ARCH_CHALLENGES) && ARCH_CHALLENGES.length > 0,
-    'ARCH_CHALLENGES must be a non-empty array');
-  const kebabCase = /^[a-z0-9]+(-[a-z0-9]+)*$/;
-  const seenIds = new Set();
-  for (const c of Array.isArray(ARCH_CHALLENGES) ? ARCH_CHALLENGES : []) {
-    check(typeof c.id === 'string' && c.id.length > 0 && kebabCase.test(c.id),
-      `challenge has invalid id (must be non-empty kebab-case): ${JSON.stringify(c.id)}`);
-    check(!seenIds.has(c.id), `duplicate challenge id: ${c.id}`);
-    seenIds.add(c.id);
-    check(typeof c.title === 'string' && c.title.length > 0, `challenge ${c.id} missing title`);
-    check(typeof c.brief === 'string' && c.brief.length >= 80,
-      `challenge ${c.id} brief must be at least 80 chars, got ${typeof c.brief === 'string' ? c.brief.length : 'none'}`);
-
-    check(Array.isArray(c.roles), `challenge ${c.id} roles must be an array`);
-    const roles = Array.isArray(c.roles) ? c.roles : [];
-    const roleIds = new Set();
-    for (const r of roles) {
-      check(typeof r.id === 'string' && r.id.length > 0,
-        `challenge ${c.id} has a role with missing id: ${JSON.stringify(r).slice(0, 80)}`);
-      check(typeof r.label === 'string' && r.label.length > 0,
-        `challenge ${c.id} role ${r.id} missing label`);
-      check(!roleIds.has(r.id), `challenge ${c.id} has duplicate role id: ${r.id}`);
-      roleIds.add(r.id);
-      if (r.expectedType !== undefined) {
-        check(WORKLOAD_TYPES.includes(r.expectedType),
-          `challenge ${c.id} role ${r.id} has invalid expectedType: ${r.expectedType}`);
-      }
-    }
-
-    check(Array.isArray(c.goals) && c.goals.length > 0, `challenge ${c.id} goals must be a non-empty array`);
-    const goals = Array.isArray(c.goals) ? c.goals : [];
-    const referencedRoles = new Set();
-    for (const g of goals) {
-      check(GOAL_TYPES.includes(g.type),
-        `challenge ${c.id} has a goal with unknown type: ${g.type}`);
-      for (const key of ['role', 'fromRole', 'toRole']) {
-        if (g[key] !== undefined) {
-          referencedRoles.add(g[key]);
-          check(roleIds.has(g[key]),
-            `challenge ${c.id} goal (${g.type}) references unknown role "${g[key]}" via ${key}`);
-        }
-      }
-      if (['internetReaches', 'cidrReaches', 'reaches'].includes(g.type)) {
-        check(typeof g.port === 'number', `challenge ${c.id} goal (${g.type}) missing numeric port`);
-      }
-      if (g.type === 'cidrReaches') {
-        check(typeof g.cidr === 'string' && g.cidr.length > 0,
-          `challenge ${c.id} cidrReaches goal missing cidr`);
-        check(typeof g.cidrLabel === 'string' && g.cidrLabel.length > 0,
-          `challenge ${c.id} cidrReaches goal missing cidrLabel`);
-      }
-      if (g.type === 'spansAzs') {
-        check(typeof g.min === 'number', `challenge ${c.id} spansAzs goal missing numeric min`);
-      }
-      if (g.type === 'vpcCidrIs') {
-        check(typeof g.cidr === 'string' && g.cidr.length > 0,
-          `challenge ${c.id} vpcCidrIs goal missing cidr`);
-      }
-      if (g.type === 'subnetPlan') {
-        for (const field of ['count', 'minUsableHosts', 'minAzs', 'publicCount', 'privateCount']) {
-          check(typeof g[field] === 'number',
-            `challenge ${c.id} subnetPlan goal missing numeric ${field}`);
-        }
-      }
-    }
-
-    check(c.bestPractices === 'all'
-      || (Array.isArray(c.bestPractices) && c.bestPractices.length > 0
-        && c.bestPractices.every((id) => BEST_PRACTICE_RULE_IDS.includes(id))),
-      `challenge ${c.id} bestPractices must be 'all' or a non-empty array of known rule ids`);
-
-    check(Array.isArray(c.hints) && c.hints.length > 0
-      && c.hints.every((h) => typeof h === 'string' && h.length > 0),
-      `challenge ${c.id} hints must be a non-empty array of non-empty strings`);
-
-    check(typeof c.refSolution === 'function', `challenge ${c.id} refSolution must be a function`);
-    check(c.startState === null || typeof c.startState === 'function',
-      `challenge ${c.id} startState must be null or a function`);
-
-    for (const rid of roleIds) {
-      check(referencedRoles.has(rid),
-        `challenge ${c.id} role "${rid}" is not referenced by any goal`);
-    }
-  }
-}
-
 async function main() {
   const domains = await validateExamInfo();
   const domainIds = domains.map((d) => d.id);
@@ -269,7 +174,6 @@ async function main() {
   await validateQuestions(domains);
   await validateFlashcards();
   await validateServices();
-  await validateArchChallenges();
 
   if (errors.length > 0) {
     console.error(`\n${errors.length} validation error(s):`);

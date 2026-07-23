@@ -2,29 +2,28 @@
 //
 // Standalone page logic for architecture-challenge.html. Not part of the
 // hash-router SPA and not in scripts/check-drift.mjs's SHARED list. The
-// CloudFormation-shaped resource graph is the single source of truth: the
-// canvas builder (arch-graph-canvas.js) edits it card by card, and every
-// edit maps through js/lib/archGraph.js into the arch model that Check
-// validates. All model logic lives in js/lib/ (pure, node --test covered);
-// this file wires the forms and the task panel together.
+// service diagram ({ nodes, edges }) is the single source of truth: the
+// canvas builder (svc-canvas.js) edits it, and Check runs the structural
+// validator, the goal evaluator, and the best-practice rules straight on
+// it. All model logic lives in js/lib/ (pure, node --test covered); this
+// file wires the canvas and the task panel together.
 
 import { escapeHtml } from './lib/html.js';
 import { createStore } from './lib/storage.js';
-import { ARCH_CHALLENGES } from './data/archChallenges.js';
-import { createArch } from './lib/archModel.js';
-import { validateStructure, evaluateBestPractices } from './lib/archValidate.js';
-import { evaluateGoals } from './lib/archGoals.js';
-import { graphToArch, archToGraph } from './lib/archGraph.js';
-import { renderGraphCanvas, unmountGraphCanvas } from './arch-graph-canvas.js';
+import { SVC_CHALLENGES } from './data/svcChallenges.js';
+import { createGraph } from './lib/svcModel.js';
+import { validateStructure, evaluateBestPractices } from './lib/svcValidate.js';
+import { evaluateGoals } from './lib/svcGoals.js';
+import { renderGraphCanvas, unmountGraphCanvas } from './svc-canvas.js';
 
 const store = createStore();
 
 const SANDBOX = {
   id: 'sandbox',
   title: 'Sandbox',
-  brief: 'Free build: no goals, no grading. Structural checks and every best-practice '
-    + 'rule run against whatever you design. Security groups model inbound rules only '
-    + '(outbound is treated as allow-all).',
+  brief: 'Free build: no goals, no grading. Place any services, wire any flows — '
+    + 'structural checks and every best-practice rule run against whatever you '
+    + 'design.',
   roles: [],
   goals: [],
   bestPractices: 'all',
@@ -35,77 +34,59 @@ const SANDBOX = {
 
 let challenge = null; // null = landing
 let graph = null;
-let mapped = { arch: createArch(), problems: [] }; // graphToArch of the current graph
 let results = null;   // { errors, goalRows, bpRows } from the last Check
 let hintsShown = 0;
 let failedChecks = 0;
 
 function findChallenge(id) {
   if (id === 'sandbox') return SANDBOX;
-  return ARCH_CHALLENGES.find((c) => c.id === id) || null;
+  return SVC_CHALLENGES.find((c) => c.id === id) || null;
 }
 
 function startGraph() {
-  return archToGraph(challenge.startState ? challenge.startState() : createArch());
+  return challenge.startState ? challenge.startState() : createGraph();
 }
 
-// The draft is a resource graph. Legacy model-JSON drafts (both builder
-// eras) migrate by converting once; a corrupted draft must degrade to the
-// start state, never a blank page, and is only cleared on success.
+// The draft is a service graph; a corrupted draft must degrade to the
+// start state, never a blank page.
 function draftGraph() {
-  const saved = store.getArchGraph(challenge.id);
-  if (saved) return saved;
-  const legacy = store.getArchDraft(challenge.id);
-  if (legacy) {
-    let migrated;
-    try {
-      migrated = archToGraph(legacy);
-    } catch {
-      return startGraph(); // leave the legacy draft in place
-    }
-    store.setArchGraph(challenge.id, migrated);
-    store.clearArchDraft(challenge.id);
-    return migrated;
-  }
-  return startGraph();
-}
-
-function recompute() {
-  mapped = graphToArch(graph);
+  return store.getSvcGraph(challenge.id) || startGraph();
 }
 
 function openFromHash() {
   // Direct hash jumps between challenges never pass through the landing
   // branch — clear canvas selection/gesture state here so nothing (like a
-  // same-named edge selection) survives into the next challenge.
+  // same-shaped edge selection) survives into the next challenge.
   unmountGraphCanvas();
   const id = window.location.hash.replace(/^#\/?/, '');
   challenge = findChallenge(id);
   results = null;
   hintsShown = 0;
   failedChecks = 0;
-  if (challenge) {
-    graph = draftGraph();
-    recompute();
-  } else {
-    graph = null;
-  }
+  graph = challenge ? draftGraph() : null;
   renderAll();
 }
 
-// Every committed edit funnels through here: persist the draft, invalidate
-// stale results, re-render everything.
+// Every committed edit funnels through here: persist the draft,
+// invalidate stale results, re-render everything.
 function changed() {
-  store.setArchGraph(challenge.id, graph);
+  store.setSvcGraph(challenge.id, graph);
   results = null;
-  recompute();
   renderAll();
 }
 
 // Card moves are presentation-only: persist positions without touching
 // Check results or forcing a re-render (the canvas already moved the DOM).
 function layoutChanged() {
-  store.setArchGraph(challenge.id, graph);
+  store.setSvcGraph(challenge.id, graph);
+}
+
+// Renames re-render without invalidating Check results — a name only
+// changes labels, and the canvas defers this call so the click that blurred
+// the name input isn't swallowed by the re-render.
+function softChanged() {
+  store.setSvcGraph(challenge.id, graph);
+  renderAll();
 }
 
 function renderAll() {
@@ -120,14 +101,14 @@ function renderAll() {
   }
   renderHead(document.getElementById('arch-head'));
   renderGraphCanvas(document.getElementById('arch-forms'), {
-    graph, challenge, problems: mapped.problems, onChange: changed, onLayout: layoutChanged,
+    graph, challenge, onChange: changed, onLayout: layoutChanged, onSoftChange: softChanged,
   });
   renderTask(document.getElementById('arch-task'));
 }
 
 function renderLanding(mount) {
   const done = store.getArchResults();
-  const cards = ARCH_CHALLENGES.map((ch, i) => {
+  const cards = SVC_CHALLENGES.map((ch, i) => {
     const result = done[ch.id];
     const badge = result
       ? `<p class="badge-done">✓ Completed — best practices ${Number(result.bpPassed)}/${Number(result.bpApplicable) || '–'}</p>`
@@ -141,12 +122,13 @@ function renderLanding(mount) {
       </a>`;
   }).join('');
   mount.innerHTML = `
-    <p>Each challenge gives you a scenario; build the CloudFormation resource graph
-       that satisfies it with forms — real resource types and property names, but
-       every reference is a dropdown instead of a !Ref. Designs are checked three
-       ways: <strong>structural</strong> (would AWS accept it), <strong>functional</strong>
-       (a connectivity simulation of the scenario's goals), and
-       <strong>best practices</strong> (advisory score). Drafts autosave locally.</p>
+    <p>Each challenge gives you a scenario; sketch the AWS architecture that
+       satisfies it the way AWS reference diagrams are drawn — service boxes and
+       data-flow arrows, no VPC plumbing. Designs are checked three ways:
+       <strong>structural</strong> (is the diagram coherent), <strong>functional</strong>
+       (do the required flows connect), and <strong>best practices</strong>
+       (advisory score). Drafts autosave locally. For subnet-level practice, use the
+       <a href="vpc-explorer.html">VPC Explorer</a>.</p>
     <div class="arch-cards">
       ${cards}
       <a class="arch-card" href="#sandbox"><h3>Sandbox</h3>
@@ -162,15 +144,9 @@ function renderHead(mount) {
 }
 
 function runCheck() {
-  const { arch, problems } = mapped;
-  // Card-level problems are structural failures too — a missing required
-  // property or dangling pick must fail Check, not silently vanish.
-  const problemErrors = problems.map((p) => ({
-    message: p.id ? `${p.id}: ${p.message}` : p.message,
-  }));
-  const errors = [...problemErrors, ...validateStructure(arch).errors];
-  const goalRows = errors.length === 0 ? evaluateGoals(arch, challenge) : null;
-  const bpRows = evaluateBestPractices(arch, challenge.bestPractices);
+  const errors = validateStructure(graph).errors;
+  const goalRows = errors.length === 0 ? evaluateGoals(graph, challenge) : null;
+  const bpRows = evaluateBestPractices(graph, challenge.bestPractices);
   results = { errors, goalRows, bpRows };
   const complete = errors.length === 0 && challenge.goals.length > 0
     && goalRows.every((r) => r.ok);
@@ -188,12 +164,11 @@ function runCheck() {
 }
 
 function renderTask(mount) {
-  const arch = mapped.arch;
   const rolesHtml = challenge.roles.map((role) => {
-    const assigned = arch.workloads.filter((w) => w.role === role.id);
+    const assigned = graph.nodes.filter((n) => n.role === role.id);
     return `<li>${escapeHtml(role.label)}: ${assigned.length
-      ? escapeHtml(assigned.map((w) => w.name).join(', '))
-      : '<em>unassigned — set a Role tag</em>'}</li>`;
+      ? escapeHtml(assigned.map((n) => n.name).join(', '))
+      : '<em>unassigned — set a card’s Role</em>'}</li>`;
   }).join('');
 
   let resultsHtml = '';
@@ -253,18 +228,18 @@ document.getElementById('arch-task').addEventListener('click', (event) => {
   if (el.dataset.action === 'hint') { hintsShown += 1; renderAll(); }
   if (el.dataset.action === 'reveal'
       && window.confirm('Replace your current design with the reference solution?')) {
-    graph = archToGraph(challenge.refSolution());
+    unmountGraphCanvas(); // stale selection must not re-attach to same-id nodes
+    graph = challenge.refSolution();
     changed();
   }
   if (el.dataset.action === 'reset'
       && window.confirm('Discard your design and start this challenge over?')) {
-    store.clearArchGraph(challenge.id);
-    store.clearArchDraft(challenge.id);
+    unmountGraphCanvas(); // as above — the fresh start state reuses node ids
+    store.clearSvcGraph(challenge.id);
     graph = startGraph();
     results = null;
     hintsShown = 0;   // a fresh attempt starts with hints and the
     failedChecks = 0; // reference-solution reveal re-gated, like openFromHash
-    recompute();
     renderAll();
   }
 });

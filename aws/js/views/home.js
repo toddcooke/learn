@@ -23,7 +23,7 @@ export function render(mount) {
         <li>Track improvement on the <a href="#/progress">progress dashboard</a>.</li>
       </ol>
       <p><a href="vpc-explorer.html">Interactive: VPC &amp; Subnet Explorer</a> — click through subnet tiers, route tables, and CIDR math.</p>
-      <p><a href="architecture-challenge.html">Interactive: Architecture Challenge</a> — get a scenario, build the VPC to satisfy it, and have the design checked for correctness and best practices.</p>
+      <p><a href="architecture-challenge.html">Interactive: Architecture Challenge</a> — get a scenario, sketch the AWS service diagram that satisfies it, and have the design checked for correctness and best practices.</p>
       <p><a href="cheatsheet.html">Printable cheatsheet</a> — a one-page, print-friendly summary of storage, database, networking, IAM, and cost facts for last-minute review.</p>
     </section>
   `;

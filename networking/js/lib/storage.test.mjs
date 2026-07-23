@@ -223,47 +223,37 @@ test('arch results: records and keeps the best score per challenge', () => {
   assert.equal(store.getArchResults()['public-web'].completedAt, 2);
 });
 
-test('arch drafts: set/get/clear round-trip per challenge id', () => {
-  const store = createStore(fakeBackend());
-  const draft = {
-    vpc: { cidr: '10.0.0.0/16' },
-    subnets: [], natGateways: [], routeTables: [], securityGroups: [], workloads: [],
-  };
-  assert.equal(store.getArchDraft('two-tier'), null);
-  store.setArchDraft('two-tier', draft);
-  assert.deepEqual(store.getArchDraft('two-tier'), draft);
-  assert.equal(store.getArchDraft('sandbox'), null, 'ids are independent');
-  store.clearArchDraft('two-tier');
-  assert.equal(store.getArchDraft('two-tier'), null);
-});
-
-test('arch getters survive a wrong-shape stored value', () => {
+test('arch results getter survives a wrong-shape stored value', () => {
   assert.deepEqual(storeWithRaw('["not","an","object"]').getArchResults(), {});
-  assert.equal(storeWithRaw('42').getArchDraft('x'), null);
 });
 
-test('arch draft with the right outer shape but wrong-shape fields returns null', () => {
-  assert.equal(storeWithRaw('{"foo":1}').getArchDraft('x'), null);
-});
-
-test('a minimally-shaped arch draft round-trips non-null', () => {
-  const raw = '{"vpc":{},"subnets":[],"natGateways":[],"routeTables":[],"securityGroups":[],"workloads":[]}';
-  assert.notEqual(storeWithRaw(raw).getArchDraft('x'), null);
-});
-
-test('arch graphs: set/get/clear round-trip per challenge id', () => {
+test('service graphs: set/get/clear round-trip per challenge id', () => {
   const store = createStore(fakeBackend());
-  const graph = { resources: [{ id: 'Vpc', type: 'AWS::EC2::VPC', props: { CidrBlock: '10.0.0.0/16' } }] };
-  assert.equal(store.getArchGraph('two-tier'), null);
-  store.setArchGraph('two-tier', graph);
-  assert.deepEqual(store.getArchGraph('two-tier'), graph);
-  assert.equal(store.getArchGraph('sandbox'), null, 'ids are independent');
-  store.clearArchGraph('two-tier');
-  assert.equal(store.getArchGraph('two-tier'), null);
+  const graph = {
+    nodes: [{ id: 'users-1', type: 'users', name: 'Users', role: null }],
+    edges: [],
+  };
+  assert.equal(store.getSvcGraph('static-site'), null);
+  store.setSvcGraph('static-site', graph);
+  assert.deepEqual(store.getSvcGraph('static-site'), graph);
+  assert.equal(store.getSvcGraph('sandbox'), null, 'ids are independent');
+  store.clearSvcGraph('static-site');
+  assert.equal(store.getSvcGraph('static-site'), null);
 });
 
-test('arch graph getter survives wrong-shape stored values', () => {
-  assert.equal(storeWithRaw('42').getArchGraph('x'), null);
-  assert.equal(storeWithRaw('{"foo":1}').getArchGraph('x'), null);
-  assert.equal(storeWithRaw('{"resources":{}}').getArchGraph('x'), null);
+test('service graph getter survives wrong-shape stored values', () => {
+  assert.equal(storeWithRaw('42').getSvcGraph('x'), null);
+  assert.equal(storeWithRaw('{"foo":1}').getSvcGraph('x'), null);
+  assert.equal(storeWithRaw('{"nodes":{},"edges":[]}').getSvcGraph('x'), null);
+  assert.equal(storeWithRaw('{"nodes":[]}').getSvcGraph('x'), null);
+});
+
+test('service graph getter rejects malformed ELEMENTS, not just missing arrays', () => {
+  assert.equal(storeWithRaw('{"nodes":[null],"edges":[]}').getSvcGraph('x'), null);
+  assert.equal(storeWithRaw('{"nodes":[5],"edges":[]}').getSvcGraph('x'), null);
+  assert.equal(storeWithRaw('{"nodes":[{"type":"s3"}],"edges":[]}').getSvcGraph('x'), null, 'node without id');
+  assert.equal(storeWithRaw('{"nodes":[],"edges":[null]}').getSvcGraph('x'), null);
+  assert.equal(storeWithRaw('{"nodes":[],"edges":[{"from":"a"}]}').getSvcGraph('x'), null, 'edge without to');
+  const ok = '{"nodes":[{"id":"users-1","type":"users","name":"Users","role":null}],"edges":[{"from":"users-1","to":"users-1"}]}';
+  assert.notEqual(storeWithRaw(ok).getSvcGraph('x'), null);
 });

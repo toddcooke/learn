@@ -115,15 +115,15 @@ export function render(mount) {
   // byte-identical shared file across every module, so it can't statically
   // import a data file that only exists in aws/js/data/. Loading it
   // dynamically lets this same file degrade gracefully (empty, hidden
-  // section) in modules that have no archChallenges.js at all.
-  import('../data/archChallenges.js').then(({ ARCH_CHALLENGES }) => {
+  // section) in modules that have no svcChallenges.js at all.
+  import('../data/svcChallenges.js').then(({ SVC_CHALLENGES }) => {
     const archSection = document.getElementById('arch-challenges-section');
     if (!archSection) return;
     const archResults = store.getArchResults();
-    const archCompleted = ARCH_CHALLENGES.filter((c) => archResults[c.id]);
+    const archCompleted = SVC_CHALLENGES.filter((c) => archResults[c.id]);
     archSection.innerHTML = `
       <h3><a href="architecture-challenge.html">Architecture challenges</a></h3>
-      <p>${archCompleted.length} of ${ARCH_CHALLENGES.length} completed</p>
+      <p>${archCompleted.length} of ${SVC_CHALLENGES.length} completed</p>
       ${archCompleted.length === 0 ? '' : `
         <ul>
           ${archCompleted.map((c) => {

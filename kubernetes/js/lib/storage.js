@@ -156,34 +156,24 @@ export function createStore(backend) {
         save(b, 'arch-results', results);
       }
     },
-    getArchDraft(challengeId) {
-      // A wrong-shape draft would throw mid-render on the challenge page with
-      // no Reset button in reach, so every array field it iterates is checked.
-      const value = load(b, `arch-draft:${challengeId}`, null);
-      const arraysOk = ['subnets', 'natGateways', 'routeTables', 'securityGroups', 'workloads']
-        .every((k) => Array.isArray(value?.[k]));
-      return isPlainObject(value) && isPlainObject(value.vpc) && arraysOk ? value : null;
+    getSvcGraph(challengeId) {
+      // A wrong-shape draft would throw mid-render on the challenge page
+      // with no Reset button in reach, so the ELEMENTS are checked too —
+      // a truncated draft like {"nodes":[null]} must fall back, not crash.
+      const value = load(b, `svc-graph:${challengeId}`, null);
+      const ok = isPlainObject(value)
+        && Array.isArray(value.nodes)
+        && value.nodes.every((n) => isPlainObject(n) && typeof n.id === 'string' && typeof n.type === 'string')
+        && Array.isArray(value.edges)
+        && value.edges.every((e) => isPlainObject(e) && typeof e.from === 'string' && typeof e.to === 'string');
+      return ok ? value : null;
     },
-    setArchDraft(challengeId, state) {
-      save(b, `arch-draft:${challengeId}`, state);
+    setSvcGraph(challengeId, graph) {
+      save(b, `svc-graph:${challengeId}`, graph);
     },
-    clearArchDraft(challengeId) {
+    clearSvcGraph(challengeId) {
       try {
-        b.removeItem(`${NAMESPACE}:arch-draft:${challengeId}`);
-      } catch {
-        /* ignore */
-      }
-    },
-    getArchGraph(challengeId) {
-      const value = load(b, `arch-graph:${challengeId}`, null);
-      return isPlainObject(value) && Array.isArray(value.resources) ? value : null;
-    },
-    setArchGraph(challengeId, graph) {
-      save(b, `arch-graph:${challengeId}`, graph);
-    },
-    clearArchGraph(challengeId) {
-      try {
-        b.removeItem(`${NAMESPACE}:arch-graph:${challengeId}`);
+        b.removeItem(`${NAMESPACE}:svc-graph:${challengeId}`);
       } catch {
         /* ignore */
       }

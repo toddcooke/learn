@@ -167,20 +167,23 @@ async function validateServices() {
   }
 }
 
-async function validateArchChallenges() {
-  if (!existsSync(new URL('../js/data/archChallenges.js', import.meta.url))) {
-    console.log('archChallenges.js not present yet, skipping');
+async function validateSvcChallenges() {
+  if (!existsSync(new URL('../js/data/svcChallenges.js', import.meta.url))) {
+    console.log('svcChallenges.js not present yet, skipping');
     return;
   }
-  const { ARCH_CHALLENGES } = await import('../js/data/archChallenges.js');
-  const { GOAL_TYPES } = await import('../js/lib/archGoals.js');
-  const { BEST_PRACTICE_RULE_IDS } = await import('../js/lib/archValidate.js');
-  const { WORKLOAD_TYPES } = await import('../js/lib/archModel.js');
-  check(Array.isArray(ARCH_CHALLENGES) && ARCH_CHALLENGES.length > 0,
-    'ARCH_CHALLENGES must be a non-empty array');
+  const { SVC_CHALLENGES } = await import('../js/data/svcChallenges.js');
+  const { GOAL_TYPES } = await import('../js/lib/svcGoals.js');
+  const { BEST_PRACTICE_RULE_IDS } = await import('../js/lib/svcValidate.js');
+  const { SERVICE_IDS } = await import('../js/lib/svcCatalog.js');
+  check(Array.isArray(SVC_CHALLENGES) && SVC_CHALLENGES.length > 0,
+    'SVC_CHALLENGES must be a non-empty array');
   const kebabCase = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+  // One selector-shaped field per goal key; each must be { service } with a
+  // known service id or { role } with a role declared by the challenge.
+  const SELECTOR_KEYS = { exists: ['sel'], edge: ['from', 'to'], linked: ['a', 'b'], noEdge: ['from', 'to'], path: ['from', 'to'], fanout: ['from'] };
   const seenIds = new Set();
-  for (const c of Array.isArray(ARCH_CHALLENGES) ? ARCH_CHALLENGES : []) {
+  for (const c of Array.isArray(SVC_CHALLENGES) ? SVC_CHALLENGES : []) {
     check(typeof c.id === 'string' && c.id.length > 0 && kebabCase.test(c.id),
       `challenge has invalid id (must be non-empty kebab-case): ${JSON.stringify(c.id)}`);
     check(!seenIds.has(c.id), `duplicate challenge id: ${c.id}`);
@@ -199,46 +202,42 @@ async function validateArchChallenges() {
         `challenge ${c.id} role ${r.id} missing label`);
       check(!roleIds.has(r.id), `challenge ${c.id} has duplicate role id: ${r.id}`);
       roleIds.add(r.id);
-      if (r.expectedType !== undefined) {
-        check(WORKLOAD_TYPES.includes(r.expectedType),
-          `challenge ${c.id} role ${r.id} has invalid expectedType: ${r.expectedType}`);
-      }
+      check(SERVICE_IDS.includes(r.service),
+        `challenge ${c.id} role ${r.id} has invalid service: ${r.service}`);
     }
 
-    check(Array.isArray(c.goals) && c.goals.length > 0, `challenge ${c.id} goals must be a non-empty array`);
-    const goals = Array.isArray(c.goals) ? c.goals : [];
     const referencedRoles = new Set();
-    for (const g of goals) {
+    const checkSelector = (g, key, sel) => {
+      if (sel && typeof sel.service === 'string') {
+        check(SERVICE_IDS.includes(sel.service),
+          `challenge ${c.id} goal (${g.type}) ${key} names unknown service "${sel.service}"`);
+      } else if (sel && typeof sel.role === 'string') {
+        referencedRoles.add(sel.role);
+        check(roleIds.has(sel.role),
+          `challenge ${c.id} goal (${g.type}) ${key} references unknown role "${sel.role}"`);
+      } else {
+        check(false, `challenge ${c.id} goal (${g.type}) ${key} must be { service } or { role }`);
+      }
+    };
+    check(Array.isArray(c.goals) && c.goals.length > 0, `challenge ${c.id} goals must be a non-empty array`);
+    for (const g of Array.isArray(c.goals) ? c.goals : []) {
       check(GOAL_TYPES.includes(g.type),
         `challenge ${c.id} has a goal with unknown type: ${g.type}`);
-      for (const key of ['role', 'fromRole', 'toRole']) {
-        if (g[key] !== undefined) {
-          referencedRoles.add(g[key]);
-          check(roleIds.has(g[key]),
-            `challenge ${c.id} goal (${g.type}) references unknown role "${g[key]}" via ${key}`);
-        }
+      for (const key of SELECTOR_KEYS[g.type] ?? []) checkSelector(g, key, g[key]);
+      if (g.type === 'path') {
+        check(g.via === undefined || Array.isArray(g.via),
+          `challenge ${c.id} path goal via must be an array when present`);
+        for (const sel of Array.isArray(g.via) ? g.via : []) checkSelector(g, 'via', sel);
       }
-      if (['internetReaches', 'cidrReaches', 'reaches'].includes(g.type)) {
-        check(typeof g.port === 'number', `challenge ${c.id} goal (${g.type}) missing numeric port`);
+      if (g.type === 'fanout') {
+        check(typeof g.min === 'number' && g.min >= 2,
+          `challenge ${c.id} fanout goal needs numeric min >= 2`);
       }
-      if (g.type === 'cidrReaches') {
-        check(typeof g.cidr === 'string' && g.cidr.length > 0,
-          `challenge ${c.id} cidrReaches goal missing cidr`);
-        check(typeof g.cidrLabel === 'string' && g.cidrLabel.length > 0,
-          `challenge ${c.id} cidrReaches goal missing cidrLabel`);
-      }
-      if (g.type === 'spansAzs') {
-        check(typeof g.min === 'number', `challenge ${c.id} spansAzs goal missing numeric min`);
-      }
-      if (g.type === 'vpcCidrIs') {
-        check(typeof g.cidr === 'string' && g.cidr.length > 0,
-          `challenge ${c.id} vpcCidrIs goal missing cidr`);
-      }
-      if (g.type === 'subnetPlan') {
-        for (const field of ['count', 'minUsableHosts', 'minAzs', 'publicCount', 'privateCount']) {
-          check(typeof g[field] === 'number',
-            `challenge ${c.id} subnetPlan goal missing numeric ${field}`);
-        }
+      if (g.type === 'exists') {
+        check(g.service === undefined || SERVICE_IDS.includes(g.service),
+          `challenge ${c.id} exists goal has unknown service: ${g.service}`);
+        check(g.min === undefined || (typeof g.min === 'number' && g.min >= 1),
+          `challenge ${c.id} exists goal min must be a number >= 1`);
       }
     }
 
@@ -269,7 +268,7 @@ async function main() {
   await validateQuestions(domains);
   await validateFlashcards();
   await validateServices();
-  await validateArchChallenges();
+  await validateSvcChallenges();
 
   if (errors.length > 0) {
     console.error(`\n${errors.length} validation error(s):`);

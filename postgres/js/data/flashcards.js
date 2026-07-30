@@ -250,7 +250,7 @@ export const FLASHCARDS = [
     service: 'BCNF',
     domain: 'Schema Design',
     front: "BCNF tightens 3NF's rule about determinants. What extra requirement does it add, and what specific situation does that close that 3NF still allowed?",
-    back: "3NF excuses a non-key determinant whenever the attribute it determines is itself part of some candidate key — a dependency landing on a prime attribute passes even though its determinant isn't a full candidate key. BCNF removes that excuse entirely: every determinant of a dependency must be a candidate key outright, which catches the case of two overlapping candidate keys where a non-key attribute determines part of a key other than the one currently identifying the row, forcing that dependency out into its own table.",
+    back: "3NF excuses a non-key determinant whenever the attribute it determines is itself part of some candidate key — a dependency landing on a prime attribute passes even though its determinant isn't a full candidate key. BCNF removes that excuse entirely: every determinant of a dependency must be a candidate key outright, which catches the case of two overlapping candidate keys where a determinant that is only part of a candidate key, never a whole one, determines an attribute belonging to another candidate key, forcing that dependency out into its own table.",
   },
   {
     id: 'junction-table',

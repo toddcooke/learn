@@ -182,10 +182,21 @@ note "cases separate, and an exit code of 137 is the tell for memory."
 step "The whole triage on one screen"
 run k -n "$NS" get pods
 run k -n "$NS" get pods -o custom-columns='NAME:.metadata.name,PHASE:.status.phase,WAITING:.status.containerStatuses[0].state.waiting.reason,LAST:.status.containerStatuses[0].lastState.terminated.reason,EXIT:.status.containerStatuses[0].lastState.terminated.exitCode,RESTARTS:.status.containerStatuses[0].restartCount'
-READY_COL="$(k -n "$NS" get pods --no-headers -o custom-columns='READY:.status.containerStatuses[0].ready')"
-assert_not_contains "$READY_COL" "true" "not one of the four containers is ready"
+# Assert the four distinct signatures are all on screen at once, rather than
+# claiming no container is ever ready. That blanket claim is not actually true:
+# oom-victim genuinely runs — and, having no readiness probe, reports ready —
+# for the twenty-odd seconds it spends allocating before the kernel kills it.
+# "Not ready right now" is a property of when you looked; the diagnosis is not.
+SUMMARY="$(k -n "$NS" get pods -o custom-columns='A:.status.phase,B:.status.containerStatuses[0].state.waiting.reason,C:.status.containerStatuses[0].lastState.terminated.reason')"
+assert_contains "$SUMMARY" "ImagePullBackOff" "the summary shows a Pod that never pulled its image"
+assert_contains "$SUMMARY" "CrashLoopBackOff" "...one that starts and exits"
+assert_contains "$SUMMARY" "OOMKilled"        "...one the kernel killed at its limit"
+assert_contains "$SUMMARY" "Pending"          "...and one that was never scheduled"
 note "four rows, four different columns carrying the signal. Phase alone would"
 note "have told you Pending, Pending, Running, Running — which is nearly useless."
+note "Note too that oom-victim reports ready while it is allocating: a container"
+note "with no readiness probe is 'ready' the instant it is running, which is why"
+note "READY is a poor column to triage on and lastState is a good one."
 
 step "Confirming a diagnosis by fixing it"
 note "a triage is only right if the fix works. The image is one of the very few"

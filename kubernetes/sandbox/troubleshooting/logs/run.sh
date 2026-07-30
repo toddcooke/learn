@@ -130,11 +130,15 @@ assert_eventually 240 "CrashLoopBackOff" \
   "crasher's current state is Waiting/CrashLoopBackOff" crasher_reason
 EXIT_CODE="$(k -n "$NS" get pod crasher -o jsonpath='{.status.containerStatuses[0].lastState.terminated.exitCode}')"
 assert_eq "$EXIT_CODE" "1" "the previous instance terminated with exit code 1"
-PREV="$(k -n "$NS" logs crasher --previous 2>&1 || true)"
+# Retry rather than reading once. The container the kubelet reaps and the
+# container --previous wants to read are the same object, so a single badly
+# timed call can land in the gap and get "unable to retrieve container logs".
+prev_logs() { k -n "$NS" logs crasher --previous 2>&1 || true; }
+assert_eventually_contains 120 "CRASH-MARKER: opening /etc/app/config.yaml" \
+  "--previous returned the dead instance's output" prev_logs
+PREV="$(prev_logs)"
 note "kubectl logs crasher --previous returned:"
 printf '%s\n' "$PREV" | while IFS= read -r L; do note "  $L"; done
-assert_contains "$PREV" "CRASH-MARKER: opening /etc/app/config.yaml" \
-  "--previous returned the dead instance's output"
 assert_contains "$PREV" "CRASH-MARKER: no such file - giving up" \
   "...including the line that explains the exit, which the live instance has not printed yet"
 if OUT="$(k -n "$NS" logs talker -c alpha --previous 2>&1)"; then

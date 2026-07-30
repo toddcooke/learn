@@ -1,10 +1,11 @@
 export const DOMAINS = [
-  { id: 'architecture', name: 'Architecture & Data Types', weight: 15, mockExamCount: 8 },
-  { id: 'querying', name: 'Querying & SQL', weight: 20, mockExamCount: 10 },
-  { id: 'indexing', name: 'Indexing & Performance', weight: 20, mockExamCount: 10 },
-  { id: 'transactions', name: 'Transactions & Concurrency (MVCC)', weight: 15, mockExamCount: 7 },
-  { id: 'administration', name: 'Administration & Maintenance', weight: 20, mockExamCount: 10 },
-  { id: 'replication', name: 'Replication & High Availability', weight: 10, mockExamCount: 5 },
+  { id: 'architecture', name: 'Architecture & Data Types', weight: 13, mockExamCount: 7 },
+  { id: 'schema-design', name: 'Schema Design & Constraints', weight: 15, mockExamCount: 7 },
+  { id: 'querying', name: 'Querying & SQL', weight: 17, mockExamCount: 9 },
+  { id: 'indexing', name: 'Indexing & Performance', weight: 17, mockExamCount: 9 },
+  { id: 'transactions', name: 'Transactions & Concurrency (MVCC)', weight: 13, mockExamCount: 6 },
+  { id: 'administration', name: 'Administration & Maintenance', weight: 17, mockExamCount: 8 },
+  { id: 'replication', name: 'Replication & High Availability', weight: 8, mockExamCount: 4 },
 ];
 
 export const EXAM_FORMAT = {

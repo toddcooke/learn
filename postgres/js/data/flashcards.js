@@ -264,7 +264,7 @@ export const FLASHCARDS = [
     service: 'Generated Column',
     domain: 'Schema Design',
     front: "Why can't an INSERT or UPDATE supply its own value for a stored generated column, and what keyword is accepted in its place?",
-    back: "A generated column is always computed from other columns in the same row, so a value can't be specified for it directly in INSERT or UPDATE — only the keyword DEFAULT is accepted where a value would normally go, and the stored form recomputes and persists that result on every write, occupying storage just like an ordinary column. The generation expression is restricted to immutable functions, can't reference a subquery or another generated column, and can't touch anything outside the current row, which is what keeps its value fully determined by the row itself rather than by outside state.",
+    back: "A generated column is always computed from other columns in the same row, so a value can't be specified for it directly in INSERT or UPDATE — only the keyword DEFAULT is accepted where a value would normally go. That's true of both kinds PostgreSQL supports: the stored form recomputes and persists that result on every write, occupying storage just like an ordinary column, while VIRTUAL — the default when neither keyword is written — recomputes the expression on every read instead and stores nothing. The generation expression is restricted to immutable functions, can't reference a subquery or another generated column, and can't touch anything outside the current row, which is what keeps its value fully determined by the row itself rather than by outside state.",
   },
   {
     id: 'no-action-vs-restrict',

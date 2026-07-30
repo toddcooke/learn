@@ -121,6 +121,128 @@ export const STUDY_CONTENT = [
     ],
   },
   {
+    domain: 'schema-design',
+    taskStatement: 'Relational Modeling Foundations',
+    topics: [
+      {
+        title: 'Tables as Relations',
+        body: "A relational table models a set of facts about one kind of thing. Because it is a set, no row order is guaranteed and the same row cannot meaningfully appear twice; because each row has the same named attributes, a column means the same thing in every row. This is why a query has to state its own ORDER BY to get a stable order, and why a table that mixes two kinds of things — orders and the customers who placed them — starts causing trouble immediately: attributes that describe only the customer end up repeated on every order line, and the table no longer describes a single kind of fact.",
+      },
+      {
+        title: 'Redundancy and the Three Anomalies',
+        body: "When one fact is stored in more than one place, the copies can disagree. Three failure modes follow. An update anomaly happens when a change reaches some copies and not others, leaving the table self-contradictory. An insertion anomaly happens when a fact cannot be recorded because unrelated data is missing — you cannot register a customer who has not yet placed an order, if customers only exist as columns on order rows. A deletion anomaly is the mirror image: removing the last order for a customer also erases the customer. These three anomalies, not elegance, are the practical reason to split tables apart.",
+      },
+      {
+        title: 'Functional Dependencies',
+        body: "A functional dependency A -> B holds when each value of A is associated with exactly one value of B: no two rows may agree on A while disagreeing on B. Dependencies are statements about the real world the data models, not about the rows that happen to be present, so they are decided from the domain rather than discovered by querying. They matter because they locate redundancy precisely. A dependency whose left side is a whole candidate key is fine — that is what a key means. A dependency on anything else means the table is recording a fact about something other than its own subject, and that fact will be repeated on every row that shares the value.",
+      },
+      {
+        title: 'One Fact in One Place',
+        body: "The design goal that falls out of the anomalies is simple to state: each fact should be recorded exactly once, in the table whose subject that fact is about. A customer's address is a fact about the customer, so it belongs on a customer row and is referenced from orders rather than copied into them. This principle is what the normal forms formalize — each successive form rules out another way a table can end up storing a fact about something other than its own key. Working out the grain of a table first, before writing any DDL, usually settles most design questions before they become arguments.",
+      },
+    ],
+  },
+  {
+    domain: 'schema-design',
+    taskStatement: 'Keys and Identity',
+    topics: [
+      {
+        title: 'Candidate Keys, Primary Keys, and Composite Keys',
+        body: 'A candidate key is any minimal attribute set that uniquely identifies a row — minimal because dropping any one attribute from the set would let two rows collide. A table can hold several candidate keys at once: an employees table might identify a row equally well by employee_id or by a unique badge_number, and both qualify. Exactly one candidate is designated the primary key; the others remain merely unique. Some candidate keys are composite, spanning more than one column, as with an order_lines table keyed on (order_id, line_number) — neither column alone is unique, but the pair always is. Which candidate becomes primary is largely a naming decision, since every candidate key still needs its own uniqueness constraint whether or not it leads.',
+      },
+      {
+        title: 'Natural Versus Surrogate Keys',
+        body: "A natural key is drawn from data the row would carry anyway — an email address, a national ID, a product SKU — so it carries meaning outside the database and is recognizable on sight. That meaning is also its liability: natural keys can change, and can turn out not to be unique once some edge case appears, which is a bad thing to discover in a primary key. A surrogate key, typically a generated integer or UUID, has no meaning at all — it exists only to be stable and compact, which makes it cheap to reference from other tables. Choosing a surrogate does not excuse the natural key from being constrained: it still needs its own UNIQUE constraint, since the surrogate only replaces its role as identifier, not its need to actually be unique.",
+      },
+      {
+        title: 'Identity Columns and serial',
+        body: 'An identity column asks PostgreSQL to generate a value from a hidden sequence rather than requiring the application to supply one. GENERATED ALWAYS AS IDENTITY rejects an explicit value on insert unless the statement adds OVERRIDING SYSTEM VALUE, making an accidental override visible instead of silent; GENERATED BY DEFAULT AS IDENTITY instead lets a supplied value take precedence, behaving more like an ordinary column default. The older serial pseudo-type is shorthand for the same mechanism — a sequence plus a default expression — and identity columns are now the documented, standards-based replacement. Neither approach guarantees uniqueness on its own: a sequence can be reset, and a BY DEFAULT column can still receive a duplicate value supplied by hand, so uniqueness still has to come from a PRIMARY KEY or UNIQUE constraint layered on top.',
+      },
+      {
+        title: 'UNIQUE Versus PRIMARY KEY',
+        body: "UNIQUE and PRIMARY KEY both stop two rows from sharing the same value in the constrained columns, but they diverge on null handling and cardinality. A UNIQUE constraint permits any number of rows with a null in the constrained column, because by default two nulls are never considered equal to each other — nulls represent unknown values, and two unknowns cannot be shown to collide. PRIMARY KEY carries that same uniqueness rule but adds NOT NULL on top of it, so a primary key column can never hold a null at all. A table may declare as many UNIQUE constraints as it needs — one per alternate identifier — but only one of them can be named the primary key, since that designation marks which identifier a table's own foreign-key references and tooling default to.",
+      },
+    ],
+  },
+  {
+    domain: 'schema-design',
+    taskStatement: 'Constraints and Referential Integrity',
+    topics: [
+      {
+        title: 'CHECK and NOT NULL: Validating a Row Against Itself',
+        body: 'A CHECK constraint attaches a boolean expression to a table, and PostgreSQL evaluates it against every row being inserted or updated: the constraint is satisfied whenever the expression evaluates to true or to null, and only rejects the row when it evaluates to false outright. That null-passes rule matters — a CHECK referencing a nullable column will not, by itself, stop that column from being null, since an expression with a null operand usually evaluates to null rather than false. Because keeping a column non-null is such a common requirement, PostgreSQL gives it a dedicated NOT NULL constraint rather than requiring CHECK (column IS NOT NULL) to be spelled out by hand; the two are functionally equivalent, but the dedicated form is documented as more efficient and is what most schemas should reach for first.',
+      },
+      {
+        title: 'Declaring a Foreign Key',
+        body: 'A foreign key ties a column or column set in one table to a column or column set in another, and PostgreSQL enforces that every non-null value on the referencing side has a match on the referenced side. That guarantee only works if the referenced columns are themselves guaranteed unique, so a foreign key must point at a primary key, a unique constraint, or a unique index on the target table — pointing at an arbitrary, unconstrained column is rejected outright, since there would be nothing to guarantee a single match. A referencing row with a null in any of its foreign-key columns is exempt from the check by default, on the same logic that makes null incomparable to anything. The practical effect is a table that cannot record a reference to something that does not exist.',
+      },
+      {
+        title: 'Referential Actions',
+        body: 'When a referenced row is deleted or its key is updated, PostgreSQL has to decide what happens to the rows still pointing at it, and ON DELETE and ON UPDATE each accept one of five actions. CASCADE propagates the change, deleting or updating the referencing rows along with it. SET NULL clears the referencing column to null, and SET DEFAULT resets it to the column default — though if that default would itself violate the constraint, the operation still fails, since referential actions never bypass the constraints they interact with. RESTRICT and NO ACTION both reject an operation that would leave a referencing row pointing at nothing, and NO ACTION is the default whenever no clause is written. Picking the wrong action here silently produces either orphaned data or an unwanted cascade of deletes.',
+      },
+      {
+        title: 'NO ACTION Versus RESTRICT',
+        body: 'NO ACTION and RESTRICT look interchangeable at first glance — both refuse a delete or update that would strand a referencing row — but they differ in when PostgreSQL is willing to check. RESTRICT fires the instant the triggering statement runs and cannot be postponed under any circumstances. NO ACTION enforces the same rule but, when the constraint is declared deferrable, allows the check itself to wait until the end of the transaction, which gives earlier statements in that same transaction room to fix the situation — inserting the row that will make a foreign key valid, for instance — before the check finally runs. Because NO ACTION is also the unwritten default, most foreign keys behave this way without anyone choosing it explicitly, and RESTRICT only earns its place when a schema specifically needs the check to fire immediately.',
+      },
+      {
+        title: 'Deferrable Constraints',
+        body: 'By default every constraint in PostgreSQL is NOT DEFERRABLE, meaning it is checked immediately after the statement that could violate it, with no chance for a later statement in the same transaction to fix things first. Marking a UNIQUE, PRIMARY KEY, EXCLUDE, or foreign-key constraint DEFERRABLE INITIALLY DEFERRED changes that: the check is postponed until the transaction commits, so intermediate states within the transaction are allowed to look inconsistent as long as everything lines up by the end. This is what makes otherwise-impossible operations tractable — inserting two rows that reference each other, or swapping the unique values held by two existing rows without a moment where either would collide with the other. SET CONSTRAINTS can also flip a deferred constraint back to immediate within the current transaction, if a particular statement needs that check enforced right away.',
+      },
+      {
+        title: 'Adding Constraints to a Live Table',
+        body: 'Adding a CHECK or foreign-key constraint to a table that already holds data normally means scanning every row to confirm none of them violate it, which on a large table can mean a long-held lock blocking other activity. NOT VALID skips that scan: the constraint is added and immediately applies to every future insert or update, but PostgreSQL makes no claim that existing rows already satisfy it. Running VALIDATE CONSTRAINT afterward performs the deferred scan, and because concurrent sessions are already enforcing the constraint on any row they touch, the scan only needs to check pre-existing rows — which lets it take a SHARE UPDATE EXCLUSIVE lock rather than the heavier lock a plain, scanning ADD CONSTRAINT would need. Splitting the operation this way is the standard technique for rolling out a constraint on a busy table without an extended outage.',
+      },
+    ],
+  },
+  {
+    domain: 'schema-design',
+    taskStatement: 'Normalization and Relationships',
+    topics: [
+      {
+        title: 'First Normal Form',
+        body: "The running example starts as a single wide table: one row per order, with order_id, order_date, customer_name, customer_email, and a products column holding something like 'Widget x2, Gadget x1' — a list crammed into one field. That products column breaks first normal form, which requires every cell to hold a single value with no repeating groups or embedded lists. The fix is to give each order-product pairing its own row: order_id, order_date, customer_name, customer_email, product_id, product_name, product_price, and quantity, with one row per product on an order rather than one row per order. Every cell now holds exactly one value, and the table is in 1NF — though, as the next topic shows, giving up the wide layout has just traded one problem for a subtler one.",
+      },
+      {
+        title: 'Second Normal Form',
+        body: "The 1NF version of the order table now has a composite primary key, (order_id, product_id), since neither column alone identifies a row. But order_date, customer_name, and customer_email depend only on order_id — the same order_date repeats on every product line of the same order — and product_name and product_price depend only on product_id, repeating on every order that includes that product. Both are partial dependencies: attributes depending on part of the key rather than the whole thing, which is exactly what second normal form forbids. The fix splits the table three ways: orders (order_id, order_date, customer_name, customer_email), products (product_id, product_name, product_price), and order_items (order_id, product_id, quantity) linking them, so every non-key attribute now depends on its own table's entire key.",
+      },
+      {
+        title: 'Third Normal Form',
+        body: "The orders table produced by the 2NF split still has a problem once a customer places more than one order: customer_name and customer_email repeat on every order row for that customer, and if the email changes, every one of that customer's past orders has to be updated to match or the table contradicts itself. The dependency is transitive — order_id determines customer_id, and customer_id in turn determines customer_name and customer_email, so the name and email depend on the key only through another non-key attribute rather than directly. Third normal form forbids exactly this chain. The fix extracts a customers table (customer_id, customer_name, customer_email) and leaves orders holding only customer_id as a reference, so a customer's contact details live in one row regardless of how many orders they have placed.",
+      },
+      {
+        title: 'Boyce-Codd Normal Form',
+        body: "Suppose order_items grows a discount_code column, where each order-product line can carry a code, and the business rule is that a given discount code is always good for exactly one product — discount_code determines product_id. The table (order_id, product_id, discount_code) now has two candidate keys, (order_id, product_id) and (order_id, discount_code), and because product_id is part of a candidate key, the dependency discount_code -> product_id does not violate third normal form, which excuses dependencies that land on a prime attribute. BCNF removes that excuse: every determinant must be a candidate key outright, and discount_code alone is not one. The fix splits out discount_codes (discount_code, product_id), leaving order_items to reference the code without re-storing which product it belongs to on every line — closing the gap 3NF left open.",
+      },
+      {
+        title: 'Modeling Relationships',
+        body: "The schema that falls out of these refinements — customers, orders, products, and order_items — also demonstrates how relationships are modeled once tables are separated by subject. Customers and orders are one-to-many: one customer places many orders, so the foreign key lives on the many side, with orders.customer_id referencing customers.customer_id, and no separate linking table is needed. Orders and products are many-to-many instead — one order can include many products, and one product can appear on many orders — which a single foreign key cannot express in either direction. order_items is the junction table that resolves it: its primary key is the pair of foreign keys, (order_id, product_id), so each order-product combination appears at most once while quantity and discount_code hang off that combination as its own attributes.",
+      },
+    ],
+  },
+  {
+    domain: 'schema-design',
+    taskStatement: 'Design Tradeoffs in PostgreSQL',
+    topics: [
+      {
+        title: 'Denormalizing Deliberately',
+        body: 'Normalization optimizes for write integrity — each fact in one place, updated once — at a direct cost to read performance, since reconstructing a full order means joining across orders, customers, products, and order_items every time. Denormalizing means deliberately storing a derived or duplicated value to avoid that join, such as caching a customer name directly on the order row for a reporting query that runs constantly and cannot tolerate the join cost. The trade is real, not free: every copy of a fact is a new place for it to drift out of sync with the source, and something — application code, a trigger, a scheduled job — now owns keeping the copies aligned. It is worth doing against a measured query pattern, not as a default starting position or a hedge against a problem that has not actually been observed.',
+      },
+      {
+        title: 'Generated Columns',
+        body: 'A stored generated column computes its value from other columns in the same row and stores that result physically, the same as an ordinary column would, recomputing it whenever the row is written. Declaring order_items.line_total as GENERATED ALWAYS AS (quantity * unit_price) STORED keeps the total consistent with its inputs, because the column cannot be written to directly — an INSERT or UPDATE that tries to supply its own value is rejected outright, with only the keyword DEFAULT accepted in its place. The generation expression is restricted to immutable functions, cannot reference another generated column, and cannot contain a subquery, which keeps its value fully determined by the row itself. This makes a generated column the right tool for derived data the database should maintain, rather than trusting every application code path to recompute the same formula consistently.',
+      },
+      {
+        title: 'Domains and Composite Types',
+        body: "A domain is a base type plus a set of constraints — CREATE DOMAIN email AS text CHECK (VALUE ~ '@') — used as a column type anywhere the same rule applies, on both customers.email and a separate contacts table, without repeating the CHECK expression in every CREATE TABLE. A composite type instead groups several fields into one named bundle, similar to a struct, and PostgreSQL automatically creates one behind every table to represent its row type. Composite types carry no constraints of their own, though — a NOT NULL written inside CREATE TYPE is rejected — so a composite column is usually the wrong tool where what is actually needed is a related entity with its own identity and foreign-key references: a table, not a bundle of fields glued into one column.",
+      },
+      {
+        title: 'Inheritance Versus Declarative Partitioning',
+        body: 'Table inheritance lets a child table like archived_orders inherit all the columns of orders and add its own, and by default querying orders also sweeps in every row from its children unless the query is restricted with ONLY. CHECK and NOT NULL constraints inherit down to children automatically, but UNIQUE, PRIMARY KEY, and FOREIGN KEY constraints do not — a primary key on orders does nothing to stop archived_orders from holding a duplicate order_id, since indexes and foreign keys in PostgreSQL apply only to a single table, never across a whole inheritance hierarchy. Declarative partitioning reuses the same parent/child storage layout but closes that gap, enforcing uniqueness and foreign keys across the partition set as a whole, which is why partitioning, not legacy inheritance, is the documented tool for splitting one logical table by a key like order_date.',
+      },
+    ],
+  },
+  {
     domain: 'querying',
     taskStatement: 'Combining & Filtering Rows',
     topics: [

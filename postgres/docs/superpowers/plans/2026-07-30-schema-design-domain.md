@@ -216,7 +216,7 @@ Manifest for sections 2–5. Section 2 topics carry a mix of theory and document
 | `Identity Columns and serial` | `GENERATED ALWAYS`/`BY DEFAULT AS IDENTITY` versus the `serial` shorthand; `OVERRIDING SYSTEM VALUE`; neither guarantees uniqueness without a constraint | `ddl-identity-columns.html` |
 | `UNIQUE Versus PRIMARY KEY` | `UNIQUE` permits multiple nulls because nulls are never equal; `PRIMARY KEY` is `UNIQUE` plus `NOT NULL`; a table may have many unique constraints but one primary key | `ddl-constraints.html` |
 
-**Section 3 — `taskStatement: 'Constraints and Referential Integrity'`** (6 topics)
+**Section 3 — `taskStatement: 'Constraints and Referential Integrity'`** (7 topics)
 
 | Title | Content | Source |
 | --- | --- | --- |
@@ -225,6 +225,7 @@ Manifest for sections 2–5. Section 2 topics carry a mix of theory and document
 | `Referential Actions` | `NO ACTION` (default), `RESTRICT`, `CASCADE`, `SET NULL`, `SET DEFAULT`, for both `ON DELETE` and `ON UPDATE`; what each does to referencing rows | `ddl-constraints.html` |
 | `NO ACTION Versus RESTRICT` | Both reject the operation, but `NO ACTION` allows the check to be deferred to end of transaction while `RESTRICT` fires immediately and cannot be deferred | `ddl-constraints.html` |
 | `Deferrable Constraints` | `DEFERRABLE INITIALLY DEFERRED` postpones checking to commit, which is what makes mutually-referencing inserts and key swaps possible; `SET CONSTRAINTS` controls it per transaction | `ddl-constraints.html`, `sql-set-constraints.html` |
+| `MATCH FULL Versus MATCH SIMPLE` | The default composite-FK matching mode lets a partially-null reference escape the constraint; `MATCH FULL` requires all-or-nothing | `ddl-constraints.html` |
 | `Adding Constraints to a Live Table` | `NOT VALID` adds a constraint enforced only for new rows without scanning the table, then `VALIDATE CONSTRAINT` checks existing rows under a weaker lock | `sql-altertable.html` |
 
 **Section 4 — `taskStatement: 'Normalization and Relationships'`** (5 topics, all theory)
@@ -557,7 +558,7 @@ git commit -m "fix(postgres): apply Schema Design verification corrections"
 
 **Spec coverage.** Taxonomy and weights → Task 1. Five study sections → Task 2. ~22 quiz questions → Tasks 1 and 3 (7 + 15). ~16 flashcards and both migrations → Task 4. Sourcing exception and README → Task 5. Cheatsheet → Task 5. Verification approach → Task 6. Out-of-scope items (Anki upload, sibling modules, deployment) are correctly absent.
 
-**Counts reconciled with the spec.** Spec states 133 cards, Schema Design 18 — met by 16 new plus 2 migrated. Spec states "~20 topics"; this plan specifies 23 (4+4+6+5+4), a deliberate upward adjustment to cover all six referential actions and BCNF properly. Spec states "~22 questions"; this plan specifies exactly 22.
+**Counts reconciled with the spec.** Spec states 133 cards, Schema Design 18 — met by 16 new plus 2 migrated. Spec states "~20 topics"; this plan specifies 24 (4+4+7+5+4), a deliberate upward adjustment to cover all six referential actions and BCNF properly. Spec states "~22 questions"; this plan specifies exactly 22.
 
 **Placeholder scan.** No TBD or TODO. Content-authoring steps carry either full exemplars or a per-item manifest naming the exact id, the exact point to test, and the exact source page — specific enough to implement without further decisions, while the prose is written against live docs at execution time as the spec requires.
 

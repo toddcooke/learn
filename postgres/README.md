@@ -20,7 +20,7 @@ There is no single, universally recognized PostgreSQL certification the way ther
 
 ## What's here
 
-- **Study guide** — organized by 6 domains: Architecture & Data Types, Querying & SQL, Indexing & Performance, Transactions & Concurrency (MVCC), Administration & Maintenance, and Replication & High Availability.
+- **Study guide** — organized by 7 domains: Architecture & Data Types, Schema Design & Constraints, Querying & SQL, Indexing & Performance, Transactions & Concurrency (MVCC), Administration & Maintenance, and Replication & High Availability.
 - **Domain quizzes** — 132 practice questions with instant feedback and explanations.
 - **Flashcards** — a cheat-sheet deck of core PostgreSQL objects and concepts with known/unknown tracking.
 - **Practice exam** — a 50-question, 75-minute timed self-test weighted by domain, scored on a 0-100 scale against an informal 70-point passing line.
@@ -29,7 +29,7 @@ There is no single, universally recognized PostgreSQL certification the way ther
 
 ## How the content was sourced
 
-All content is grounded in the official PostgreSQL 18 documentation at postgresql.org/docs/current/ (confirmed current stable as of 2026-07-09), with one exception: connection pooling, which PostgreSQL core doesn't document at all (confirmed during planning) — that sub-topic draws from the official PgBouncer docs instead. Every quiz question was drafted from and checked against the relevant cached documentation before being added. Fetched doc pages are cached locally under `.cache/docs/` (gitignored; directory name kept for consistency with tooling shared with the other two modules) so re-running the content pipeline doesn't re-hit the network for pages already fetched.
+All content is grounded in the official PostgreSQL 18 documentation at postgresql.org/docs/current/ (confirmed current stable as of 2026-07-09), with two exceptions: connection pooling, which PostgreSQL core doesn't document at all (confirmed during planning) — that sub-topic draws from the official PgBouncer docs instead; and normalization theory — normal forms, functional dependencies, and the anomalies they prevent — is not part of the PostgreSQL documentation, which is implementation-focused by design; that material draws on the canonical relational literature (Codd for the relational model and first through third normal forms, Boyce–Codd for BCNF), and no theory claim in this module is attributed to the PostgreSQL docs. Every quiz question was drafted from and checked against the relevant cached documentation before being added. Fetched doc pages are cached locally under `.cache/docs/` (gitignored; directory name kept for consistency with tooling shared with the other two modules) so re-running the content pipeline doesn't re-hit the network for pages already fetched.
 
 ## Development
 

@@ -242,12 +242,13 @@
             <h2>Study Domains</h2>
             <table class="t">
               <tr><th>Domain</th><th>Weight</th></tr>
-              <tr><td>Architecture &amp; Data Types</td><td class="mono">15%</td></tr>
-              <tr><td>Querying &amp; SQL</td><td class="mono">20%</td></tr>
-              <tr><td>Indexing &amp; Performance</td><td class="mono">20%</td></tr>
-              <tr><td>Transactions &amp; Concurrency</td><td class="mono">15%</td></tr>
-              <tr><td>Administration &amp; Maintenance</td><td class="mono">20%</td></tr>
-              <tr><td>Replication &amp; HA</td><td class="mono">10%</td></tr>
+              <tr><td>Architecture &amp; Data Types</td><td class="mono">13%</td></tr>
+              <tr><td>Schema Design &amp; Constraints</td><td class="mono">15%</td></tr>
+              <tr><td>Querying &amp; SQL</td><td class="mono">17%</td></tr>
+              <tr><td>Indexing &amp; Performance</td><td class="mono">17%</td></tr>
+              <tr><td>Transactions &amp; Concurrency</td><td class="mono">13%</td></tr>
+              <tr><td>Administration &amp; Maintenance</td><td class="mono">17%</td></tr>
+              <tr><td>Replication &amp; HA</td><td class="mono">8%</td></tr>
             </table>
           </section>
 
@@ -328,6 +329,23 @@
               <tr><td>random_page_cost</td><td class="mono">4.0</td></tr>
             </table>
             <p class="note">Only the ratio drives planning. All-flash/cached workloads: lower random_page_cost toward 1.1&ndash;2 (or match seq_page_cost) so the planner stops overweighting sequential scans.</p>
+          </section>
+
+          <section class="sec">
+            <h2>Constraints &amp; Keys</h2>
+            <ul class="ol">
+              <li><b>CASCADE</b> propagates the delete/update; <b>SET NULL</b> nulls the referencing column; <b>SET DEFAULT</b> resets it to the column default (still enforced); <b>RESTRICT</b>/<b>NO ACTION</b> reject the operation &mdash; NO ACTION is the unwritten default</li>
+              <li><b>NO ACTION</b> can be deferred to end-of-transaction if the constraint is declared <span class="mono">DEFERRABLE</span>; <b>RESTRICT</b> always fires immediately and never can</li>
+              <li><b>CHECK</b> passes when the expression is <b>true or null</b> &mdash; only an explicit <b>false</b> rejects the row</li>
+              <li><b>UNIQUE</b> permits any number of nulls (two nulls are never equal); <b>PRIMARY KEY</b> = UNIQUE + <b>NOT NULL</b></li>
+              <li><b>MATCH FULL</b>: a composite FK row escapes the check only if <b>every</b> referencing column is null (default <b>MATCH SIMPLE</b> exempts it if just one is)</li>
+              <li>Declaring a foreign key creates <b>no index</b> on the referencing columns &mdash; add one explicitly</li>
+              <li><b>NOT VALID</b> adds the constraint with no scan; <b>VALIDATE CONSTRAINT</b> scans existing rows later, under a lighter lock</li>
+              <li><b>1NF</b> &mdash; every cell holds one value, no repeating groups</li>
+              <li><b>2NF</b> &mdash; 1NF + every non-key attribute depends on the <b>whole</b> key, not part of it</li>
+              <li><b>3NF</b> &mdash; 2NF + no non-key attribute depends on another non-key attribute (no transitive dependency)</li>
+              <li><b>BCNF</b> &mdash; every determinant is a candidate key, no exception for prime attributes</li>
+            </ul>
           </section>
         </div>
 

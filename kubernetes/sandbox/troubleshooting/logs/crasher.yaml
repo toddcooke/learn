@@ -24,10 +24,14 @@ spec:
       image: busybox:1.36
       command: ["sh", "-c"]
       args:
-        # The sleep matters. A container that prints and exits within the same
-        # millisecond is restarted immediately and its predecessor is reaped
-        # almost as fast, so `kubectl logs --previous` intermittently answers
-        # "unable to retrieve container logs" — the container it would have
-        # read is already gone. Living a few seconds keeps the corpse around
-        # long enough to be examined, which is the entire point of the lab.
-        - 'echo "CRASH-MARKER: opening /etc/app/config.yaml"; echo "CRASH-MARKER: no such file - giving up"; sleep 5; exit 1'
+        # Exit immediately, on purpose. A container that lives even a few
+        # seconds per attempt does not produce CrashLoopBackOff on this
+        # version: the state alternates between terminated and running, the
+        # STATUS column reads Error, and the backoff the lab is here to
+        # explain never becomes visible. Dying instantly is what makes the
+        # kubelet sit in a waiting state between attempts.
+        #
+        # The cost is that `kubectl logs --previous` occasionally races the
+        # reaping of the instance it wants to read. run.sh handles that by
+        # retrying rather than by slowing this container down.
+        - 'echo "CRASH-MARKER: opening /etc/app/config.yaml"; echo "CRASH-MARKER: no such file - giving up"; exit 1'

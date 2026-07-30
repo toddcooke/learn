@@ -130,13 +130,21 @@ assert_eventually 240 "CrashLoopBackOff" \
   "crasher's current state is Waiting/CrashLoopBackOff" crasher_reason
 EXIT_CODE="$(k -n "$NS" get pod crasher -o jsonpath='{.status.containerStatuses[0].lastState.terminated.exitCode}')"
 assert_eq "$EXIT_CODE" "1" "the previous instance terminated with exit code 1"
-# Retry rather than reading once. The container the kubelet reaps and the
-# container --previous wants to read are the same object, so a single badly
-# timed call can land in the gap and get "unable to retrieve container logs".
+# Retry, and keep the copy that succeeded. The container --previous wants to
+# read is the same one the kubelet is reaping, so a badly timed call gets
+# "unable to retrieve container logs" — and reading twice is its own bug: the
+# second read can land in the gap even when the first did not.
 prev_logs() { k -n "$NS" logs crasher --previous 2>&1 || true; }
-assert_eventually_contains 120 "CRASH-MARKER: opening /etc/app/config.yaml" \
-  "--previous returned the dead instance's output" prev_logs
-PREV="$(prev_logs)"
+PREV=""
+for _ in $(seq 1 60); do
+  CANDIDATE="$(prev_logs)"
+  case "$CANDIDATE" in
+    *"CRASH-MARKER: opening /etc/app/config.yaml"*) PREV="$CANDIDATE"; break ;;
+  esac
+  sleep 2
+done
+[ -n "$PREV" ] || fail "--previous never returned the dead instance's output within 120s"
+ok "--previous returned the dead instance's output"
 note "kubectl logs crasher --previous returned:"
 printf '%s\n' "$PREV" | while IFS= read -r L; do note "  $L"; done
 assert_contains "$PREV" "CRASH-MARKER: no such file - giving up" \

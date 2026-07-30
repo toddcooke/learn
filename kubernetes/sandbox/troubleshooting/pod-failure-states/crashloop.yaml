@@ -26,4 +26,11 @@ spec:
           echo "starting up"
           echo "FATAL: config file /etc/app/config.yaml not found" >&2
           echo "giving up"
+          # A brief pause before exiting, so the instance survives long enough
+          # for `kubectl logs --previous` to still find it after the restart.
+          # A container that prints and dies in the same millisecond is reaped
+          # so promptly that the read intermittently comes back "unable to
+          # retrieve container logs" — which would break the one command this
+          # Pod exists to demonstrate.
+          sleep 2
           exit 1

@@ -202,11 +202,24 @@ process made to wait — while memory is an allocation the process already holds
 On a node without swap there is nowhere to move those pages, so the kernel
 cannot reclaim its way out of the overage and killing is the only move left.
 
-Then comes the part that matters most for triage: give it a minute and
-`oom-victim` lands in `CrashLoopBackOff` too, exactly like the previous Pod.
-`restartPolicy: Always` turns *every* repeating failure into
-`CrashLoopBackOff` eventually, whatever caused it. The outward state is the
-same; `lastState.terminated` is where the two cases separate.
+Then comes the part that matters most for triage, and it is subtler than it
+first looks. Watch the `STATUS` column on this Pod for a minute: depending on
+when you look you may see `CrashLoopBackOff`, or you may see `Error`, and
+which one appears has nothing to do with how the container died.
+
+It depends on how long each attempt survives. `oom-victim` allocates for
+twenty-odd seconds before the kernel reaches it, and a container that lives
+that long tends to be restarted without the kubelet ever parking it in a
+visible waiting state — so `STATUS` shows `Error`. Shrink the allocation loop
+so it dies instantly and the very same Pod, killed the very same way, starts
+reporting `CrashLoopBackOff`.
+
+That is the lesson worth keeping. The outward state name describes the
+kubelet's restart timing, not the cause of death, and two Pods that died for
+completely different reasons can wear the same word — or the same Pod can wear
+different words on different days. `lastState.terminated` is where the causes
+actually separate: `Error` with exit 1 for a process that chose to quit,
+`OOMKilled` with exit 137 for one the kernel stopped.
 
 ### 7. The whole triage on one screen
 

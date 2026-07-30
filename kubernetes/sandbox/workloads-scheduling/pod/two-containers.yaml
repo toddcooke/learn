@@ -1,0 +1,26 @@
+# One Pod, two containers, one shared volume. The point of the lab is that
+# both containers get the same network namespace and can both mount the
+# Pod's volume — neither of which is true for containers in separate Pods.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: shared
+  labels:
+    app: shared
+spec:
+  volumes:
+    - name: scratch
+      emptyDir: {}
+  containers:
+    - name: server
+      image: registry.k8s.io/e2e-test-images/agnhost:2.53
+      command: ["/agnhost", "netexec", "--http-port=8080"]
+      volumeMounts:
+        - name: scratch
+          mountPath: /scratch
+    - name: sidecar
+      image: registry.k8s.io/e2e-test-images/agnhost:2.53
+      command: ["sleep", "3600"]
+      volumeMounts:
+        - name: scratch
+          mountPath: /scratch

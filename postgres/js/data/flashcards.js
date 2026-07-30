@@ -141,7 +141,7 @@ export const FLASHCARDS = [
   {
     id: 'exclusion-constraint',
     service: 'Range Constraints',
-    domain: 'Schema Design',
+    domain: 'Architecture',
     front: 'Why is UNIQUE the wrong tool for preventing double-booked time ranges, and what enforces that rule instead?',
     back: "UNIQUE only rejects rows holding an identical value, while the property worth enforcing on a range column is usually 'no two rows overlap' — the docs call UNIQUE usually unsuitable for range types and point to an exclusion constraint instead: EXCLUDE USING GIST (during WITH &&) rejects any inserted or updated row whose range overlaps one already stored. With the btree_gist extension the constraint can pair scalar equality with range overlap — EXCLUDE USING GIST (room WITH =, during WITH &&) — so overlapping reservations are rejected only when they are for the same room.",
   },
@@ -236,7 +236,7 @@ export const FLASHCARDS = [
     service: '1NF',
     domain: 'Schema Design',
     front: 'What rule does 1NF impose on every cell in a table, and what does a violation of that rule look like in a real column?',
-    back: "First normal form requires that every cell hold a single value, with no repeating groups or lists embedded inside one field. A products column holding something like 'Widget x2, Gadget x1' violates it outright — the fix is to give each order-product pairing its own row, so a query can filter or aggregate on product without first having to parse a string, and every cell holds exactly one value.",
+    back: "First normal form requires that every cell hold a single value, with no repeating groups or lists embedded inside one field. A products column holding something like 'Widget x2, Gadget x1' violates it outright (PostgreSQL's array and jsonb types depart from strict 1NF on purpose; the rule bites when the elements must be queried or constrained individually) — the fix is to give each order-product pairing its own row, so a query can filter or aggregate on product without first having to parse a string, and every cell holds exactly one value.",
   },
   {
     id: 'second-third-normal-form',
@@ -271,7 +271,7 @@ export const FLASHCARDS = [
     service: 'Referential Actions',
     domain: 'Schema Design',
     front: 'ON DELETE NO ACTION and ON DELETE RESTRICT both refuse to orphan a row. What actually differs between them?',
-    back: 'Timing. NO ACTION, the default, lets the check be deferred to the end of the transaction if the constraint is declared deferrable, so an intermediate state that would violate it is tolerated as long as things are consistent by commit. RESTRICT fires immediately and cannot be deferred, which rules out that intermediate state entirely.',
+    back: "More than timing. RESTRICT is stricter in substance: it rejects the moment a matching referencing row is found, even when the state after the operation would still satisfy the constraint — which is why ON UPDATE RESTRICT blocks updating a referenced value to one that's merely distinct but compares as equal — and it can never be deferred. NO ACTION, the default, checks against the post-operation state instead, so a change that leaves no dangling reference succeeds where RESTRICT would refuse it; only when the constraint is actually deferred (DEFERRABLE INITIALLY DEFERRED, or switched with SET CONSTRAINTS) does that check wait until commit, tolerating an inconsistent intermediate state as long as things line up by then.",
   },
 
   // --- Querying & SQL ---

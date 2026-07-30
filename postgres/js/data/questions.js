@@ -2,9 +2,17 @@
 // Quiz questions covering all seven domains: architecture, schema design,
 // querying, indexing, transactions, administration, and replication.
 // Grounded in the official PostgreSQL 18 documentation cached under
-// .cache/docs/ during authoring (see scripts/fetch-doc.mjs). Every
-// answer key was re-checked against the exact cached passage it is based
-// on. Written in the author's own words, not copied verbatim from the docs.
+// .cache/docs/ during authoring (see scripts/fetch-doc.mjs), with two
+// exceptions recorded in README.md: connection pooling draws on the
+// PgBouncer docs, and the normalization theory in the schema-design domain
+// (normal forms, functional dependencies, and the anomalies they prevent) is
+// not taught by the PostgreSQL documentation and draws on the canonical
+// relational literature instead — Codd for the relational model and 1NF
+// through 3NF, Boyce-Codd for BCNF. Every answer key was re-checked against
+// the exact cached passage it is based on, except the schema-design theory
+// questions, whose keys were checked against the relational literature named
+// above. Written in the author's own words, not copied verbatim from the
+// docs.
 
 export const QUESTIONS = [
   // --- Server architecture & process model (architecture-001..005) ---
@@ -1964,7 +1972,7 @@ export const QUESTIONS = [
       'A is a foreign key that references the column B in another table.',
     ],
     correctIndexes: [2],
-    explanation: 'A functional dependency A -> B says that fixing a value of A fixes the value of B: no two rows may share an A value while disagreeing on B. Identifying these dependencies is how redundancy is located, since a dependency on anything other than a whole candidate key signals a fact stored in the wrong place.',
+    explanation: 'A functional dependency A -> B says that fixing a value of A fixes the value of B: no two rows may share an A value while disagreeing on B. Identifying these dependencies is how redundancy is located, since a non-trivial dependency whose determinant is not a superkey signals a fact stored in the wrong place.',
   },
   {
     id: 'schema-design-003',
@@ -1984,7 +1992,7 @@ export const QUESTIONS = [
     id: 'schema-design-004',
     domain: 'schema-design',
     questionType: 'multiple-response',
-    question: 'Which of the following are true properties of a relation in the relational model, as Codd originally defined it?',
+    question: 'Which of the following are true properties of a relation in the relational model as it is standardly formulated?',
     options: [
       'The rows of a relation have no defined order; two relations containing the same rows are the same relation regardless of row order.',
       'The attributes (columns) of a relation have no defined order; a column is identified by name rather than by position.',
@@ -1995,7 +2003,7 @@ export const QUESTIONS = [
       'Every relation must contain a timestamp column recording when each row was last modified.',
     ],
     correctIndexes: [0, 1, 2, 3],
-    explanation: "A relation is defined as a set of tuples, and that single definition carries four consequences directly: sets have no inherent order, so neither rows nor attributes are sequenced — a column is addressed by name, not position; a set can't contain the same element twice, so duplicate rows are excluded by definition; and each attribute draws its values from a domain of atomic values, so a cell can't hold a list or a nested record. None of the three false statements are part of the relational model itself — a surrogate auto-increment key, a mandatory foreign key, and a mandatory audit timestamp are schema-design choices some tables make, not properties every relation must have.",
+    explanation: "In the standard formulation a relation is a set of tuples, and a tuple is a set of attribute-name/value pairs. Because the rows form a set, they have no inherent order and no element can appear twice, so duplicate rows are excluded by definition; because a tuple's components are addressed by attribute name rather than by position, the columns have no defined order either; and each attribute draws its values from a domain of atomic values, so a cell can't hold a list or a nested record. (This list describes the relational model as it is standardly taught today, not Codd's original 1970 paper specifically, which framed some of these points differently.) None of the three false statements are part of the relational model itself — a surrogate auto-increment key, a mandatory foreign key, and a mandatory audit timestamp are schema-design choices some tables make, not properties every relation must have.",
   },
   {
     id: 'schema-design-005',

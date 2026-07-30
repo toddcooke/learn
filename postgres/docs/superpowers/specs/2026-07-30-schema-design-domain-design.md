@@ -96,8 +96,9 @@ them in exactly this sequence:
    natural versus surrogate key tradeoffs; identity columns and the `serial`
    pseudo-type; how `UNIQUE` differs from `PRIMARY KEY`, including null
    handling.
-3. **Constraints and Referential Integrity** *(docs)* — all six constraint
-   types (CHECK, NOT NULL, UNIQUE, PRIMARY KEY, FOREIGN KEY, EXCLUDE);
+3. **Constraints and Referential Integrity** *(docs)* — CHECK, NOT NULL,
+   UNIQUE, PRIMARY KEY, and FOREIGN KEY constraints (EXCLUDE stays in
+   Architecture with the range types it builds on);
    `ON DELETE` / `ON UPDATE` actions (NO ACTION, RESTRICT, CASCADE, SET NULL,
    SET DEFAULT); `DEFERRABLE INITIALLY DEFERRED`; `MATCH FULL`; adding
    constraints as `NOT VALID` then `VALIDATE CONSTRAINT`.
@@ -162,9 +163,9 @@ Architecture material. Its study topic and quiz coverage live there as well,
 so moving the card alone would have split one concept across two domains —
 the opposite of this section's goal.
 
-Card ids are unchanged, so the Anki sync updates those two notes in place —
-their tags change while review scheduling survives, since notes are keyed on
-the ID field.
+The card id is unchanged, so the Anki sync updates that note in place — its
+tag changes while review scheduling survives, since notes are keyed on the ID
+field.
 
 Data types themselves (numeric, char/varchar/text, timestamptz, UUID, arrays,
 ranges, json/jsonb) stay in Architecture. They are about representing values,
@@ -180,7 +181,7 @@ Indexing 18, Transactions 15, Administration 31, Replication 16.
 | `js/data/examInfo.js` | Add domain; rebalance six weights and mock counts |
 | `js/data/studyContent.js` | Add 5 sections (~20 topics) |
 | `js/data/questions.js` | Add ~22 questions |
-| `js/data/flashcards.js` | Add `'Schema Design'` to `FLASHCARD_DOMAINS`; add ~16 cards; move 2 |
+| `js/data/flashcards.js` | Add `'Schema Design'` to `FLASHCARD_DOMAINS`; add ~16 cards; move 1 |
 | `README.md` | Domain list; second sourcing-exception bullet |
 | `cheatsheet.html` | Study Domains list; new Schema Design block |
 

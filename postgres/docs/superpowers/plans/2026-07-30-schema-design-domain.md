@@ -331,7 +331,7 @@ git commit -m "feat(postgres): complete the Schema Design quiz bank"
 
 ---
 
-### Task 4: Flashcards — new domain, 16 new cards, 2 migrations
+### Task 4: Flashcards — new domain, 16 new cards, 1 migration
 
 **Files:**
 - Modify: `postgres/js/data/flashcards.js` (`FLASHCARD_DOMAINS`, new card section, two `domain` field edits)
@@ -396,6 +396,12 @@ Add a `// --- Schema Design & Constraints ---` section after the Architecture bl
     back: 'Timing. NO ACTION, the default, lets the check be deferred to the end of the transaction if the constraint is declared deferrable, so an intermediate state that would violate it is tolerated as long as things are consistent by commit. RESTRICT fires immediately and cannot be deferred, which rules out that intermediate state entirely.',
   },
 ```
+
+> **Correction (found during Task 6 verification):** this exemplar's back is
+> wrong and must NOT be copied. Timing is not the only difference — the
+> PostgreSQL docs state plainly that "RESTRICT is a stricter setting than NO
+> ACTION," a substantive difference beyond deferrability. The shipped card
+> reflects the corrected wording; see `js/data/flashcards.js`.
 
 Manifest for the remaining fourteen:
 
@@ -558,7 +564,7 @@ git commit -m "fix(postgres): apply Schema Design verification corrections"
 
 **Spec coverage.** Taxonomy and weights → Task 1. Five study sections → Task 2. ~22 quiz questions → Tasks 1 and 3 (7 + 15). ~16 flashcards and both migrations → Task 4. Sourcing exception and README → Task 5. Cheatsheet → Task 5. Verification approach → Task 6. Out-of-scope items (Anki upload, sibling modules, deployment) are correctly absent.
 
-**Counts reconciled with the spec.** Spec states 133 cards, Schema Design 18 — met by 16 new plus 2 migrated. Spec states "~20 topics"; this plan specifies 24 (4+4+7+5+4), a deliberate upward adjustment to cover all six referential actions and BCNF properly. Spec states "~22 questions"; this plan specifies exactly 22.
+**Counts reconciled with the spec.** Spec states 133 cards; final split is Architecture 20 / Schema Design 17 after the exclusion-constraint migration was reverted (see the spec's Migrations note). Spec states "~20 topics"; this plan specifies 24 (4+4+7+5+4), a deliberate upward adjustment to cover all six referential actions and BCNF properly. Spec states "~22 questions"; this plan specifies exactly 22.
 
 **Placeholder scan.** No TBD or TODO. Content-authoring steps carry either full exemplars or a per-item manifest naming the exact id, the exact point to test, and the exact source page — specific enough to implement without further decisions, while the prose is written against live docs at execution time as the spec requires.
 

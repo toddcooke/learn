@@ -16,12 +16,12 @@ Then open http://localhost:8002/ in a browser. (A plain `file://` open won't wor
 
 ## A note on scope
 
-There is no single, universally recognized PostgreSQL certification the way there is for AWS (SAA-C03) or Kubernetes (CKA). This site's 6-domain taxonomy is self-authored, covering both DBA and application-development knowledge, grounded in the official PostgreSQL documentation rather than an official exam blueprint. The "practice exam" is a self-test, not a simulation of any vendor's exam.
+There is no single, universally recognized PostgreSQL certification the way there is for AWS (SAA-C03) or Kubernetes (CKA). This site's 7-domain taxonomy is self-authored, covering both DBA and application-development knowledge, grounded in the official PostgreSQL documentation rather than an official exam blueprint. The "practice exam" is a self-test, not a simulation of any vendor's exam.
 
 ## What's here
 
 - **Study guide** — organized by 7 domains: Architecture & Data Types, Schema Design & Constraints, Querying & SQL, Indexing & Performance, Transactions & Concurrency (MVCC), Administration & Maintenance, and Replication & High Availability.
-- **Domain quizzes** — 132 practice questions with instant feedback and explanations.
+- **Domain quizzes** — 154 practice questions with instant feedback and explanations.
 - **Flashcards** — a cheat-sheet deck of core PostgreSQL objects and concepts with known/unknown tracking.
 - **Practice exam** — a 50-question, 75-minute timed self-test weighted by domain, scored on a 0-100 scale against an informal 70-point passing line.
 - **Progress dashboard** — quiz and practice exam history, flashcard mastery, all stored locally in your browser (`localStorage`, nothing sent anywhere).

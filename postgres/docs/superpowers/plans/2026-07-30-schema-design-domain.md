@@ -338,7 +338,7 @@ git commit -m "feat(postgres): complete the Schema Design quiz bank"
 
 **Interfaces:**
 - Consumes: nothing from Tasks 1–3 structurally; content must stay consistent with Task 2's sections.
-- Produces: deck of 133 cards; Anki tag `postgres::schema-design`.
+- Produces: deck of 133 cards; Anki tag `postgres::schema-design`. (`exclusion-constraint` was later returned to Architecture — see the spec's Migrations note.)
 
 - [ ] **Step 1: Migrate one card first, to see the validator reject the unknown domain**
 
@@ -424,7 +424,7 @@ Run:
 node scripts/validate-content.mjs && node -e "import('./js/data/flashcards.js').then(m=>{const c={};for(const x of m.FLASHCARDS)c[x.domain]=(c[x.domain]||0)+1;console.log(c,'total',m.FLASHCARDS.length)})"
 ```
 
-Expected: validator PASS, then `Architecture: 19, Schema Design: 18, Querying: 16, Indexing: 18, Transactions: 15, Administration: 31, Replication: 16` and `total 133`.
+Expected: validator PASS, then `Architecture: 20, Schema Design: 17, Querying: 16, Indexing: 18, Transactions: 15, Administration: 31, Replication: 16` and `total 133`.
 
 - [ ] **Step 8: Regenerate the Anki export**
 

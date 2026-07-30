@@ -148,13 +148,19 @@ the PostgreSQL documentation asserted it.
 
 ## Migrations
 
-Two existing cards move into the new domain so the material lives in one
+One existing card moves into the new domain so the material lives in one
 place:
 
 | Card id | From | To |
 | --- | --- | --- |
-| `exclusion-constraint` | Architecture | Schema Design |
 | `identity-vs-serial` | Administration | Schema Design |
+
+`exclusion-constraint` was originally slated to move here too. It stayed in
+Architecture: the card teaches `EXCLUDE USING GIST` with range overlap, which
+only makes sense once range types are understood, and range types are
+Architecture material. Its study topic and quiz coverage live there as well,
+so moving the card alone would have split one concept across two domains —
+the opposite of this section's goal.
 
 Card ids are unchanged, so the Anki sync updates those two notes in place —
 their tags change while review scheduling survives, since notes are keyed on
@@ -164,7 +170,7 @@ Data types themselves (numeric, char/varchar/text, timestamptz, UUID, arrays,
 ranges, json/jsonb) stay in Architecture. They are about representing values,
 not structuring relations.
 
-Resulting deck: 133 cards — Architecture 19, Schema Design 18, Querying 16,
+Resulting deck: 133 cards — Architecture 20, Schema Design 17, Querying 16,
 Indexing 18, Transactions 15, Administration 31, Replication 16.
 
 ## Files touched

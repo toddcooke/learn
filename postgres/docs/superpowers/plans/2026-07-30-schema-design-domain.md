@@ -83,7 +83,7 @@ Expected: FAIL with `domain schema-design has 0 questions but mockExamCount is 7
 Fetch and read these pages before drafting. Every mechanics claim must be traceable to one of them:
 
 - https://www.postgresql.org/docs/current/ddl-constraints.html
-- https://www.postgresql.org/docs/current/ddl-identity.html
+- https://www.postgresql.org/docs/current/ddl-identity-columns.html
 
 Theory questions (001–004) draw on the relational literature, not these pages.
 
@@ -131,7 +131,7 @@ Manifest for the remaining five — draft each to the same standard:
 | `schema-design-004` | multiple-response | Which properties hold for a relation: unordered rows, unordered attributes, no duplicate rows, each cell a single value (≥5 options, ≥2 correct) | theory |
 | `schema-design-005` | multiple-choice | Candidate key vs primary key: several candidates may exist; one is chosen as primary | theory |
 | `schema-design-006` | multiple-choice | `UNIQUE` allows multiple nulls; `PRIMARY KEY` is `UNIQUE` plus `NOT NULL` | `ddl-constraints.html` |
-| `schema-design-007` | multiple-choice | `GENERATED ALWAYS AS IDENTITY` rejects an explicit value unless `OVERRIDING SYSTEM VALUE` is given; `BY DEFAULT` accepts one | `ddl-identity.html` |
+| `schema-design-007` | multiple-choice | `GENERATED ALWAYS AS IDENTITY` rejects an explicit value unless `OVERRIDING SYSTEM VALUE` is given; `BY DEFAULT` accepts one | `ddl-identity-columns.html` |
 
 - [ ] **Step 7: Run the validator to verify it passes**
 
@@ -169,7 +169,7 @@ Expected: PASS. This is the baseline; if it already fails, stop and fix Task 1 b
 - [ ] **Step 2: Fetch the source docs**
 
 - https://www.postgresql.org/docs/current/ddl-constraints.html
-- https://www.postgresql.org/docs/current/ddl-identity.html
+- https://www.postgresql.org/docs/current/ddl-identity-columns.html
 - https://www.postgresql.org/docs/current/ddl-generated-columns.html
 - https://www.postgresql.org/docs/current/sql-createdomain.html
 - https://www.postgresql.org/docs/current/rowtypes.html
@@ -213,7 +213,7 @@ Manifest for sections 2–5. Section 2 topics carry a mix of theory and document
 | --- | --- | --- |
 | `Candidate Keys, Primary Keys, and Composite Keys` | A candidate key is any minimal attribute set that uniquely identifies a row; a table may have several, one of which is designated primary. Composite keys span multiple columns | theory |
 | `Natural Versus Surrogate Keys` | Natural keys carry meaning and can change or turn out not to be unique; surrogates are meaningless, stable, and compact but require a uniqueness constraint on the natural key anyway to prevent duplicates | theory |
-| `Identity Columns and serial` | `GENERATED ALWAYS`/`BY DEFAULT AS IDENTITY` versus the `serial` shorthand; `OVERRIDING SYSTEM VALUE`; neither guarantees uniqueness without a constraint | `ddl-identity.html` |
+| `Identity Columns and serial` | `GENERATED ALWAYS`/`BY DEFAULT AS IDENTITY` versus the `serial` shorthand; `OVERRIDING SYSTEM VALUE`; neither guarantees uniqueness without a constraint | `ddl-identity-columns.html` |
 | `UNIQUE Versus PRIMARY KEY` | `UNIQUE` permits multiple nulls because nulls are never equal; `PRIMARY KEY` is `UNIQUE` plus `NOT NULL`; a table may have many unique constraints but one primary key | `ddl-constraints.html` |
 
 **Section 3 — `taskStatement: 'Constraints and Referential Integrity'`** (6 topics)

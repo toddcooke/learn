@@ -1,6 +1,6 @@
 // js/data/questions.js
-// Quiz questions covering all six exam domains: architecture, querying,
-// indexing, transactions, administration, and replication.
+// Quiz questions covering all seven domains: architecture, schema design,
+// querying, indexing, transactions, administration, and replication.
 // Grounded in the official PostgreSQL 18 documentation cached under
 // .cache/docs/ during authoring (see scripts/fetch-doc.mjs). Every
 // answer key was re-checked against the exact cached passage it is based

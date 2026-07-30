@@ -1,6 +1,6 @@
 // js/data/studyContent.js
-// Study notes covering all six exam domains: architecture, querying,
-// indexing, transactions, administration, and replication.
+// Study notes covering all seven domains: architecture, schema design,
+// querying, indexing, transactions, administration, and replication.
 // Grounded in the official PostgreSQL 18 documentation (docs cached under
 // .cache/docs/ during authoring); written in original prose, not copied.
 export const STUDY_CONTENT = [

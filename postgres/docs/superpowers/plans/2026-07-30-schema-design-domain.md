@@ -85,7 +85,7 @@ Fetch and read these pages before drafting. Every mechanics claim must be tracea
 - https://www.postgresql.org/docs/current/ddl-constraints.html
 - https://www.postgresql.org/docs/current/ddl-identity-columns.html
 
-Theory questions (001–004) draw on the relational literature, not these pages.
+Theory questions (001–005) draw on the relational literature, not these pages.
 
 - [ ] **Step 6: Append the seven seed questions**
 

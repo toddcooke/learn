@@ -1,0 +1,34 @@
+# Host-based (name-based virtual host) routing: two hostnames, the same path
+# `/` under each, two different Services.
+#
+# Nothing about this Ingress is tied to DNS. The controller selects on the Host
+# header alone, so a request that carries `Host: foo.sandbox.example` is routed
+# here whether that name resolves anywhere or not — which is why the walkthrough
+# can prove it with nothing but a header.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hosts
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: foo.sandbox.example
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: foo
+                port:
+                  number: 80
+    - host: bar.sandbox.example
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: bar
+                port:
+                  number: 80

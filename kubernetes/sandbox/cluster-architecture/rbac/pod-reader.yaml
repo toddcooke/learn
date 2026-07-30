@@ -1,0 +1,34 @@
+# The two halves of an RBAC grant. Neither half is a grant on its own.
+#
+# A Role is a list of rules, and a rule is a product: these apiGroups, times
+# these resources, times these verbs. It names no subject anywhere, so it says
+# what may be done and never by whom. Creating it authorizes nobody.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pod-reader
+rules:
+  - apiGroups: [""] # "" is the core group, where Pod lives
+    resources: ["pods"]
+    verbs: ["get", "list"]
+---
+# The RoleBinding is the half that names subjects. It contains no rules of its
+# own — roleRef points at the rules, subjects points at the identities, and the
+# binding is nothing but the join between them.
+#
+# subjects[].namespace has to be a literal string, so this file is pinned to
+# the lab's namespace. lib.sh always derives NS as sandbox-<lab>, which for
+# LAB="rbac" is sandbox-rbac; run.sh asserts that before it applies this file,
+# so a renamed lab fails loudly instead of silently binding nobody.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: app-pod-reader
+subjects:
+  - kind: ServiceAccount
+    name: app
+    namespace: sandbox-rbac
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: pod-reader

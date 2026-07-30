@@ -1,0 +1,54 @@
+# The workload the HorizontalPodAutoscaler will drive.
+#
+# Two fields carry the whole lab:
+#
+#   * resources.requests.cpu is the denominator of "utilization". The HPA does
+#     not measure a Pod against the node, or against a limit — it measures it
+#     against what the container asked for. 50% of a 50m request is 25m per
+#     Pod. A container with no CPU request has no denominator at all, and the
+#     HPA reports <unknown> for the metric and refuses to scale on it.
+#
+#   * replicas: 1 is here to be removed later. Once an HPA owns the replica
+#     count, every `kubectl apply` of a manifest that still names replicas
+#     overwrites whatever the autoscaler decided. web-autoscaled.yaml is this
+#     same Deployment with that one line deleted; `diff` them.
+#
+# There is deliberately no CPU *limit*. A limit throttles the container at its
+# ceiling, which caps measured usage — and a workload that cannot exceed its
+# target utilization can never trigger a scale-up.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      terminationGracePeriodSeconds: 5
+      containers:
+        - name: app
+          image: registry.k8s.io/e2e-test-images/agnhost:2.53
+          command: ["/agnhost", "netexec", "--http-port=8080"]
+          ports:
+            - name: http
+              containerPort: 8080
+          # A new replica counts as Ready only once it is actually serving.
+          # That matters here for a second reason: the HPA sets aside Pods
+          # that are not yet Ready when it averages CPU, so that a Pod which
+          # is still starting cannot drag the average down and cancel the very
+          # scale-up that created it.
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            periodSeconds: 2
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi

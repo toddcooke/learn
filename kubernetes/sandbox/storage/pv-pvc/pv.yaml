@@ -1,0 +1,51 @@
+# The administrator's half of static provisioning: a PersistentVolume that
+# describes storage which is asserted to already exist. No StorageClass and no
+# provisioner are involved — somebody attached a disk, and this object is how
+# they tell Kubernetes about it.
+#
+# Nothing here is namespaced. A PV is a CLUSTER-SCOPED object, which is why
+# run.sh applies it with no -n and has to delete it in its own trap: a
+# namespace delete would not touch it.
+#
+# __NODE__ is substituted by run.sh with the name of a real worker node.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: sandbox-pv-pvc-static
+  labels:
+    # Not decoration. Every claim in this lab carries a selector matching this
+    # label, so a claim can only ever bind to this volume and never to some
+    # other classless PV that happens to be lying around the cluster.
+    sandbox-lab: pv-pvc
+spec:
+  capacity:
+    storage: 1Gi
+  volumeMode: Filesystem
+  # One access mode, and one only. A claim asking for ReadWriteMany is not a
+  # match for this volume — see pvc-wrong-mode.yaml.
+  accessModes:
+    - ReadWriteOnce
+  # The point of the lab. When the bound claim is deleted, this volume is not
+  # deleted with it: it moves to Released and keeps the previous tenant's data
+  # until an administrator deals with it by hand.
+  persistentVolumeReclaimPolicy: Retain
+  # The empty string means "no class at all", which is different from leaving
+  # the field out of a *claim*. It keeps the DefaultStorageClass admission
+  # plugin from stamping `standard` onto the claims in this lab, which would
+  # send them off to the dynamic provisioner instead of to this volume.
+  storageClassName: ""
+  hostPath:
+    path: /mnt/sandbox-pv-pvc
+    type: DirectoryOrCreate
+  # hostPath is a directory on one node's filesystem, so the volume only means
+  # anything from that node. Saying so explicitly makes the scheduler place
+  # every Pod that uses this PV on __NODE__ — exactly what this cluster's
+  # local-path provisioner does to the volumes it creates dynamically.
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - __NODE__

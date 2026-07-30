@@ -1,0 +1,140 @@
+# Two independent web backends, foo and bar, each a Deployment plus a
+# ClusterIP Service. The Ingress in this lab never points at a Pod: it points
+# at these Services, which is the whole reason a Service has to exist before an
+# Ingress can be useful.
+#
+# Each backend is stock nginx with its one server block replaced by a ConfigMap,
+# so that ANY path returns a short plain-text line naming the backend. That
+# matters more than it looks. An Ingress with `path: /foo` and no rewrite
+# annotation forwards the request path unchanged, so the backend really is
+# asked for /foo — a stock nginx would answer 404 because no such file exists,
+# and the lab would be unable to tell "routing failed" from "routing worked and
+# the backend had nothing to serve". A catch-all `location /` removes that
+# ambiguity: any answer at all identifies which backend produced it.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: foo-site
+data:
+  # nginx expands $hostname (the Pod name), $http_host (the Host header as the
+  # client sent it) and $request_uri (the path the backend was actually asked
+  # for) when it builds the response, so one line of output answers "which
+  # backend, which replica, which hostname, which path".
+  default.conf: |
+    server {
+      listen 8080;
+      server_name _;
+      location / {
+        default_type text/plain;
+        return 200 "backend=foo pod=$hostname host=$http_host uri=$request_uri\n";
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: foo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: foo
+  template:
+    metadata:
+      labels:
+        app: foo
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:alpine
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            periodSeconds: 2
+          volumeMounts:
+            # Mounting the ConfigMap over the whole conf.d directory replaces
+            # the image's default.conf rather than sitting beside it; nginx.conf
+            # includes every *.conf in here, so leaving the original in place
+            # would give us two server blocks fighting over :8080.
+            - name: site
+              mountPath: /etc/nginx/conf.d
+      volumes:
+        - name: site
+          configMap:
+            name: foo-site
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: foo
+spec:
+  selector:
+    app: foo
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bar-site
+data:
+  default.conf: |
+    server {
+      listen 8080;
+      server_name _;
+      location / {
+        default_type text/plain;
+        return 200 "backend=bar pod=$hostname host=$http_host uri=$request_uri\n";
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bar
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: bar
+  template:
+    metadata:
+      labels:
+        app: bar
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:alpine
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            periodSeconds: 2
+          volumeMounts:
+            - name: site
+              mountPath: /etc/nginx/conf.d
+      volumes:
+        - name: site
+          configMap:
+            name: bar-site
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bar
+spec:
+  selector:
+    app: bar
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080

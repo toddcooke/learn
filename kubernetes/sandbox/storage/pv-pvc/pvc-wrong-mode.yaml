@@ -1,0 +1,19 @@
+# A claim that matches the PV on class, on capacity and on labels, and differs
+# only in the access mode it asks for: it wants to be mounted read-write from
+# many nodes at once. The PV offers ReadWriteOnce and nothing else, so the
+# binder never even considers the two a candidate pair, and this claim stays
+# Pending forever — including while the volume is sitting there Available.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: wide
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  resources:
+    requests:
+      storage: 1Gi
+  selector:
+    matchLabels:
+      sandbox-lab: pv-pvc

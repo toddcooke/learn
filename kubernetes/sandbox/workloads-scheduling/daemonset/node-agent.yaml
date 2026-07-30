@@ -1,0 +1,41 @@
+# The same per-node agent, plus the one toleration a human has to write.
+#
+# Read the tolerations block as the complete list of what this DaemonSet
+# tolerates and you will be wrong: by the time the Pod exists, the DaemonSet
+# controller has added six more. Only the control-plane role taint is ours,
+# because role taints express an operator's policy about what a node is for,
+# and the controller cannot guess that policy on your behalf.
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: node-agent
+  labels:
+    app: node-agent
+spec:
+  selector:
+    matchLabels:
+      app: node-agent
+  template:
+    metadata:
+      labels:
+        app: node-agent
+    spec:
+      terminationGracePeriodSeconds: 5
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: agent
+          image: registry.k8s.io/e2e-test-images/agnhost:2.53
+          command: ["/agnhost", "netexec", "--http-port=8080"]
+          ports:
+            - name: http
+              containerPort: 8080
+          # A real node agent usually sets hostNetwork: true. This one does not,
+          # deliberately — it is what makes the seventh automatic toleration,
+          # node.kubernetes.io/network-unavailable, absent from the Pod below.
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi

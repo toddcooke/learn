@@ -1,0 +1,40 @@
+# The grant that turns the Pod's 403 into a 200.
+#
+# A Role is a list of allow rules and nothing else — there is no deny verb in
+# RBAC. It is namespaced, so these rules mean "pods in whichever namespace this
+# Role lives in" and say nothing about pods anywhere else.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pod-reader
+rules:
+  # apiGroups: [""] is the core group — pods, services, configmaps, secrets,
+  # nodes. It is written as the empty string, not omitted and not "core"; a Role
+  # that leaves it out matches nothing at all.
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+---
+# A RoleBinding attaches a Role to subjects. It carries no rules of its own, and
+# both halves are required: a Role nobody is bound to grants nothing, and a
+# binding is only ever as powerful as the Role it points at.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: api-reader-reads-pods
+subjects:
+  - kind: ServiceAccount
+    name: api-reader
+    # For a RoleBinding this line may be omitted — the authorizer defaults a
+    # ServiceAccount subject to the binding's own namespace. It is spelled out
+    # here because in a ClusterRoleBinding it is mandatory, and a
+    # ServiceAccount subject with no namespace there silently matches nobody.
+    # It must equal the lab namespace; run.sh asserts that it does.
+    namespace: sandbox-serviceaccounts
+roleRef:
+  # roleRef is immutable. Pointing a binding at a different Role means deleting
+  # and recreating the binding, which is a deliberate safety property: you
+  # cannot quietly repoint an existing grant at cluster-admin.
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: pod-reader

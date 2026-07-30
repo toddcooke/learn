@@ -1,0 +1,25 @@
+# A NodePort Service over the single `web` Pod.
+#
+# Three port numbers appear in a NodePort Service and they are three different
+# things:
+#
+#   nodePort   the port opened on EVERY node's IP        (allocated below)
+#   port       the port the Service's ClusterIP listens on   (80)
+#   targetPort the port the Pod is actually listening on     (8080)
+#
+# `nodePort` is deliberately left out. The apiserver will allocate one from its
+# --service-node-port-range, and a number we did not choose is the only kind of
+# number that can honestly demonstrate what that range is. Leaving it out also
+# keeps this lab from ever colliding with a port some other lab pinned.
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-nodeport
+spec:
+  type: NodePort
+  selector:
+    app: web
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080

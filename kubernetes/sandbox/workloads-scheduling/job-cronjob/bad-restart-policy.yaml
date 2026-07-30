@@ -1,0 +1,23 @@
+# This manifest is meant to be rejected. run.sh applies it inside a guard and
+# asserts on the error.
+#
+# restartPolicy: Always means "if this container exits, for any reason, start
+# it again". That is exactly the wrong contract for a Job, whose entire job is
+# to notice a successful exit and stop. So the API server refuses the object at
+# validation time rather than letting you create a Job that can never complete.
+# The only legal values in a Job Pod template are Never and OnFailure.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: always-restart
+spec:
+  template:
+    spec:
+      restartPolicy: Always
+      containers:
+        - name: work
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - 'echo "this Job will never be created"'

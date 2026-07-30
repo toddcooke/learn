@@ -1,0 +1,45 @@
+# The load generator: one Pod, one shell loop, one request at a time.
+#
+# It asks for /shell?cmd=hostname, which makes agnhost fork /bin/sh inside the
+# server Pod and run hostname. That is the trick that makes this lab work at
+# all. An idle netexec Pod burns about 1m of CPU, and answering a trivial HTTP
+# request costs it a fraction of a millisecond — a wget loop would have to run
+# thousands of requests a second to move a 50m request past its 50% target,
+# and the client would burn far more CPU than the server it was measuring.
+# Forking a process per request inverts that ratio: the server does milli-
+# seconds of work per request, so a single-threaded client is enough. It is
+# the agnhost equivalent of the CPU-heavy PHP page in the upstream HPA
+# walkthrough, and it is why the utilization figures below come out in the
+# hundreds of percent rather than hovering around the target.
+#
+# The loop is closed: it sends the next request only after the last one comes
+# back, so it can never have more than one request in flight, and the load it
+# generates is self-limiting no matter how many replicas the HPA adds.
+#
+# Its label is app: load, not app: web, so it is not matched by the Service,
+# not matched by the Deployment's selector, and not one of the Pods whose CPU
+# the HPA averages.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: load
+  labels:
+    app: load
+spec:
+  terminationGracePeriodSeconds: 1
+  containers:
+    - name: load
+      image: busybox:1.36
+      command: ["/bin/sh", "-c"]
+      args:
+        - |
+          # `|| sleep 1` is a backoff, not a pacer: while the Service has no
+          # endpoints wget fails instantly, and without it this loop would
+          # spin hot against DNS. On success there is no pause at all.
+          while true; do
+            wget -q -O /dev/null "http://web:8080/shell?cmd=hostname" || sleep 1
+          done
+      resources:
+        requests:
+          cpu: 100m
+          memory: 16Mi

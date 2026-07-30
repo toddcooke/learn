@@ -1,0 +1,46 @@
+# autoscaling/v2 is the API to write. v1 could express only a CPU-utilization
+# target; the v2beta1 and v2beta2 aliases were removed in 1.25 and 1.26, so
+# anything you find online using them will not apply to a current cluster.
+#
+# The imperative equivalent of this file, worth knowing under exam time
+# pressure, is:
+#
+#   kubectl autoscale deployment web --cpu-percent=50 --min=1 --max=4
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: web
+spec:
+  # The HPA has no idea what a Deployment is. It resolves this reference to
+  # the target's `scale` subresource and reads and writes `replicas` there.
+  # That indirection is why one controller can drive a Deployment, a
+  # ReplicaSet, a StatefulSet or a custom resource — and why it cannot drive a
+  # DaemonSet, which has no scale subresource because its Pod count is a
+  # property of the node set rather than a number anyone may set.
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: web
+  minReplicas: 1
+  # Deliberately small. The clamp is part of the lesson: under the load this
+  # lab generates the raw formula asks for far more than 4, and
+  # .status.desiredReplicas shows the clamped answer with a
+  # ScalingLimited=True / reason=TooManyReplicas condition beside it.
+  maxReplicas: 4
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          # Utilization is a percentage of the container's request, averaged
+          # over the Pods the target's selector matches. The alternative,
+          # type: AverageValue with averageValue: 30m, sets an absolute
+          # per-Pod target and ignores the request entirely.
+          type: Utilization
+          averageUtilization: 50
+  # No `behavior:` block, so the defaults apply. Scale-up is immediate: no
+  # stabilization window, and a rate limit of +100% or +4 Pods per 15s,
+  # whichever is larger — from one replica that permits five, so it never
+  # binds before maxReplicas: 4 does. Scale-down is deliberately timid: the
+  # controller keeps 300s of recommendations and acts on the largest of them,
+  # so the count only falls once the metric has stayed low for five minutes.

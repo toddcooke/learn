@@ -1,0 +1,21 @@
+# This manifest is SUPPOSED to be rejected. run.sh applies it inside a guard and
+# asserts on the failure.
+#
+# 39999 is a perfectly legal TCP port, so nothing here is malformed and no
+# client-side schema check will catch it. The rejection comes from the
+# apiserver's node-port allocator, which owns a fixed window of ports and refuses
+# anything outside it. That is what turns "30000-32767" from a number the lab
+# happened to observe into a rule the cluster enforces and will state out loud.
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-badport
+spec:
+  type: NodePort
+  selector:
+    app: web
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+      nodePort: 39999

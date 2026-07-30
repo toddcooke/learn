@@ -1,0 +1,67 @@
+# Breakage 4: a container that allocates past its own memory limit.
+#
+# Unlike the crash-looping Pod, nothing here exits by choice. The process is
+# killed from outside by the kernel's cgroup OOM killer, and the two fields
+# that record that — reason OOMKilled and exit code 137 — are the only way to
+# tell this apart from an ordinary non-zero exit once the container is gone.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: oom-victim
+  labels:
+    demo: pod-failure-states
+    failure: oomkilled
+spec:
+  restartPolicy: Always
+  containers:
+    - name: app
+      image: busybox:1.36
+      resources:
+        # Request equals limit for memory, which is not enough for Guaranteed
+        # (that would need cpu pinned the same way), so this Pod is Burstable.
+        # The limit is what matters here: it is the number the kernel enforces.
+        #
+        # 64Mi, not something tighter, and the floor is real. runc's own init
+        # process is charged to this cgroup before it can exec the workload, so
+        # too small a limit kills the container during startup and the kubelet
+        # reports a different failure entirely:
+        #
+        #   reason: StartError
+        #   message: ... container init was OOM-killed (memory limit too low?)
+        #
+        # That is worth recognising in its own right — it looks like a crash
+        # loop and gets misread as an application bug — but it is not the
+        # failure this Pod exists to demonstrate.
+        requests:
+          memory: "64Mi"
+        limits:
+          memory: "64Mi"
+      command: ["sh", "-c"]
+      args:
+        - |
+          echo "memory limit for this container is 64Mi; allocating past it"
+
+          # Hold anonymous memory and keep doubling it. These nodes have no
+          # swap, so there is nowhere for the kernel to put anonymous pages: it
+          # cannot reclaim its way out of the charge that crosses 64Mi, and the
+          # cgroup OOM killer fires. Every line printed is a size the process
+          # really did hold.
+          #
+          # Filling the container's tmpfs at /dev/shm would also be charged to
+          # this cgroup — that is the usual reason a "cache" volume starts
+          # killing containers — but sizing a tmpfs happens during container
+          # setup, so that route tends to reproduce the StartError above
+          # instead of the OOM kill we want to show.
+          # The sleep is deliberate. Doubling with no pause crosses 64Mi in
+          # well under a second, and a container that dies that fast is
+          # reaped so quickly that `kubectl logs --previous` has nothing
+          # left to return. Growing over ~25 seconds keeps the evidence
+          # readable, which is the whole point of the exercise.
+          blob=x
+          size=1
+          while true; do
+            blob="$blob$blob"
+            size=$(( size * 2 ))
+            echo "holding ~$size bytes"
+            sleep 1
+          done

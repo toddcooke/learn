@@ -1,0 +1,61 @@
+# One Pod consuming the *same* ConfigMap key two different ways, plus a Secret
+# as a file. The two consumption modes diverge the moment the ConfigMap changes
+# underneath them, and that divergence is the lab:
+#
+#   envFrom / env   -> environment variables, copied once at container start
+#   volume mount    -> files the kubelet keeps re-projecting
+#
+# (The third mode, a subPath mount, lives in pinned.yaml.)
+apiVersion: v1
+kind: Pod
+metadata:
+  name: consumer
+  labels:
+    app: consumer
+spec:
+  containers:
+    - name: app
+      image: registry.k8s.io/e2e-test-images/agnhost:2.53
+      command: ["/agnhost", "netexec", "--http-port=8080"]
+
+      # Every key of app-literal becomes an environment variable of the same
+      # name: GREETING and TIER. The kubelet resolves them while building the
+      # container's environment block, and after exec(2) nothing can change
+      # them — an environment is a copy, not a subscription.
+      envFrom:
+        - configMapRef:
+            name: app-literal
+
+      # Pull a single key out of a different ConfigMap and rename it on the
+      # way in. Same freezing behaviour: it is still an environment variable.
+      env:
+        - name: APP_LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: app-env
+              key: LOG_LEVEL
+
+      volumeMounts:
+        # Each key of app-literal appears as a file in this directory, and the
+        # kubelet re-projects the directory whenever the ConfigMap changes.
+        # Under the hood the directory holds symlinks into a hidden ..data
+        # directory that is swapped atomically, so a reader never catches the
+        # config half-written.
+        - name: appconfig
+          mountPath: /etc/appconfig
+          readOnly: true
+
+        # A Secret mounts exactly like a ConfigMap. What lands in the container
+        # is plaintext: base64 is a transport encoding for the API object, not
+        # protection for the value.
+        - name: dbcred
+          mountPath: /etc/dbcred
+          readOnly: true
+
+  volumes:
+    - name: appconfig
+      configMap:
+        name: app-literal
+    - name: dbcred
+      secret:
+        secretName: db-cred

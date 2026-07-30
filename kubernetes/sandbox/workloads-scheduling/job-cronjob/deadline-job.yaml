@@ -1,0 +1,30 @@
+# The same hopeless container as failing-job.yaml, but with a wall clock on
+# it. backoffLimit: 6 would allow six retries, and with exponential backoff
+# (10s, 20s, 40s, 80s, 160s, 320s) that is roughly ten minutes of dying.
+#
+# activeDeadlineSeconds: 20 cuts it off first. The deadline is measured from
+# .status.startTime and it outranks backoffLimit: whichever limit is reached
+# first ends the Job, and here it is always the clock. The resulting Failed
+# condition carries reason DeadlineExceeded rather than BackoffLimitExceeded,
+# which is how you tell "it ran out of tries" from "it ran out of time".
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: deadline-demo
+spec:
+  backoffLimit: 6
+  activeDeadlineSeconds: 20
+  template:
+    spec:
+      restartPolicy: Never
+      # When the deadline fires the controller terminates any live Pod. A short
+      # grace period keeps the Job from sitting in FailureTarget for the default
+      # 30 seconds while a Pod that ignores SIGTERM is waited out.
+      terminationGracePeriodSeconds: 1
+      containers:
+        - name: doomed
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - 'echo "attempt starting"; exit 1'

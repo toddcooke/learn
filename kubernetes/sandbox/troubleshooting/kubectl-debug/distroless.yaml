@@ -1,0 +1,18 @@
+# A Pod with no shell. registry.k8s.io/pause:3.10 is built FROM scratch and
+# ships exactly one file — the /pause binary — so there is no sh, no ls, no cat
+# and no /bin at all. It stands in here for the distroless and scratch images
+# that production services are increasingly built on, where the same problem
+# appears the first time something goes wrong: kubectl exec has nothing to run.
+#
+# Deliberately minimal. No probes, no volumes, no sidecars, because the only
+# property the lab needs is that the image is empty.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: distroless
+  labels:
+    app: distroless
+spec:
+  containers:
+    - name: app
+      image: registry.k8s.io/pause:3.10

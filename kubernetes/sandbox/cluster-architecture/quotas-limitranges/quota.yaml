@@ -1,0 +1,20 @@
+# A ResourceQuota caps the SUM of a resource across every non-terminal Pod in
+# the namespace it lives in. This one budgets compute *requests* only: the
+# scheduler places Pods by request, so requests are what actually consume the
+# cluster. Limits are left unbudgeted here to keep exactly one variable moving.
+#
+# Two consequences follow from naming requests.cpu at all, and both of them
+# surprise people:
+#   1. Every new Pod in this namespace must now declare a cpu request (or a
+#      cpu limit, which the API server copies down into the request). A Pod
+#      that declares neither is refused at admission.
+#   2. The check runs against Pods. Nothing stops a Deployment, a Job or a
+#      StatefulSet whose template blows the budget from being created.
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: compute-budget
+spec:
+  hard:
+    requests.cpu: "500m"
+    requests.memory: "512Mi"

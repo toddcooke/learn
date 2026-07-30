@@ -1,0 +1,34 @@
+# completionMode: Indexed turns an anonymous pool of workers into a numbered
+# set. Each Pod gets a distinct index in 0..completions-1, and the control
+# plane hands it to the Pod three ways:
+#
+#   - the JOB_COMPLETION_INDEX environment variable (set automatically)
+#   - the annotation batch.kubernetes.io/job-completion-index
+#   - the label      batch.kubernetes.io/job-completion-index
+#
+# The label is the useful one operationally: it makes an individual shard
+# selectable with `kubectl get pods -l ...=2`.
+#
+# The default is completionMode: NonIndexed, where every Pod is interchangeable
+# and nothing tells a Pod which slice of work is "its own".
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: indexed-demo
+spec:
+  completionMode: Indexed
+  completions: 3
+  parallelism: 3
+  backoffLimit: 2
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: shard
+          image: busybox:1.36
+          # $JOB_COMPLETION_INDEX is expanded by the shell inside the container,
+          # not by Kubernetes — Kubernetes only substitutes the $(VAR) form.
+          command:
+            - sh
+            - -c
+            - 'echo "index=$JOB_COMPLETION_INDEX"'

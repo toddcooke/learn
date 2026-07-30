@@ -1,0 +1,48 @@
+# The Pod under test. Three things about it matter.
+#
+# 1. serviceAccountName pins the identity. Leave the field out and the
+#    ServiceAccount admission plugin writes "default" into it instead; it is
+#    never left blank.
+#
+# 2. There is no volume here for the API credential, and yet the container will
+#    find one mounted at /var/run/secrets/kubernetes.io/serviceaccount. The same
+#    admission plugin injects a projected volume named kube-api-access-<random>
+#    holding three sources: a serviceAccountToken (the token itself, requested
+#    from the TokenRequest API and refreshed by the kubelet), the cluster CA
+#    published in the kube-root-ca.crt ConfigMap, and the Pod's namespace via the
+#    downward API. Read the applied object back to see it.
+#
+# 3. The volume that IS written here asks for a second token for the same
+#    ServiceAccount, scoped to a different audience. Nothing stops a Pod holding
+#    several tokens for one identity; what differs is who is willing to accept
+#    them. This one names an external service, so the Kubernetes API server will
+#    refuse it — that is the point of the audience field.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: caller
+  labels:
+    app: caller
+spec:
+  serviceAccountName: api-reader
+  containers:
+    - name: shell
+      # agnhost is an Alpine-based image that ships curl and bash, which is why
+      # this lab uses it: busybox has wget but no way to hand it a CA bundle.
+      image: registry.k8s.io/e2e-test-images/agnhost:2.53
+      command: ["sleep", "3600"]
+      volumeMounts:
+        - name: vault-token
+          mountPath: /var/run/secrets/tokens
+          readOnly: true
+  volumes:
+    - name: vault-token
+      projected:
+        sources:
+          - serviceAccountToken:
+              path: vault-token
+              audience: vault.example.com
+              # One hour. The API server refuses a projected token lifetime
+              # below ten minutes, so 600 is the floor; the kubelet rewrites the
+              # file at roughly 80% of whatever is asked for here.
+              expirationSeconds: 3600

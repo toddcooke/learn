@@ -1,0 +1,26 @@
+# The prod overlay. It owns no copy of the Deployment — it points at the base
+# and states the three things that differ in production. Note that the base is
+# referenced by path and is never edited: an overlay is a lens, not a fork.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+# Rename everything this layer produces, so the base and the overlay can be
+# applied side by side in one namespace without colliding.
+namePrefix: prod-
+
+# `labels` is the modern replacement for the deprecated `commonLabels`. With
+# includeSelectors left at its default of false the pair is stamped onto object
+# metadata only, and never into spec.selector.matchLabels — which matters,
+# because a Deployment's selector is immutable after creation and a transformer
+# that rewrote it would break every future apply.
+labels:
+  - pairs:
+      tier: production
+
+# Kustomize infers each patch's target from the apiVersion/kind/name inside the
+# patch file itself, so no explicit `target:` block is needed here.
+patches:
+  - path: replicas-patch.yaml

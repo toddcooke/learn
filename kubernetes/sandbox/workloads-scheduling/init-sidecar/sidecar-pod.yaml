@@ -1,0 +1,63 @@
+# A native sidecar: an entry in .spec.initContainers carrying
+# restartPolicy: Always. That one field changes the contract. The kubelet
+# still starts it in init-container position — before any regular container —
+# but it no longer waits for the container to exit, and it keeps the container
+# running for the whole life of the Pod.
+#
+# The ordering here is proved by construction rather than only by timestamps.
+# log-shipper does not create /shared/shipper-up until it has been alive for
+# eight seconds, and its startupProbe tests for that file. The kubelet does
+# not start the app container until the sidecar's `started` status is true,
+# which for a container with a startupProbe means the probe has passed. The
+# app container then checks for the same file and exits 1 if it is absent, so
+# a Pod that reached Ready with restartCount 0 is a Pod whose sidecar
+# demonstrably went first.
+#
+# Note also what the sidecar gets that a plain init container does not:
+# probes. livenessProbe, readinessProbe and startupProbe are all rejected on a
+# plain init container, because a container that is about to exit has no
+# steady state worth probing.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sidecar
+  labels:
+    app: sidecar
+spec:
+  volumes:
+    - name: shared
+      emptyDir: {}
+  initContainers:
+    - name: log-shipper
+      image: registry.k8s.io/e2e-test-images/agnhost:2.53
+      restartPolicy: Always
+      command:
+        - sh
+        - -c
+        - |
+          sleep 8
+          echo up > /shared/shipper-up
+          exec /agnhost netexec --http-port=9090 --udp-port=9091
+      startupProbe:
+        exec:
+          command: ["sh", "-c", "test -f /shared/shipper-up"]
+        periodSeconds: 2
+        failureThreshold: 30
+      volumeMounts:
+        - name: shared
+          mountPath: /shared
+  containers:
+    - name: app
+      image: registry.k8s.io/e2e-test-images/agnhost:2.53
+      command:
+        - sh
+        - -c
+        - |
+          if [ ! -f /shared/shipper-up ]; then
+            echo "app: started before the sidecar was up"
+            exit 1
+          fi
+          exec /agnhost netexec --http-port=8080 --udp-port=8081
+      volumeMounts:
+        - name: shared
+          mountPath: /shared

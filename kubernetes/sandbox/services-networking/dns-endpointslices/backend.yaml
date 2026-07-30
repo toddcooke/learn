@@ -1,0 +1,65 @@
+# Three identical HTTP servers whose readiness we can switch off by hand.
+#
+# agnhost's netexec answers GET /hostname with the container's hostname, which
+# for a Pod is the Pod's name. Every reply is therefore signed by the replica
+# that produced it, which is what lets the lab assert *which* backends traffic
+# reached rather than merely that some backend answered.
+#
+# The interesting part is the readiness probe. It is an exec probe over
+# `test -s /tmp/ready` — "the file /tmp/ready exists and is not empty". The
+# container's command writes that file before exec'ing the server, so a healthy
+# Pod passes from the first probe onward. Truncating the file from outside with
+#
+#     kubectl exec <pod> -- sh -c ': > /tmp/ready'
+#
+# makes the next probes fail, and nothing else about the Pod changes: the
+# process keeps running and keeps serving HTTP. That is exactly the state this
+# lab needs — a Pod that is Running but not Ready — and an exec probe over a
+# file is the only way to enter it on demand rather than by waiting for a real
+# failure.
+#
+# `exec` in the command line matters: without it the shell would stay as PID 1
+# and netexec would run as its child, so signals sent to the container would
+# land on the shell instead of the server.
+#
+# The container port is *named* (http), so the Service can say
+# `targetPort: http`; watch the EndpointSlice resolve that name to 8080.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      terminationGracePeriodSeconds: 5
+      containers:
+        - name: web
+          image: registry.k8s.io/e2e-test-images/agnhost:2.53
+          command:
+            - sh
+            - -c
+            - 'echo ok > /tmp/ready && exec /agnhost netexec --http-port=8080'
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "test -s /tmp/ready"]
+            periodSeconds: 3
+            timeoutSeconds: 2
+            # Two consecutive failures, so a single slow exec on a busy node
+            # cannot flap the endpoint, but breaking the file still shows up
+            # within a few seconds.
+            failureThreshold: 2
+            successThreshold: 1
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi

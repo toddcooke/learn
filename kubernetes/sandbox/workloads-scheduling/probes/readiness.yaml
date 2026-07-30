@@ -1,0 +1,66 @@
+# The readiness half of the lab: a Service, the one Pod behind it, and a
+# client Pod to call it from. The Pod is built exactly like the liveness one —
+# same image, same file-as-health-signal — so that the only variable between
+# the two demonstrations is which probe field the check is written under.
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+spec:
+  selector:
+    app: web
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: web
+  labels:
+    app: web
+spec:
+  terminationGracePeriodSeconds: 2
+  containers:
+    - name: server
+      image: registry.k8s.io/e2e-test-images/agnhost:2.53
+      command:
+        - sh
+        - -c
+        - echo ok > /tmp/ready; exec /agnhost netexec --http-port=8080
+      ports:
+        - name: http
+          containerPort: 8080
+      # Identical check to liveness.yaml, filed under readinessProbe instead.
+      # The kubelet runs it the same way and gets the same exit code; what
+      # differs entirely is what it does with the answer. Nothing about the
+      # check itself says "restart me" or "stop routing to me" — the field
+      # name is the whole declaration.
+      readinessProbe:
+        exec:
+          command: ["sh", "-c", "test -s /tmp/ready"]
+        periodSeconds: 2
+        timeoutSeconds: 2
+        failureThreshold: 2
+        # successThreshold defaults to 1, so the Pod comes back into rotation
+        # on the first passing probe. It is the only probe where a value
+        # above 1 is legal.
+        successThreshold: 1
+---
+# A place to make requests from. Its label is app: client, not app: web, so it
+# never matches the Service selector and never appears as one of its own
+# endpoints. No probe at all: with no readinessProbe a container counts as
+# ready the moment it is running, which is the default this lab is contrasted
+# against.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: client
+  labels:
+    app: client
+spec:
+  containers:
+    - name: client
+      image: registry.k8s.io/e2e-test-images/agnhost:2.53
+      command: ["sleep", "3600"]

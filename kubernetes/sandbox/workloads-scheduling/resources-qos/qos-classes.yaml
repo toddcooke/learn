@@ -1,0 +1,64 @@
+# Three Pods that differ in nothing except their resources block. Nobody
+# writes a QoS class down: the kubelet derives one from the numbers below
+# and records the verdict in .status.qosClass, where it is read-only.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: guaranteed
+  labels:
+    demo: qos
+spec:
+  containers:
+    - name: app
+      image: registry.k8s.io/pause:3.10
+      resources:
+        # The strictest class, and the hardest to hit by accident: every
+        # container must set a request AND a limit for BOTH cpu and
+        # memory, and each request must equal its limit. All four numbers
+        # below are load bearing — drop any one and the Pod becomes
+        # Burstable.
+        requests:
+          cpu: "100m"
+          memory: "64Mi"
+        limits:
+          cpu: "100m"
+          memory: "64Mi"
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: burstable
+  labels:
+    demo: qos
+spec:
+  containers:
+    - name: app
+      image: registry.k8s.io/pause:3.10
+      resources:
+        # Requests below limits: the scheduler reserves 50m/32Mi on the
+        # node, and the container is free to burst up to 200m/128Mi when
+        # the node happens to have room. That gap between what was
+        # reserved and what may be used is the whole idea of the class,
+        # and it is also why these Pods are evictable ahead of Guaranteed
+        # ones once they climb above their requests.
+        requests:
+          cpu: "50m"
+          memory: "32Mi"
+        limits:
+          cpu: "200m"
+          memory: "128Mi"
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: besteffort
+  labels:
+    demo: qos
+spec:
+  containers:
+    - name: app
+      image: registry.k8s.io/pause:3.10
+      # No resources block at all — not an empty one, not a partial one.
+      # A single request or limit on any container in this Pod would make
+      # the entire Pod Burstable, so BestEffort is less a choice than the
+      # absence of one.

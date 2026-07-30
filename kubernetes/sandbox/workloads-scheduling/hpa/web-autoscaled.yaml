@@ -1,0 +1,45 @@
+# web.yaml with the `replicas` line deleted, and nothing else changed:
+#
+#   diff web.yaml web-autoscaled.yaml
+#
+# This is the shape a manifest should have once a HorizontalPodAutoscaler owns
+# the replica count. The field is not set to some safe value — it is absent,
+# so that apply has nothing to say about it and leaves whatever the autoscaler
+# most recently wrote in place.
+#
+# Deleting it costs one dip. apply diffs the new file against the
+# kubectl.kubernetes.io/last-applied-configuration annotation, sees a field
+# that used to be managed and is now gone, and sends `replicas: null`; the API
+# server then defaults the empty field back to 1. That happens on the first
+# apply after the removal and never again — which the run.sh walkthrough
+# demonstrates by applying this file twice.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+spec:
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      terminationGracePeriodSeconds: 5
+      containers:
+        - name: app
+          image: registry.k8s.io/e2e-test-images/agnhost:2.53
+          command: ["/agnhost", "netexec", "--http-port=8080"]
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            periodSeconds: 2
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi

@@ -1,0 +1,18 @@
+# A perfectly ordinary Pod carrying no "resources:" block at all -- the shape
+# of roughly every manifest anyone writes before they have met a quota.
+#
+# This same file is applied twice in the lab. The first time it is REFUSED,
+# because a quota on requests.cpu makes a cpu request mandatory. The second
+# time -- after a LimitRange has been added and with nothing in this file
+# changed -- it is ACCEPTED, and the created object comes back with requests
+# and limits it never asked for.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: no-resources
+  labels:
+    app: no-resources
+spec:
+  containers:
+    - name: app
+      image: registry.k8s.io/pause:3.10

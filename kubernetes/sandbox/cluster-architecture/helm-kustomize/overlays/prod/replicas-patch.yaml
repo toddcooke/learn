@@ -1,0 +1,11 @@
+# A strategic-merge patch is a *fragment* of a Kubernetes object, not a whole
+# one. apiVersion, kind and metadata.name are here only so Kustomize can work
+# out which resource in the base this fragment belongs to; the single field
+# under spec is the actual change. Every field the fragment omits is left
+# exactly as the base wrote it.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello
+spec:
+  replicas: 3

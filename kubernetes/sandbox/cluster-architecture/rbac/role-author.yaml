@@ -1,0 +1,28 @@
+# Permission to author RBAC objects — which is emphatically not the same thing
+# as permission to hold whatever those objects grant.
+#
+# Roles and RoleBindings are ordinary namespaced API resources, so "may create
+# a Role" is written the same way as "may create a ConfigMap". Handing this to
+# the `app` ServiceAccount sets up the interesting question: with create access
+# to roles and rolebindings, can it simply write itself a Role over Secrets?
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: role-author
+rules:
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["roles", "rolebindings"]
+    verbs: ["get", "list", "create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: app-role-author
+subjects:
+  - kind: ServiceAccount
+    name: app
+    namespace: sandbox-rbac
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: role-author

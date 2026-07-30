@@ -1,0 +1,23 @@
+# Breakage 2: a real repository with a tag that was never published.
+#
+# The repository resolves, the registry answers, and the manifest for this tag
+# does not exist — which is the shape of the overwhelming majority of real
+# ImagePullBackOff incidents: a typo in a tag, or a tag that was expected to be
+# built by CI and was not. Nothing here is a network problem, and the events
+# the kubelet records say so.
+#
+# The command is the one this image is normally run with, so that when the tag
+# is corrected later in the lab the Pod becomes a healthy server rather than a
+# second kind of broken.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: image-pull-fail
+  labels:
+    demo: pod-failure-states
+    failure: imagepull
+spec:
+  containers:
+    - name: app
+      image: registry.k8s.io/e2e-test-images/agnhost:2.53-does-not-exist
+      command: ["/agnhost", "netexec", "--http-port=8080"]

@@ -1,0 +1,19 @@
+# The same shape as probe.yaml, applied AFTER the node has been cordoned. It
+# never schedules: the one node it asks for is unschedulable, and its
+# nodeSelector rules out every other node. The FailedScheduling event is the
+# artifact — "node(s) were unschedulable" is the scheduler naming cordon.
+#
+# __NODE__ is replaced with the target node's name at run time.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: newcomer
+  labels:
+    app: newcomer
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: __NODE__
+  terminationGracePeriodSeconds: 1
+  containers:
+    - name: pause
+      image: registry.k8s.io/pause:3.10

@@ -1,0 +1,19 @@
+# A bare Pod: no Deployment, no ReplicaSet, no StatefulSet, no Job — nothing
+# that would recreate it anywhere else. kubectl drain refuses to touch it
+# without --force, and --force does not relocate it. It deletes it.
+#
+# __NODE__ is replaced with the target node's name at run time, because the Pod
+# has to already be running on the node before that node is cordoned.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: probe
+  labels:
+    app: probe
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: __NODE__
+  terminationGracePeriodSeconds: 1
+  containers:
+    - name: pause
+      image: registry.k8s.io/pause:3.10

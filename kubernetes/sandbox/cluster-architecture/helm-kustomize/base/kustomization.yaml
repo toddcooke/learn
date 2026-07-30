@@ -1,0 +1,9 @@
+# A kustomization.yaml is the index for a directory: it lists the manifests
+# that make up this layer and any transformations to apply to them. This base
+# does no transforming at all, so `kubectl kustomize base` prints deployment.yaml
+# back essentially unchanged. A base is allowed to be that boring.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - deployment.yaml

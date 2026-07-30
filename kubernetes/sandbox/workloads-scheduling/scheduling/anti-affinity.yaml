@@ -1,0 +1,45 @@
+# Pod anti-affinity: a placement rule written against OTHER PODS rather than
+# against node labels.
+#
+# The rule below reads "do not put me in a topology domain that already holds a
+# Pod labelled app=anti-web". topologyKey names what a domain is; with
+# kubernetes.io/hostname each node is its own domain, so this is the standard
+# way to say "one replica per node".
+#
+# Note the shape of the labelSelector: it selects this Deployment's own Pods.
+# Anti-affinity against yourself is the common case, and it is what makes a
+# two-replica Deployment refuse to stack both replicas on one machine.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: anti-web
+  labels:
+    app: anti-web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: anti-web
+  template:
+    metadata:
+      labels:
+        app: anti-web
+    spec:
+      terminationGracePeriodSeconds: 5
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app: anti-web
+              topologyKey: kubernetes.io/hostname
+      containers:
+        - name: app
+          image: registry.k8s.io/pause:3.10
+          # Deliberately tiny. The scheduler filters on resource requests before
+          # it ever looks at affinity, and this lab is about the affinity rules,
+          # so nothing here should ever fail to fit.
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi

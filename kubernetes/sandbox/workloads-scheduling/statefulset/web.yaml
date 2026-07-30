@@ -1,0 +1,76 @@
+# A headless Service and the StatefulSet it governs. The two are written into
+# one file because neither does its job alone: the StatefulSet names the
+# Service in spec.serviceName, and the Service is what turns each Pod's
+# ordinal name into a resolvable DNS name. The StatefulSet controller never
+# creates this Service for you — forgetting it is the classic first mistake.
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+  labels:
+    app: web
+spec:
+  # clusterIP: None is what "headless" means. There is no virtual IP and no
+  # load balancing; DNS answers with the Pod addresses themselves, and each
+  # Pod additionally gets its own <pod>.<service>.<ns>.svc.cluster.local name.
+  clusterIP: None
+  selector:
+    app: web
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: web
+spec:
+  # Must name the headless Service above. This is the field that gives the
+  # Pods their DNS subdomain.
+  serviceName: web
+  replicas: 2
+  selector:
+    matchLabels:
+      app: web
+  # podManagementPolicy defaults to OrderedReady: web-0 is created and must
+  # become Ready before web-1 is created at all, and scale-down runs in
+  # reverse. Setting it to Parallel would drop that guarantee.
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      # Keep teardown brisk; agnhost has no shutdown work to do.
+      terminationGracePeriodSeconds: 5
+      containers:
+        - name: server
+          image: registry.k8s.io/e2e-test-images/agnhost:2.53
+          command: ["/agnhost", "netexec", "--http-port=8080"]
+          ports:
+            - name: http
+              containerPort: 8080
+          # The readiness gate is what OrderedReady actually waits on, so the
+          # ordering the lab demonstrates is not an accident of timing.
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            periodSeconds: 2
+            failureThreshold: 3
+          volumeMounts:
+            - name: data
+              mountPath: /data
+  # One claim per Pod, stamped out from this template. The resulting PVCs are
+  # named <template>-<pod>: data-web-0 and data-web-1. They live in the same
+  # namespace as the Pods, they are NOT deleted when a Pod is deleted, and
+  # they are not deleted on scale-down either.
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        # storageClassName is deliberately omitted so the cluster's default
+        # StorageClass (`standard`, rancher.io/local-path) provisions the PV.
+        resources:
+          requests:
+            storage: 100Mi

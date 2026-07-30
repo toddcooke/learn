@@ -1,0 +1,39 @@
+# The shared sandbox cluster: one control-plane and two workers.
+#
+# Two workers is not luxury. On a single node a DaemonSet is
+# indistinguishable from a Deployment, `kubectl drain` has nowhere to move
+# Pods to, pod anti-affinity and topology spread are no-ops, and a
+# NoSchedule taint just makes a Pod unschedulable instead of steering it.
+#
+# The node image is pinned by digest on purpose. Kubernetes v1.35 is what
+# the CKA exam tests, and the `kindest/node:v1.35.0` tag has already been
+# re-pushed to a different digest since kind v0.31.0 was released — so an
+# unpinned reference no longer resolves to the image kind was tested
+# against. Leaving it to kind's default would be worse still: a future kind
+# release defaults to v1.36, a minor version ahead of the exam.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: cka-sandbox
+nodes:
+  - role: control-plane
+    image: kindest/node:v1.35.0@sha256:452d707d4862f52530247495d180205e029056831160e22870e37e3f6c1ac31f
+    # Both settings exist for the ingress lab: ingress-nginx schedules onto
+    # a node labelled ingress-ready, and the port mappings let a request
+    # from the host reach the controller.
+    kubeadmConfigPatches:
+      - |
+        kind: InitConfiguration
+        nodeRegistration:
+          kubeletExtraArgs:
+            node-labels: "ingress-ready=true"
+    extraPortMappings:
+      - containerPort: 80
+        hostPort: 80
+        protocol: TCP
+      - containerPort: 443
+        hostPort: 443
+        protocol: TCP
+  - role: worker
+    image: kindest/node:v1.35.0@sha256:452d707d4862f52530247495d180205e029056831160e22870e37e3f6c1ac31f
+  - role: worker
+    image: kindest/node:v1.35.0@sha256:452d707d4862f52530247495d180205e029056831160e22870e37e3f6c1ac31f

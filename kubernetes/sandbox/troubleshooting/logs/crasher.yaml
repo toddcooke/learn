@@ -1,0 +1,37 @@
+# A container that says why it is about to die, and then dies.
+#
+# This is the shape of the problem `kubectl logs --previous` exists for. The
+# container prints its diagnosis, exits non-zero, and the kubelet — obeying the
+# default restartPolicy: Always — starts a fresh instance. Ask for the logs
+# without --previous and you are asking about the instance that is running (or
+# waiting to run) right now, which has not reached the interesting part yet.
+# The explanation is in the corpse.
+#
+# Pinned to cka-sandbox-worker so the lab can watch the per-restart log files
+# accumulate on one known node.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: crasher
+  labels:
+    app: crasher
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: cka-sandbox-worker
+  restartPolicy: Always
+  containers:
+    - name: app
+      image: busybox:1.36
+      command: ["sh", "-c"]
+      args:
+        # Exit immediately, on purpose. A container that lives even a few
+        # seconds per attempt does not produce CrashLoopBackOff on this
+        # version: the state alternates between terminated and running, the
+        # STATUS column reads Error, and the backoff the lab is here to
+        # explain never becomes visible. Dying instantly is what makes the
+        # kubelet sit in a waiting state between attempts.
+        #
+        # The cost is that `kubectl logs --previous` occasionally races the
+        # reaping of the instance it wants to read. run.sh handles that by
+        # retrying rather than by slowing this container down.
+        - 'echo "CRASH-MARKER: opening /etc/app/config.yaml"; echo "CRASH-MARKER: no such file - giving up"; exit 1'

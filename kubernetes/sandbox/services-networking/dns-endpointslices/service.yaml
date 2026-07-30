@@ -1,0 +1,24 @@
+# An ordinary ClusterIP Service. Two things follow from creating it, and this
+# lab is about both:
+#
+#   1. CoreDNS gains an A record for web.<namespace>.svc.cluster.local pointing
+#      at the clusterIP the API server allocates below.
+#   2. The endpointslice controller starts maintaining an EndpointSlice holding
+#      the addresses of the Pods that match the selector, each tagged with
+#      whether it is ready.
+#
+# No `type` is given, so the API server defaults it to ClusterIP. The port the
+# Service publishes (80) deliberately differs from the port the containers
+# listen on (8080), and it is written as the *name* `http` so you can watch the
+# controller resolve the name to a number in the EndpointSlice.
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+spec:
+  selector:
+    app: web
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

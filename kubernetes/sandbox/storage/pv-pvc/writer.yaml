@@ -1,0 +1,26 @@
+# A Pod that consumes the claim. Note what it does not say: no volume name, no
+# node, no path on the host. A workload names a claim; the claim names a
+# volume; the volume knows where the bytes are. That indirection is the whole
+# reason PVCs exist.
+#
+# The container is agnhost rather than a `sleep` shell, because agnhost exits
+# promptly on SIGTERM. That matters later: the claim cannot finish deleting
+# until this Pod object is gone.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: writer
+  labels:
+    app: writer
+spec:
+  containers:
+    - name: app
+      image: registry.k8s.io/e2e-test-images/agnhost:2.53
+      command: ["/agnhost", "netexec", "--http-port=8080"]
+      volumeMounts:
+        - name: store
+          mountPath: /data
+  volumes:
+    - name: store
+      persistentVolumeClaim:
+        claimName: data

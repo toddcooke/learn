@@ -1,0 +1,31 @@
+# Two replicas, each asking for 900m of cpu against a namespace budget of
+# 500m. Even a single one of these Pods busts the quota, so the expected
+# outcome is zero running Pods -- and yet `kubectl apply` on this file
+# succeeds, because a Deployment is not a Pod and the quota admission
+# controller has nothing to say about it.
+#
+# The image is pause: it does nothing at all, which is the point. The lab is
+# about admission arithmetic, not about the workload.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bulky
+  labels:
+    app: bulky
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: bulky
+  template:
+    metadata:
+      labels:
+        app: bulky
+    spec:
+      containers:
+        - name: app
+          image: registry.k8s.io/pause:3.10
+          resources:
+            requests:
+              cpu: "900m"
+              memory: "64Mi"

@@ -1,0 +1,25 @@
+# Deliberately invalid. networking.k8s.io/v1 promoted pathType from "nice to
+# have" to required, because the older beta API left prefix-versus-exact
+# matching entirely up to the controller and the same manifest routed
+# differently on different clusters. The API server rejects this outright:
+#
+#   spec.rules[0].http.paths[0].pathType: Required value: pathType must be specified
+#
+# The rejection comes from object validation inside the API server, which runs
+# before any admission webhook, so this fails identically on a cluster with no
+# ingress controller installed at all.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: no-path-type
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /nopathtype
+            backend:
+              service:
+                name: foo
+                port:
+                  number: 80

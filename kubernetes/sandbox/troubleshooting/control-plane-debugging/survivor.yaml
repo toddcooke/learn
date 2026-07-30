@@ -1,0 +1,21 @@
+# An ordinary Pod on an ordinary worker, created before the API server is
+# broken. Its job in this lab is to be boring: it proves that stopping the
+# control plane stops the *management* of the cluster and not the cluster
+# itself. While kubectl is dead this container keeps serving, because the
+# kubelet on its node already knows what to run and does not need to ask
+# anybody. After the restore it is still the same Pod object — same UID,
+# restartCount still 0 — which is the difference between an outage of the
+# API server and an outage of the workloads.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: survivor
+  labels:
+    app: survivor
+spec:
+  containers:
+    - name: survivor
+      image: registry.k8s.io/e2e-test-images/agnhost:2.53
+      command: ["/agnhost", "netexec", "--http-port=8080"]
+      ports:
+        - containerPort: 8080

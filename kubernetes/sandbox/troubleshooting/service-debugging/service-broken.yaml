@@ -1,0 +1,29 @@
+# The bug, and it is a small one: the backend Pods carry app=hostnames, and
+# this selector says app=hostname. Singular. There is nothing in Kubernetes
+# that will complain about it.
+#
+# A selector is not a reference. The API server does not resolve it, does not
+# check that anything matches it, and cannot warn you about a typo, because a
+# selector that matches nothing today is entirely legitimate — it is what every
+# Service looks like in the seconds before its Deployment rolls out. So this
+# Service is admitted, is allocated a clusterIP, gets a DNS record, and is in
+# every visible respect a working Service. It simply has no backends.
+#
+# Everything else here is correct on purpose. port 80 is the port callers use,
+# targetPort 9376 is the port the containers actually listen on, and the
+# protocol is TCP. The walkthrough checks all of them and rules them out, which
+# is what most of a debugging checklist does: eliminate the plausible causes
+# until the one that is left is the one that is true.
+apiVersion: v1
+kind: Service
+metadata:
+  name: hostnames
+spec:
+  type: ClusterIP
+  selector:
+    app: hostname
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 9376

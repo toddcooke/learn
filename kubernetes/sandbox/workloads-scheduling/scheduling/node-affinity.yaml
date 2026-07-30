@@ -1,0 +1,60 @@
+# Two Pods that show the two halves of node affinity: the hard requirement and
+# the soft preference. Both read node labels, exactly like nodeSelector does —
+# the difference is the grammar, not the input.
+---
+# requiredDuringSchedulingIgnoredDuringExecution is a filter, like nodeSelector,
+# but expressed with set operators. `In` with two values says "either of these",
+# which a nodeSelector map cannot express at all: two entries in a nodeSelector
+# are ANDed, and no node here carries both disk values.
+#
+# The two halves of the field name are worth reading separately.
+# "DuringScheduling: required" — the scheduler will refuse to place the Pod
+# anywhere the expression does not match. "DuringExecution: ignored" — once the
+# Pod is running, relabelling the node out from under it changes nothing. There
+# is no eviction here; only a NoExecute taint does that.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: affinity-pod
+  labels:
+    app: affinity-pod
+spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        # nodeSelectorTerms are ORed with each other; matchExpressions inside a
+        # single term are ANDed. One term with one expression is the simplest
+        # possible shape.
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: sandbox-scheduling-disk
+                operator: In
+                values: ["ssd", "hdd"]
+  containers:
+    - name: app
+      image: registry.k8s.io/pause:3.10
+---
+# preferredDuringSchedulingIgnoredDuringExecution is a scoring hint, not a
+# filter. This one asks for a disk type no node in the cluster has, and the Pod
+# runs anyway: an unsatisfiable preference costs the candidate nodes nothing
+# because they all score the same zero. Weight is only ever used to rank nodes
+# that already passed every filter.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: soft-pod
+  labels:
+    app: soft-pod
+spec:
+  affinity:
+    nodeAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          preference:
+            matchExpressions:
+              - key: sandbox-scheduling-disk
+                operator: In
+                values: ["nvme"]
+  containers:
+    - name: app
+      image: registry.k8s.io/pause:3.10

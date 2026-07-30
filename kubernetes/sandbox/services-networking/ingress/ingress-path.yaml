@@ -1,0 +1,42 @@
+# Path-based fanout: one hostname (any hostname, in fact), two prefixes, two
+# Services behind them.
+#
+# The rule below has no `host:` field, which makes it a catch-all — it applies
+# to every request the controller receives regardless of the Host header. In
+# nginx terms it lands in the default `server _` block.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: demo
+spec:
+  # The name of an IngressClass object, not a controller name. It is what tells
+  # ingress-nginx "this one is mine" and every other controller in the cluster
+  # to leave it alone. Omitting it is only safe when an IngressClass carries the
+  # ingressclass.kubernetes.io/is-default-class annotation — nothing here does.
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          # pathType is required in networking.k8s.io/v1. The API defines Prefix
+          # as an element-wise match on / boundaries, so /foo is specified to
+          # match /foo and /foo/deep but NOT /foobar. ingress-nginx renders it
+          # as a bare `location /foo`, and nginx prefix locations match on
+          # characters, so on this cluster /foobar is routed here anyway. The
+          # walkthrough demonstrates that divergence rather than papering over it.
+          - path: /foo
+            pathType: Prefix
+            backend:
+              service:
+                name: foo
+                # A Service port, and specifically the Service's own port (80),
+                # not the container's targetPort (8080). The Ingress addresses
+                # the Service exactly as any other client would.
+                port:
+                  number: 80
+          - path: /bar
+            pathType: Prefix
+            backend:
+              service:
+                name: bar
+                port:
+                  number: 80

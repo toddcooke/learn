@@ -1,0 +1,54 @@
+# A single-replica Deployment with a PersistentVolumeClaim: the shape people
+# reach for the first time a workload has to keep a file. The claim names no
+# StorageClass, so the DefaultStorageClass admission plugin writes in this
+# cluster's default — rancher.io/local-path, which is a directory on one node's
+# disk. Nothing in this manifest says "this Pod can only ever run on one node",
+# and that is exactly the problem.
+#
+# Note what is absent: no emptyDir, so --delete-emptydir-data has nothing to
+# say about it, and a ReplicaSet owns the Pod, so --force has nothing to say
+# either. To kubectl drain this workload looks completely ordinary.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: keeper-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 64Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keeper
+  labels:
+    app: keeper
+spec:
+  replicas: 1
+  # Recreate rather than RollingUpdate: one volume, one writer. There is no
+  # deliberate node placement here — the scheduler picks, and the local-path
+  # provisioner then carves the volume out of whichever node it picked.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: keeper
+  template:
+    metadata:
+      labels:
+        app: keeper
+    spec:
+      terminationGracePeriodSeconds: 5
+      containers:
+        - name: keeper
+          image: registry.k8s.io/e2e-test-images/agnhost:2.53
+          command: ["/agnhost", "netexec", "--http-port=8080"]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: keeper-data

@@ -1,0 +1,23 @@
+# A RoleBinding whose roleRef is a ClusterRole rather than a Role.
+#
+# `view` is one of the four ClusterRoles the apiserver bootstraps into every
+# cluster. Nothing here copies its rules; the binding merely refers to them,
+# which is the intended way to reuse one curated rule set across many
+# namespaces without maintaining a duplicate Role in each.
+#
+# The kind of the *binding* is what decides scope, not the kind of the thing it
+# refers to. This is a RoleBinding in one namespace, so the grant lands in that
+# namespace and nowhere else — the very same ClusterRole attached with a
+# ClusterRoleBinding would grant `view` over the whole cluster.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: app-view
+subjects:
+  - kind: ServiceAccount
+    name: app
+    namespace: sandbox-rbac
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: view

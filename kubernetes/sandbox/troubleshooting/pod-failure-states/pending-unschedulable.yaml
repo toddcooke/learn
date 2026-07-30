@@ -1,0 +1,25 @@
+# Breakage 1: a request no node in the cluster can satisfy.
+#
+# 1000 cores is not a typo — it is chosen so the shortage is unambiguous and
+# stays unambiguous however large the machine running kind happens to be. The
+# memory request is deliberately small so the scheduler has exactly one
+# complaint to make, and "Insufficient cpu" is the whole of it.
+#
+# The image is `pause`, which does nothing at all. That is the point: this Pod
+# never gets far enough for the image to matter, and using a container that
+# could not possibly crash keeps the failure attributable to one cause.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pending-hog
+  labels:
+    demo: pod-failure-states
+    failure: pending
+spec:
+  containers:
+    - name: app
+      image: registry.k8s.io/pause:3.10
+      resources:
+        requests:
+          cpu: "1000"
+          memory: "64Mi"

@@ -86,11 +86,24 @@ assert_eventually_contains() {
 }
 
 require_cluster() {
+  # Decide on reachability, and retry before giving up. A single kubectl
+  # invocation can fail transiently — a busy API server, a kubeconfig being
+  # rewritten underneath us — and an earlier version of this check read the
+  # context list exactly once, so a momentary blip told the user to create a
+  # cluster that was sitting right there, running. Three tries costs nothing
+  # on the happy path, where the first one returns immediately.
+  local i
+  for i in 1 2 3; do
+    if k cluster-info >/dev/null 2>&1; then return 0; fi
+    sleep 3
+  done
+
+  # Genuinely unreachable. Work out which failure it is only now, so the
+  # message is specific without the diagnosis being able to cause a failure.
   if ! kubectl config get-contexts -o name 2>/dev/null | grep -qx "$CONTEXT"; then
     fail "no '$CONTEXT' context found. Run: kubernetes/sandbox/cluster/up.sh"
   fi
-  k cluster-info >/dev/null 2>&1 \
-    || fail "cluster '$CLUSTER_NAME' is unreachable. Is Docker running? Try: cluster/up.sh"
+  fail "cluster '$CLUSTER_NAME' is unreachable. Is Docker running? Try: cluster/up.sh"
 }
 
 # require_addon metrics-server | ingress | networkpolicy

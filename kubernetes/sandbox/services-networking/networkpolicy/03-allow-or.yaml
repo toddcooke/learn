@@ -1,0 +1,36 @@
+---
+# OR. Compare this file to 04-allow-and.yaml side by side: they contain the
+# same namespaceSelector and the same podSelector, and differ by exactly one
+# character — the "-" in front of podSelector below — plus the indentation
+# that character forces. That one character changes the meaning completely.
+#
+# Here the from: list holds TWO items, and items in a from: list are ORed:
+#
+#     from:
+#       - namespaceSelector: ...   <- item 1
+#       - podSelector: ...         <- item 2
+#
+# So traffic is admitted if it comes from ANY Pod in the kube-system
+# namespace, OR from any Pod labelled tier=batch in this namespace. The batch
+# client satisfies the second item on its own and gets in.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-or
+spec:
+  podSelector:
+    matchLabels:
+      app: web
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+        - podSelector:
+            matchLabels:
+              tier: batch
+      ports:
+        - protocol: TCP
+          port: 8080

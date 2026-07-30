@@ -1,0 +1,27 @@
+# Compare this file to clusterip-service.yaml line by line. The selector is the
+# same, the ports block is byte-for-byte the same, and the only addition is
+# `clusterIP: None`. That one line removes the virtual IP, and with it the
+# entire kube-proxy half of what a Service does:
+#
+#   * no address is taken from the service CIDR,
+#   * no iptables rules are written on any node,
+#   * and CoreDNS answers the Service name with the Pod IPs themselves
+#     instead of with a single stable address.
+#
+# The ports block below therefore does almost nothing. It still populates SRV
+# records and it still tells a reader which port to use, but no proxy exists to
+# turn a connection to port 80 into a connection to port 8080 — so a client
+# that trusts `port: 80` here will land on a Pod that is listening only on
+# 8080, and be refused. run.sh asserts exactly that.
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-headless
+spec:
+  clusterIP: None
+  selector:
+    app: web
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

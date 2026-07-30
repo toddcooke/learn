@@ -1,0 +1,48 @@
+# A stateless web tier. Four identical replicas, nothing worth keeping inside
+# any one of them, and a ReplicaSet that will recreate any Pod that disappears.
+# That last part is what makes this workload drainable at all: eviction removes
+# a Pod, and something else has to be responsible for putting it back.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  labels:
+    app: web
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      # A soft spread across hostnames. It is what puts replicas on both
+      # workers to begin with, and `ScheduleAnyway` rather than `DoNotSchedule`
+      # is deliberate: once one worker is cordoned every replica has to fit on
+      # the other one, and a hard constraint would leave them Pending instead
+      # of letting the drain succeed.
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: web
+      # Nothing here is worth a long shutdown; keep the drain brisk.
+      terminationGracePeriodSeconds: 5
+      containers:
+        - name: web
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: scratch
+              mountPath: /scratch
+      volumes:
+        # Scratch space that dies with the Pod, holding nothing anyone would
+        # miss. kubectl drain cannot know that, so it refuses to evict this Pod
+        # until you say --delete-emptydir-data and take responsibility for it.
+        - name: scratch
+          emptyDir: {}

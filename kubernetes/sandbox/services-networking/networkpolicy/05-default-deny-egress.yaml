@@ -1,0 +1,22 @@
+---
+# The mirror image of 01, and by far the more dangerous of the two.
+#
+# A default-deny INGRESS policy fails loudly: something outside cannot reach
+# your Pod, and whoever owns that something files a ticket. A default-deny
+# EGRESS policy fails from the inside, and the first thing it breaks is name
+# resolution — because DNS is egress like anything else. The Pod stays Ready,
+# the container never restarts, kubectl get pods is entirely green, and every
+# outbound call in the application dies on a resolver timeout that surfaces as
+# a generic "connection error" somewhere in a log.
+#
+# Note that this selects every Pod in the namespace, including the server. A
+# server that only answers is unaffected in practice, since replies on an
+# already-accepted connection are not separately evaluated as egress.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-egress
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress

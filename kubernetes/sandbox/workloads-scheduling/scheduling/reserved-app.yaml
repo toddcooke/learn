@@ -1,0 +1,25 @@
+# A Pod pinned to one specific node, with no toleration for the taint the lab
+# puts on that node.
+#
+# The nodeSelector and the missing toleration pull in opposite directions on
+# purpose. kubernetes.io/hostname is set by the kubelet on every node and is
+# unique per node, so this selector narrows the candidate set to exactly one
+# machine — and that machine is the one carrying sandbox-scheduling=demo:NoSchedule.
+# With one candidate and a veto on it, the Pod has nowhere to go and stays
+# Pending indefinitely. Nothing about that counts as an error: no restart, no
+# failed status, just a Pod the scheduler keeps failing to place.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: reserved-app
+  labels:
+    app: reserved-app
+spec:
+  # This is the whole demonstration. Drop this line and the Pod would simply
+  # schedule onto the other, untainted worker instead of going Pending — a
+  # taint on one node cannot strand a Pod that is free to go elsewhere.
+  nodeSelector:
+    kubernetes.io/hostname: cka-sandbox-worker2
+  containers:
+    - name: app
+      image: registry.k8s.io/pause:3.10

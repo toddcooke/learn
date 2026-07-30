@@ -1,0 +1,28 @@
+# A Job that can never succeed, so we can watch it give up.
+#
+# backoffLimit is a retry count, not an attempt count: 2 means the first
+# attempt plus two retries, three Pods in total. Between attempts the Job
+# controller backs off exponentially (10s, 20s, 40s ... capped at six
+# minutes), which is why a doomed Job takes tens of seconds to die rather
+# than milliseconds.
+#
+# restartPolicy: Never is what makes the attempts visible. Each retry is a
+# brand-new Pod that sticks around in state Error, so `kubectl get pods`
+# shows the whole history. With OnFailure the kubelet would restart the
+# container inside one Pod and the retries would be a counter, not objects.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: backoff-demo
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: doomed
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - 'echo "attempt starting"; exit 1'

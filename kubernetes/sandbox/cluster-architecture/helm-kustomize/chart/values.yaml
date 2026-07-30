@@ -1,0 +1,9 @@
+# The chart's defaults. Everything a user is allowed to tune lives here, and
+# every key is reachable in templates as .Values.<path>. `--set replicaCount=3`
+# and `-f my-values.yaml` both merge on top of this file rather than replacing
+# it, so a caller only has to state what differs.
+replicaCount: 1
+
+image:
+  repository: nginx
+  tag: alpine

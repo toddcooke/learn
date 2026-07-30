@@ -118,7 +118,7 @@ Bucketed by the same five CKA domains the study guide, quizzes, and
 flashcard deck already use, so a concept's card, guide section, and lab
 all live under one heading.
 
-### `workloads-scheduling/` (12)
+### `workloads-scheduling/` (13)
 
 | Lab | Demonstrates |
 | --- | --- |
@@ -132,7 +132,8 @@ all live under one heading.
 | `init-sidecar` | Init containers running in order and blocking the app container; a native sidecar (`restartPolicy: Always`) staying up alongside it |
 | `probes` | A failing liveness probe restarting the container; a failing readiness probe removing the Pod from EndpointSlices without restarting it; a startup probe holding both off |
 | `resources-qos` | Guaranteed/Burstable/BestEffort classification from the same manifests; CPU throttling vs an OOMKill with exit code 137 |
-| `scheduling` | Taints repelling Pods and tolerations admitting them; `nodeSelector` vs `nodeAffinity`; pod anti-affinity spreading replicas; `topologySpreadConstraints`; PriorityClass preemption evicting a lower-priority Pod |
+| `scheduling` | Taints repelling Pods and tolerations admitting them; `nodeSelector` vs `nodeAffinity`; pod anti-affinity spreading replicas; `topologySpreadConstraints` |
+| `priorityclass` | A high-priority Pod preempting a lower-priority one to make room; `preemptionPolicy: Never` keeping the queue benefit without evicting |
 | `hpa` | metrics-server feeding `kubectl top`; load driving a scale-up; the `ceil(current × ratio)` formula matching observed replica counts |
 
 ### `services-networking/` (5)
@@ -176,7 +177,7 @@ all live under one heading.
 | `service-debugging` | A Service with a typo'd selector producing an empty EndpointSlice, walked through the documented order until the selector is fixed |
 | `control-plane-debugging` | Corrupting the API server's static-Pod manifest so `kubectl` dies, diagnosing it over `docker exec` + `crictl`, then restoring it — the one lab that requires the cluster to be disposable |
 
-Total: 33 labs.
+Total: 34 labs.
 
 ## Verified cluster mechanics
 
@@ -392,7 +393,7 @@ order-independent, which is the entire premise of the design.
 
 ## Verification
 
-Implementation is not complete until the cluster is created and all 33
+Implementation is not complete until the cluster is created and all 34
 `run.sh` scripts have been executed end-to-end, each exiting zero and
 producing the behavior its README claims. Any lab whose observed output
 contradicts its README is fixed, not documented around. The verification

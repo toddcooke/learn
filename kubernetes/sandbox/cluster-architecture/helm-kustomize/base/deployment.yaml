@@ -1,0 +1,30 @@
+# The Kustomize base is ordinary, complete, apply-able YAML. There is no
+# placeholder in it and no tool required to read it: `kubectl apply -f` on this
+# single file works, and so does every linter, schema validator and editor that
+# understands Kubernetes manifests. That property is the whole premise of
+# Kustomize — the base is the app as it would be written if nothing had to vary.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello
+  labels:
+    app: hello
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hello
+  template:
+    metadata:
+      labels:
+        app: hello
+    spec:
+      containers:
+        - name: web
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi

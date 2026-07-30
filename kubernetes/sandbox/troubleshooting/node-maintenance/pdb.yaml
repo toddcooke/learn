@@ -1,0 +1,18 @@
+# minAvailable: 4 against a Deployment that has exactly 4 replicas is the
+# pathological case, chosen on purpose. The disruption controller computes
+# .status.disruptionsAllowed as currentHealthy - desiredHealthy, so this budget
+# settles at 0 and the Eviction API refuses every eviction with a 429 until the
+# number of healthy Pods rises above 4.
+#
+# A node drain is a voluntary disruption, so this budget stops it dead. A
+# budget written this way in production is a self-inflicted outage of the
+# maintenance process, not of the app — which is the entire lesson.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: web-pdb
+spec:
+  minAvailable: 4
+  selector:
+    matchLabels:
+      app: web

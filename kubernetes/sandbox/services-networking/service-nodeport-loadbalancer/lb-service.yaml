@@ -1,0 +1,24 @@
+# The same Pods, exposed a second time as type LoadBalancer.
+#
+# Note how little the manifest says. There is no field describing a load
+# balancer, no size, no algorithm, no certificate — the entire request is the
+# word `LoadBalancer` in `spec.type`. Everything about the resulting appliance is
+# supplied by an implementation outside the cluster, which is precisely why this
+# Service will sit at <pending> forever on kind: the request is well formed and
+# accepted, and nothing is on the other end of it.
+#
+# Selector and ports are identical to web-nodeport on purpose. The two Services
+# route to the same single Pod, so any difference the lab observes between them
+# is a difference of Service type and nothing else.
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-lb
+spec:
+  type: LoadBalancer
+  selector:
+    app: web
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080

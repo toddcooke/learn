@@ -18,6 +18,16 @@ Then open http://localhost:8001/ in a browser. (A plain `file://` open won't wor
 
 The real CKA exam is 100% hands-on — you solve tasks in a live cluster via the command line, not multiple-choice questions. This site's quizzes and mock exam test the same underlying knowledge in multiple-choice form, which is easier to self-check but is not a replica of the real exam. Pair this with hands-on practice using [kind](https://kind.sigs.k8s.io/), [minikube](https://minikube.sigs.k8s.io/), or [killer.sh](https://killer.sh/) for genuine exam readiness.
 
+## Hands-on labs
+
+[`sandbox/`](sandbox) holds 34 runnable labs — one per concept, grouped by the same five exam domains — that demonstrate Kubernetes behavior against a disposable local [kind](https://kind.sigs.k8s.io/) cluster the labs create themselves. Each folder has a README you can read on its own, the manifests it applies, and a `run.sh` that executes the walkthrough and asserts the result, so a lab that exits non-zero means the cluster didn't behave as its README claims.
+
+```
+kubernetes/sandbox/cluster/up.sh                        # once
+bash kubernetes/sandbox/workloads-scheduling/pod/run.sh
+kubernetes/sandbox/cluster/down.sh                      # when finished
+```
+
 ## What's here
 
 - **Study guide** — organized by the exam's 5 official curriculum domains.

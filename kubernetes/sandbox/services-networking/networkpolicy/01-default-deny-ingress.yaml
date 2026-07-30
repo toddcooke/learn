@@ -1,0 +1,25 @@
+---
+# The canonical default-deny. Read it as two independent halves:
+#
+#   podSelector: {}      -- an empty selector matches EVERY Pod in this
+#                           namespace. (Empty means "all", not "none"; that
+#                           inversion is the single most common misreading of
+#                           a NetworkPolicy.)
+#   policyTypes: [Ingress]
+#   <no ingress: field>  -- this policy is about inbound traffic and it
+#                           permits nothing.
+#
+# Because a Pod selected by at least one Ingress policy is allowed only what
+# the union of those policies permits, and this one permits nothing, every
+# Pod in the namespace becomes unreachable from every other Pod.
+#
+# Note what is NOT here: policyTypes lists Ingress only, so this object says
+# nothing whatsoever about outbound traffic. Egress stays wide open.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress

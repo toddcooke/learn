@@ -1,0 +1,31 @@
+# The same Service with the selector spelled the way the Pods are labelled:
+# app=hostnames. That is the entire fix — one character.
+#
+# Applying this over the broken version patches the selector in place. The
+# clusterIP is not named in either file, so the API server keeps the one it
+# already allocated: the Service's identity, its DNS record, and every
+# environment variable and config file that mentions it all survive the repair.
+# Deleting and recreating the Service would have worked too, and would have
+# handed out a new clusterIP for no reason.
+#
+# `kubectl patch svc hostnames -p '{"spec":{"selector":{"app":"hostnames"}}}'`
+# is the same fix as a one-liner, and is what you would reach for under exam
+# time pressure. Be aware of what it does, though: a strategic merge patch
+# merges the selector map key by key. Here the broken and correct selectors
+# share the key `app`, so the merge overwrites it and the result is right. Had
+# the typo been in the *key* — `ap: hostnames` instead of `app: hostnames` —
+# the merge would have produced a selector with both keys, which matches even
+# less than before. `kubectl apply` of a full manifest has no such trap.
+apiVersion: v1
+kind: Service
+metadata:
+  name: hostnames
+spec:
+  type: ClusterIP
+  selector:
+    app: hostnames
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 9376

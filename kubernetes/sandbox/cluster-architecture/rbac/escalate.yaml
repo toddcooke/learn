@@ -1,0 +1,33 @@
+# The deliberate exemption from the escalation guard.
+#
+# `escalate` is not a verb the apiserver ever performs — no request has verb
+# escalate. It exists purely so that RBAC can express "this subject is trusted
+# to write rules broader than its own access", and the Role registry checks for
+# it before refusing a create. Granting it is the documented way to delegate
+# role authorship without first handing the delegate every permission in the
+# cluster.
+#
+# Note what it does NOT cover: rolebindings. The binding registry checks the
+# `bind` verb instead, so escalate alone lets this ServiceAccount write a Role
+# over Secrets and still leaves it unable to attach that Role to anyone.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: role-escalator
+rules:
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["roles"]
+    verbs: ["escalate"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: app-role-escalator
+subjects:
+  - kind: ServiceAccount
+    name: app
+    namespace: sandbox-rbac
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: role-escalator

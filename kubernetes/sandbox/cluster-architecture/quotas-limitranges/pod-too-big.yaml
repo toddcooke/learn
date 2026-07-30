@@ -1,0 +1,37 @@
+# A Pod that declares its requests properly and is still refused, because by
+# the time it is submitted the namespace has already spent most of its budget.
+# Both resources are spelled out so the rejection can only be about the one
+# that actually overflows: cpu.
+#
+# The contrast with the Deployment matters. This failure lands in the caller's
+# terminal as a Forbidden error from kubectl; the Deployment's identical
+# failure landed in a controller's event log, where nobody was looking.
+#
+# The explicit limits block is load-bearing, and its absence is an easy trap.
+# The LimitRange in this namespace injects a DEFAULT LIMIT of 200m cpu into any
+# container that does not set one. Leave limits out here and this Pod is born
+# asking for a 300m request under a 200m limit — self-contradictory — and the
+# API server rejects it on that validation error alone:
+#
+#   spec.containers[0].resources.requests: Invalid value: "300m":
+#   must be less than or equal to cpu limit of 200m
+#
+# which never reaches the quota check at all. Stating the limit keeps the
+# rejection about the thing this step is demonstrating: the namespace budget.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: too-big
+  labels:
+    app: too-big
+spec:
+  containers:
+    - name: app
+      image: registry.k8s.io/pause:3.10
+      resources:
+        requests:
+          cpu: "300m"
+          memory: "64Mi"
+        limits:
+          cpu: "300m"
+          memory: "64Mi"

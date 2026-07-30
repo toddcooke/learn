@@ -1,0 +1,40 @@
+# The interesting thing about this manifest is what it does NOT say. There
+# is no metadata.namespace, so the file carries no opinion about where it
+# lands and `kubectl apply -n <ns>` decides. run.sh applies this same file
+# into two different namespaces, and both copies are called "web" without
+# ever colliding — which is the whole point of the lab.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  labels:
+    app: web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      # Nothing here needs a slow shutdown, and a short grace period keeps
+      # the namespace-delete step at the end of the lab brisk.
+      terminationGracePeriodSeconds: 5
+      containers:
+        - name: app
+          image: registry.k8s.io/e2e-test-images/agnhost:2.53
+          command: ["/agnhost", "netexec", "--http-port=8080"]
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            periodSeconds: 2
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi

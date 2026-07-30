@@ -1,0 +1,44 @@
+# Two containers in one Pod, with deliberately distinguishable output.
+#
+# Neither container writes a log file. They write to stdout, which is the only
+# logging interface Kubernetes understands: the container runtime captures the
+# stream and writes it into a file on the node, and everything `kubectl logs`
+# does is read that file back. A container that writes to /var/log/app.log
+# inside its own filesystem is invisible to every command in this lab.
+#
+# The two payloads are shaped so the flags can be checked against exact
+# numbers rather than "looks about right":
+#
+#   alpha prints a fixed 50 lines and then stops, so --tail=5 has an exact
+#         answer and the total line count never moves.
+#   beta  prints one line per second and keeps going, so --since always has a
+#         live tail to keep and a long-stale head to discard, no matter how
+#         long the rest of the lab takes to reach that step.
+#
+# `$(seq 1 50)` survives to the shell untouched. Kubernetes expands the
+# `$(VAR)` syntax in command/args against the container's environment, but a
+# reference it cannot resolve is written back out verbatim, so the shell — not
+# the kubelet — is what evaluates this.
+#
+# The Pod is pinned to cka-sandbox-worker for one reason only: the lab later
+# reads /var/log/pods on a node, and it has to know which node to look at.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: talker
+  labels:
+    app: talker
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: cka-sandbox-worker
+  containers:
+    - name: alpha
+      image: busybox:1.36
+      command: ["sh", "-c"]
+      args:
+        - 'for i in $(seq 1 50); do echo "ALPHA line $i"; done; sleep 3600'
+    - name: beta
+      image: busybox:1.36
+      command: ["sh", "-c"]
+      args:
+        - 'for i in $(seq 1 3600); do echo "BETA tick $i of 3600"; sleep 1; done'

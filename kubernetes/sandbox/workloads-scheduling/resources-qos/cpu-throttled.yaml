@@ -1,0 +1,30 @@
+# A container that wants an entire core and is allowed 200 milli-cores.
+# It spends most of every scheduling period frozen — and it never dies,
+# which is the entire point of the contrast with oom.yaml.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: cpu-throttled
+  labels:
+    demo: limits
+spec:
+  containers:
+    - name: spin
+      image: busybox:1.36
+      resources:
+        # No memory numbers at all, so this Pod is Burstable: something is
+        # set, but not the full set of four that Guaranteed requires.
+        requests:
+          cpu: "50m"
+        limits:
+          cpu: "200m"
+      command: ["sh", "-c"]
+      args:
+        - |
+          # A shell loop that never blocks and never yields. The kernel
+          # gives the cgroup 20ms of CPU out of every 100ms period and
+          # then freezes it until the period rolls over, which shows up
+          # as a rising nr_throttled in cpu.stat. Nothing is killed:
+          # CPU time that a process is denied is simply time it does not
+          # get, so the process can always be made to wait instead.
+          while true; do :; done

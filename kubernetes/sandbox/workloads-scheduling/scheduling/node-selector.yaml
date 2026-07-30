@@ -1,0 +1,17 @@
+# nodeSelector: the oldest and least expressive way to constrain placement.
+#
+# It is a map, and every entry must match exactly, by equality. There is no way
+# to write "ssd or nvme", no way to write "anything but hdd", and no way to say
+# "prefer this". Those all need node affinity, which is the next manifest.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: selector-pod
+  labels:
+    app: selector-pod
+spec:
+  nodeSelector:
+    sandbox-scheduling-disk: ssd
+  containers:
+    - name: app
+      image: registry.k8s.io/pause:3.10

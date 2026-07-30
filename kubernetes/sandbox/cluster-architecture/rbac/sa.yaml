@@ -1,0 +1,34 @@
+# Two ServiceAccounts and a Pod that runs as one of them.
+#
+# Creating a ServiceAccount grants nothing at all. It is an identity and only
+# an identity: a name the apiserver will recognise on an incoming request,
+# spelled system:serviceaccount:<namespace>:<name>. Every namespace gets one
+# of these for free, called `default`, and it is exactly this powerless.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: app
+---
+# A second identity, used at the end of the lab to show that a binding's
+# subjects list can be edited after the fact even though its roleRef cannot.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: helper
+---
+# Something for the `app` identity to be granted read access to, and a
+# demonstration that a ServiceAccount is a workload identity rather than a
+# kubectl convenience: the kubelet projects a token for `app` into this Pod,
+# so a process inside it would reach the apiserver under exactly the name the
+# lab impersonates with --as=.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: target
+  labels:
+    app: target
+spec:
+  serviceAccountName: app
+  containers:
+    - name: pause
+      image: registry.k8s.io/pause:3.10

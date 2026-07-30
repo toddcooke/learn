@@ -1,0 +1,19 @@
+# The stable address the load generator aims at. It is in its own file only
+# so that web.yaml can hold exactly one object: the last step of the lab
+# re-applies web.yaml and reads .spec.replicas straight out of the response,
+# and a two-document file would make that read ambiguous.
+#
+# The Service also does the load spreading that makes autoscaling worth
+# anything: as the HPA adds replicas, kube-proxy starts handing new
+# connections to them without the client knowing anything happened.
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+spec:
+  selector:
+    app: web
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080

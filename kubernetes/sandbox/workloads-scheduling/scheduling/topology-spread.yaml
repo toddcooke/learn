@@ -1,0 +1,49 @@
+# topologySpreadConstraints: even distribution with a stated tolerance for
+# imbalance, rather than a flat prohibition on sharing a domain.
+#
+# maxSkew is a budget. Skew is the difference between the number of matching
+# Pods in one domain and the global minimum across all eligible domains; the
+# scheduler will only place a Pod where doing so keeps that difference within
+# maxSkew. With maxSkew: 1 across two zones, four replicas can only land 2 and 2
+# — a 3/1 split would be a skew of 2 and the filter rejects it.
+#
+# The topologyKey here is a label this lab puts on the two worker nodes and
+# deliberately does NOT put on the control-plane node. A node that lacks the
+# topologyKey label is not part of any domain: its Pods do not count toward the
+# skew, and the incoming Pod cannot be placed there at all. That is why this
+# Deployment never has to mention the control-plane taint.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spread-web
+  labels:
+    app: spread-web
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: spread-web
+  template:
+    metadata:
+      labels:
+        app: spread-web
+    spec:
+      terminationGracePeriodSeconds: 5
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: sandbox-scheduling-zone
+          # DoNotSchedule makes the constraint a hard filter. The alternative,
+          # ScheduleAnyway, demotes it to a scoring hint — the scheduler prefers
+          # a balanced placement but will pile Pods into one domain rather than
+          # leave them Pending.
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: spread-web
+      containers:
+        - name: app
+          image: registry.k8s.io/pause:3.10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi

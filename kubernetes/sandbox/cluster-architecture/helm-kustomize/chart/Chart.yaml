@@ -1,0 +1,13 @@
+# The smallest legal chart: a name, a chart version, and the schema version of
+# the Chart.yaml format itself. apiVersion v2 is the Helm 3/Helm 4 format —
+# v1 charts are Helm 2 and put dependencies in a separate requirements.yaml.
+#
+# Two version fields, and they mean different things:
+#   version    — the version of THIS CHART, semver, bumped when templates change
+#   appVersion — the version of the software the chart deploys, free-form
+apiVersion: v2
+name: hello
+description: A deliberately minimal chart used to demonstrate Helm releases
+type: application
+version: 0.1.0
+appVersion: "1.0"

@@ -1,0 +1,90 @@
+---
+# One server and two clients. The clients are byte-for-byte identical apart
+# from a single label — tier: frontend versus tier: batch. Every policy in
+# this lab keys off that one label, so any difference in outcome between the
+# two Pods can only be the policy: nothing else about them varies.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: web
+  labels:
+    app: web
+spec:
+  terminationGracePeriodSeconds: 1
+  containers:
+    - name: web
+      image: registry.k8s.io/e2e-test-images/agnhost:2.53
+      command: ["/agnhost", "netexec", "--http-port=8080"]
+      ports:
+        - name: http
+          containerPort: 8080
+      resources:
+        requests:
+          cpu: 10m
+          memory: 32Mi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: frontend
+  labels:
+    app: client
+    tier: frontend
+spec:
+  terminationGracePeriodSeconds: 1
+  # busybox rather than agnhost, because this lab needs two client-side tools
+  # that busybox ships and agnhost does not expose as conveniently: wget, to
+  # read a response body, and nslookup, to prove what a broken egress policy
+  # does to DNS.
+  containers:
+    - name: client
+      image: busybox:1.36
+      command: ["sleep", "3600"]
+      resources:
+        requests:
+          cpu: 10m
+          memory: 16Mi
+  # Not decoration. The stock in-cluster resolver config is ndots:5 with a
+  # five-second timeout and two attempts, so a *blocked* lookup of a name with
+  # four dots walks all three search domains twice before giving up — the best
+  # part of a minute of nothing. Pinning ndots:1 sends the query exactly as
+  # written, and timeout/attempts bound a denied lookup to about four seconds.
+  # That is what turns "DNS is broken" into a fast, deterministic assertion
+  # rather than a long stall a reader would mistake for a hung script. Two
+  # attempts rather than one, so a single dropped datagram on a busy cluster
+  # cannot masquerade as a policy denial.
+  dnsConfig:
+    options:
+      - name: ndots
+        value: "1"
+      - name: timeout
+        value: "2"
+      - name: attempts
+        value: "2"
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: batch
+  labels:
+    app: client
+    tier: batch
+spec:
+  terminationGracePeriodSeconds: 1
+  containers:
+    - name: client
+      image: busybox:1.36
+      command: ["sleep", "3600"]
+      resources:
+        requests:
+          cpu: 10m
+          memory: 16Mi
+  # Same resolver pinning as the frontend client, and for the same reason.
+  dnsConfig:
+    options:
+      - name: ndots
+        value: "1"
+      - name: timeout
+        value: "2"
+      - name: attempts
+        value: "2"

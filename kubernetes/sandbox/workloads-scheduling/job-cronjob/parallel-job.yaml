@@ -1,0 +1,27 @@
+# The two knobs that shape a Job are independent of each other:
+#
+#   completions: 3  — a quota. Three Pods must exit 0 before the Job is Complete.
+#   parallelism: 2  — a width limit. At most two Pods exist at any moment.
+#
+# So this Job runs in two waves: two Pods, then one. A Deployment would keep
+# these Pods running forever; a Job counts successful exits and then stops.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: parallel-demo
+spec:
+  completions: 3
+  parallelism: 2
+  backoffLimit: 2
+  template:
+    spec:
+      # Never or OnFailure only. See bad-restart-policy.yaml for what the API
+      # server says about Always.
+      restartPolicy: Never
+      containers:
+        - name: work
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - 'echo "working"; sleep 8; echo "done"'

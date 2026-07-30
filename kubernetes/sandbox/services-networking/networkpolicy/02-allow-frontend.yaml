@@ -1,0 +1,37 @@
+---
+# Punch one hole in the default deny. There is no such thing as a "deny rule"
+# in the NetworkPolicy API: policies only ever add permission, and the traffic
+# a Pod may receive is the union of every Ingress policy that selects it. So
+# this object does not modify default-deny-ingress — it sits alongside it, and
+# the union of "nothing" and "port 8080 from tier=frontend" is the latter.
+#
+# Three selectors are in play here and they are easy to conflate:
+#
+#   spec.podSelector      -- WHO is being protected (the destination): Pods
+#                            labelled app=web, in this namespace.
+#   ingress[].from[]      -- WHO is being let in (the source).
+#   ingress[].ports[]     -- which port ON THE DESTINATION is opened. This is
+#                            the container/target port, not a Service port; a
+#                            NetworkPolicy never sees a Service.
+#
+# A bare podSelector under from: is implicitly scoped to the policy's own
+# namespace. To admit Pods from elsewhere you need a namespaceSelector, which
+# is what 03 and 04 explore.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-frontend
+spec:
+  podSelector:
+    matchLabels:
+      app: web
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              tier: frontend
+      ports:
+        - protocol: TCP
+          port: 8080

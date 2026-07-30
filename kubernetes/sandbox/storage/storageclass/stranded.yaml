@@ -1,0 +1,28 @@
+# The same claim, mounted by a Pod that insists on running somewhere else.
+#
+# __NODE__ is substituted by run.sh with the name of the worker node that does
+# NOT hold the provisioned volume, so this Pod asks for the one place the
+# volume cannot be reached. It stands in for any reason a Pod might have to
+# land on a different node than last time — a drain, a cordon, a node that
+# never came back — and the outcome is the same in every case: Pending.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: stranded
+  labels:
+    app: stranded
+spec:
+  terminationGracePeriodSeconds: 1
+  nodeSelector:
+    kubernetes.io/hostname: __NODE__
+  containers:
+    - name: app
+      image: registry.k8s.io/e2e-test-images/agnhost:2.53
+      command: ["/agnhost", "netexec", "--http-port=8080"]
+      volumeMounts:
+        - name: data
+          mountPath: /data
+  volumes:
+    - name: data
+      persistentVolumeClaim:
+        claimName: data

@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build `kubernetes/sandbox/`, a set of 33 runnable labs that teach one Kubernetes concept each against a real local kind cluster.
+**Goal:** Build `kubernetes/sandbox/`, a set of 34 runnable labs that teach one Kubernetes concept each against a real local kind cluster.
 
-**Architecture:** A `cluster/` directory owns the shared kind cluster and a `lib.sh` of shell helpers. Every lab is a folder holding `README.md` (the teaching artifact), its manifests, and a self-asserting `run.sh` that sources `lib.sh`, works only inside its own `sandbox-<lab>` namespace, and exits non-zero if the concept does not actually behave as the README claims. Because each `run.sh` asserts, "run all 33 and check exit codes" is the whole verification suite.
+**Architecture:** A `cluster/` directory owns the shared kind cluster and a `lib.sh` of shell helpers. Every lab is a folder holding `README.md` (the teaching artifact), its manifests, and a self-asserting `run.sh` that sources `lib.sh`, works only inside its own `sandbox-<lab>` namespace, and exits non-zero if the concept does not actually behave as the README claims. Because each `run.sh` asserts, "run all 34 and check exit codes" is the whole verification suite.
 
 **Tech Stack:** Bash, YAML, kubectl v1.36.2, kind v0.31.0, Docker Desktop. No npm, no build step, no test framework.
 
@@ -32,7 +32,7 @@ kubernetes/sandbox/
     up.sh                          create cluster + add-ons (--minimal skips add-ons)
     down.sh                        delete cluster
     README.md                      lifecycle, add-ons, cost, troubleshooting
-  workloads-scheduling/<12 labs>/  README.md + *.yaml + run.sh
+  workloads-scheduling/<13 labs>/  README.md + *.yaml + run.sh
   services-networking/<5 labs>/
   storage/<3 labs>/
   cluster-architecture/<7 labs>/
@@ -661,7 +661,7 @@ The teardown **must** restore the manifest from its backup even on failure or in
 
 - [ ] **Step 1: Write `kubernetes/sandbox/README.md`**
 
-Contents: what the sandbox is; prerequisites (Docker running, `kind`, `kubectl`, `helm`); the three-command quick start (`cluster/up.sh`, `bash <domain>/<lab>/run.sh`, `cluster/down.sh`); the `KEEP=1` convention; a table of all 33 labs grouped by domain with a one-line description each; a note that the cluster is disposable and no lab ever touches a non-kind context.
+Contents: what the sandbox is; prerequisites (Docker running, `kind`, `kubectl`, `helm`); the three-command quick start (`cluster/up.sh`, `bash <domain>/<lab>/run.sh`, `cluster/down.sh`); the `KEEP=1` convention; a table of all 34 labs grouped by domain with a one-line description each; a note that the cluster is disposable and no lab ever touches a non-kind context.
 
 - [ ] **Step 2: Add a section to `kubernetes/README.md`**
 
@@ -670,7 +670,7 @@ Insert after the "A note on format" section, since that section already tells th
 ```markdown
 ## Hands-on labs
 
-[`sandbox/`](sandbox) holds 33 runnable labs — one per concept, grouped by
+[`sandbox/`](sandbox) holds 34 runnable labs — one per concept, grouped by
 the same five exam domains — that demonstrate Kubernetes behavior against a
 disposable local [kind](https://kind.sigs.k8s.io/) cluster the labs create
 themselves. Each folder has a README you can read on its own, the manifests
@@ -685,8 +685,8 @@ the result.
 - [ ] **Step 3: Verify the lab table matches the filesystem**
 
 ```bash
-find kubernetes/sandbox -name run.sh | wc -l          # expect 33
-grep -c '^| `' kubernetes/sandbox/README.md            # expect 33
+find kubernetes/sandbox -name run.sh | wc -l          # expect 34
+grep -c '^| `' kubernetes/sandbox/README.md            # expect 34
 ```
 
 - [ ] **Step 4: Commit**
@@ -719,7 +719,7 @@ for s in */*/run.sh; do
 done
 echo "failed: $fail of $(ls -d */*/run.sh | wc -l)"
 ```
-Expected: `failed: 0 of 33`. Any failure is fixed in its lab, not documented around.
+Expected: `failed: 0 of 34`. Any failure is fixed in its lab, not documented around.
 
 - [ ] **Step 3: Confirm no lab leaked state**
 
@@ -749,7 +749,7 @@ git commit -m "fix(k8s sandbox): corrections from full-suite verification"
 
 ## Self-Review
 
-**Spec coverage.** Cluster + `lib.sh` → Task 1. All 33 labs → Tasks 2–34, matching the spec's inventory one-for-one (12 + 5 + 3 + 7 + 6). Index and README link → Task 35. The spec's verification requirement ("not complete until all 33 have run end to end") → Task 36. Every "Verified cluster mechanics" finding is bound to the task that must honour it: node-image pin → Task 1 Step 1; NetworkPolicy fail-open, node-root bypass, established connections → `require_addon networkpolicy` in Task 1 Step 2 and Task 17; storage lazy binding → Task 21; node-pinned PV vs drain → Task 30; LoadBalancer `<pending>` and the cloud-provider-kind rejection → Task 15; etcd's three traps → Task 27; ingress-nginx retirement → Task 1 Step 3 and Task 16; metrics-server single flag and idempotent patch → Task 1 Step 3 and Step 7; context safety → the `k()` wrapper, Global Constraints; lab isolation → `ns_setup`/`ns_teardown`, Task 36 Step 3.
+**Spec coverage.** Cluster + `lib.sh` → Task 1. All 34 labs → Tasks 2–34 (the scheduling task was split into `scheduling` and `priorityclass` during implementation), matching the spec inventory (13 + 5 + 3 + 7 + 6). Index and README link → Task 35. The spec's verification requirement ("not complete until all 34 have run end to end") → Task 36. Every "Verified cluster mechanics" finding is bound to the task that must honour it: node-image pin → Task 1 Step 1; NetworkPolicy fail-open, node-root bypass, established connections → `require_addon networkpolicy` in Task 1 Step 2 and Task 17; storage lazy binding → Task 21; node-pinned PV vs drain → Task 30; LoadBalancer `<pending>` and the cloud-provider-kind rejection → Task 15; etcd's three traps → Task 27; ingress-nginx retirement → Task 1 Step 3 and Task 16; metrics-server single flag and idempotent patch → Task 1 Step 3 and Step 7; context safety → the `k()` wrapper, Global Constraints; lab isolation → `ns_setup`/`ns_teardown`, Task 36 Step 3.
 
 **Placeholder scan.** No TBDs. Tasks 3–34 are specified as behavior-plus-assertions rather than transcribed code, which is deliberate: the README prose is authored content, and every mechanical detail an implementer could get wrong (exact flags, cert paths, thresholds, teardown obligations) is stated. The shared code they all depend on is given in full in Tasks 1 and 2.
 

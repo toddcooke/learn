@@ -1,0 +1,30 @@
+# A Role and a RoleBinding are both namespaced objects, and the permission
+# they produce is namespaced with them: this grants "list pods" in whichever
+# namespace the pair is created in, and nowhere else.
+#
+# The subject is a plain User rather than a ServiceAccount so that the file
+# needs no namespace of its own — a ServiceAccount subject has to name the
+# namespace it lives in, which would pin this manifest the way pinned.yaml
+# is pinned. The user never has to exist as an object; RBAC authorizes the
+# name that the request arrives under, which is what --as= supplies.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pod-reader
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: read-pods
+subjects:
+  - kind: User
+    name: namespace-lab-reader
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: pod-reader
+  apiGroup: rbac.authorization.k8s.io

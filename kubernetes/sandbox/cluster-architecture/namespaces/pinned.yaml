@@ -1,0 +1,15 @@
+# The opposite of web.yaml: this object names its own namespace, so it lands
+# in sandbox-namespaces-b no matter what the current context is set to and
+# with no -n on the command line.
+#
+# The namespace is hard-coded rather than templated because that is exactly
+# the property being demonstrated — a manifest that pins metadata.namespace
+# is no longer portable between namespaces, and kubectl will refuse to apply
+# it anywhere else rather than quietly moving it.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pinned
+  namespace: sandbox-namespaces-b
+data:
+  note: "this object names its own namespace, so kubectl does not have to"

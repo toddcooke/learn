@@ -1,0 +1,20 @@
+# Limits and no requests. This looks like it should be Burstable — one
+# side of each pair is missing — but the API server fills the gap: when a
+# limit is set and no request is, and no LimitRange has already defaulted
+# one, Kubernetes copies the limit into the request. The stored object
+# therefore has request == limit for both resources, which is exactly the
+# Guaranteed bar.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: limits-only
+  labels:
+    demo: qos
+spec:
+  containers:
+    - name: app
+      image: registry.k8s.io/pause:3.10
+      resources:
+        limits:
+          cpu: "100m"
+          memory: "64Mi"

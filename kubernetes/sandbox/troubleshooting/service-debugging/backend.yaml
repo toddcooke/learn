@@ -1,0 +1,72 @@
+# Three identical HTTP servers behind the label app=hostnames.
+#
+# The name is a nod to the upstream "Debug Services" task, which walks its
+# checklist against a Deployment called hostnames; using the same shape here
+# means the commands in this lab are the commands in that document.
+#
+# Two details earn their keep in the assertions:
+#
+#   * agnhost's netexec answers GET /hostname with the container's hostname,
+#     which for a Pod is the Pod's name. Every reply is therefore signed by the
+#     replica that produced it, so "the Service reached a backend" stops being a
+#     claim and becomes a name we can match against `kubectl get pods`.
+#
+#   * The readiness probe is an exec probe over `test -s /tmp/ready` — "the file
+#     /tmp/ready exists and is not empty". The container writes that file before
+#     exec'ing the server, so a healthy Pod passes from its first probe onward,
+#     and truncating the file from outside with
+#
+#         kubectl exec <pod> -- sh -c ': > /tmp/ready'
+#
+#     makes the next probe fail while the server keeps running and keeps
+#     serving. The last step of the lab needs exactly that state — Running but
+#     not Ready — to show what an *unready* endpoint looks like next to an
+#     *absent* one, and an exec probe over a file is the only way to enter it on
+#     demand instead of waiting for a real failure.
+#
+# `exec` in the command line is not decoration: without it the shell would stay
+# as PID 1 and netexec would run as its child, so signals sent to the container
+# would land on the shell rather than the server.
+#
+# The container port is both named (http) and numbered (9376). The Service in
+# this lab targets the number, so the port check in the walkthrough can compare
+# two integers and rule the port out as a cause.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hostnames
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: hostnames
+  template:
+    metadata:
+      labels:
+        app: hostnames
+    spec:
+      terminationGracePeriodSeconds: 5
+      containers:
+        - name: hostnames
+          image: registry.k8s.io/e2e-test-images/agnhost:2.53
+          command:
+            - sh
+            - -c
+            - 'echo ok > /tmp/ready && exec /agnhost netexec --http-port=9376'
+          ports:
+            - name: http
+              containerPort: 9376
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "test -s /tmp/ready"]
+            periodSeconds: 3
+            timeoutSeconds: 2
+            # Two consecutive failures, so one slow exec on a busy node cannot
+            # flap the endpoint, while breaking the file still shows up within
+            # a few seconds.
+            failureThreshold: 2
+            successThreshold: 1
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi

@@ -1,0 +1,45 @@
+# A server whose health is a file. The container writes /tmp/healthy when it
+# starts and the liveness probe reads it back, which gives the lab a health
+# signal it can flip by hand instead of waiting for a timer to expire. Health
+# that fails on a schedule is fine for a blog post and terrible for a test:
+# you end up asserting against a stopwatch. Here the failure happens exactly
+# when we cause it.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: liveness
+  labels:
+    app: liveness
+spec:
+  # The kubelet sends SIGTERM and waits this long before SIGKILL when it
+  # decides to restart the container. Two seconds keeps the demo brisk;
+  # agnhost has no shutdown work to do.
+  terminationGracePeriodSeconds: 2
+  containers:
+    - name: server
+      image: registry.k8s.io/e2e-test-images/agnhost:2.53
+      # `exec` replaces the shell with agnhost rather than leaving `sh` as
+      # PID 1 with the server as its child — so the kubelet's signals reach
+      # the server directly. Note that this whole command runs again on every
+      # restart, which is what lets the container heal itself later on.
+      command:
+        - sh
+        - -c
+        - echo ok > /tmp/healthy; exec /agnhost netexec --http-port=8080
+      ports:
+        - name: http
+          containerPort: 8080
+      livenessProbe:
+        exec:
+          # `test -s` succeeds only if the file exists and is non-empty, so
+          # health can be toggled with shell redirection alone: `: >` empties
+          # the file and the probe starts failing, `echo ok >` refills it.
+          # A non-zero exit code from this command is a probe failure.
+          command: ["sh", "-c", "test -s /tmp/healthy"]
+        # Deliberately impatient so the lab finishes in seconds. Real values
+        # should be slow enough that a garbage-collection pause or a busy node
+        # cannot get a healthy container killed: a liveness probe is the one
+        # probe whose false positive costs you an outage.
+        periodSeconds: 2
+        timeoutSeconds: 2
+        failureThreshold: 2

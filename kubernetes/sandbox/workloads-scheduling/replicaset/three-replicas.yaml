@@ -1,0 +1,31 @@
+# A ReplicaSet's entire job: keep exactly `replicas` Pods matching `selector`
+# alive. It has no notion of versions, order, or rollout — it counts.
+#
+# The selector and the template's labels are two separate things that must
+# agree: the selector is how the controller finds the Pods it owns, and the
+# template's labels are what it stamps onto the Pods it creates. The API
+# server rejects a ReplicaSet whose template labels don't match its own
+# selector, because such a controller would create Pods, fail to find them,
+# and create Pods forever.
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: web
+  labels:
+    app: web
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      # Nothing here needs a graceful drain, and a short grace period keeps
+      # the delete-a-Pod steps of this lab quick.
+      terminationGracePeriodSeconds: 5
+      containers:
+        - name: web
+          image: nginx:alpine

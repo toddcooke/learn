@@ -1,0 +1,47 @@
+---
+# The companion every default-deny-egress needs. Ship them together or ship
+# neither.
+#
+# Two details are load-bearing:
+#
+# 1. BOTH protocols. Almost every hand-written version of this policy lists
+#    UDP only, and almost every one of them appears to work, because ordinary
+#    lookups fit in a 512-byte UDP datagram. The day an answer does not fit,
+#    the server sets the truncated bit and the resolver retries the identical
+#    query over TCP/53 — so the failure arrives later, under load, and only
+#    for some names. Both entries below, always.
+#
+# 2. The destination is matched by NAMESPACE, not by the DNS service IP. A
+#    Pod resolves against the kube-dns ClusterIP, but by the time the packet
+#    reaches the policy engine kube-proxy has already DNAT'd it to a real
+#    CoreDNS Pod IP in kube-system. Policy is evaluated against that
+#    post-translation address, which is exactly why a namespaceSelector works
+#    here and why an ipBlock naming the Service IP would not.
+#
+# Tightening this further is worthwhile in production: add
+#
+#     podSelector:
+#       matchLabels:
+#         k8s-app: kube-dns
+#
+# to the same list item (ANDed, per 04) so the rule opens CoreDNS rather than
+# the whole of kube-system. It is left namespace-wide here to keep one idea
+# per file.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-egress
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53

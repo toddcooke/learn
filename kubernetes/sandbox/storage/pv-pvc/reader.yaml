@@ -1,0 +1,22 @@
+# The same Pod, pointed at the *second* claim. By the time this runs, data-2
+# has bound to the volume that `data` used to hold, so this Pod is a different
+# tenant on the same disk — and it can still read the previous tenant's file.
+# Retain preserved the bytes; nothing wiped them.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: reader
+  labels:
+    app: reader
+spec:
+  containers:
+    - name: app
+      image: registry.k8s.io/e2e-test-images/agnhost:2.53
+      command: ["/agnhost", "netexec", "--http-port=8080"]
+      volumeMounts:
+        - name: store
+          mountPath: /data
+  volumes:
+    - name: store
+      persistentVolumeClaim:
+        claimName: data-2

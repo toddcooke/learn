@@ -1,0 +1,42 @@
+---
+# AND. Identical selectors to 03-allow-or.yaml, one fewer "-".
+#
+# The from: list now holds ONE item that carries both a namespaceSelector and
+# a podSelector, and within a single item the selectors are ANDed:
+#
+#     from:
+#       - namespaceSelector: ...   <- one item,
+#         podSelector: ...            two selectors, both required
+#
+# The admitted source is therefore "a Pod labelled tier=batch that lives in
+# the kube-system namespace". No such Pod exists. Our batch client carries the
+# right label but sits in the lab namespace, so it is refused — even though,
+# under 03, that very same label was enough.
+#
+# This is the shape you actually want in production ("the payments Pods in the
+# checkout namespace"), and it is the shape people write by accident when they
+# meant OR. The failure mode is silent and asymmetric: get it wrong in the AND
+# direction and traffic is denied, which you notice; get it wrong in the OR
+# direction and you have quietly admitted an entire namespace, which you do
+# not.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-and
+spec:
+  podSelector:
+    matchLabels:
+      app: web
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              tier: batch
+      ports:
+        - protocol: TCP
+          port: 8080

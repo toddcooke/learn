@@ -1,0 +1,15 @@
+# immutable: true is a one-way door. Once this object exists, the API server
+# rejects any change to data or binaryData — and any attempt to clear the
+# immutable flag itself, so there is no route back. Delete and recreate is the
+# only way to change the contents.
+#
+# It is not only a safety rail. The kubelet stops watching immutable
+# ConfigMaps and Secrets entirely, which is a real reduction in apiserver load
+# on clusters with many Pods mounting the same config.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-frozen
+immutable: true
+data:
+  GREETING: locked-at-creation

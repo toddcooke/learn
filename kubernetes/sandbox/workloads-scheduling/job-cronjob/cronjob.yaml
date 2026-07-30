@@ -1,0 +1,41 @@
+# A CronJob is not a scheduler for Pods — it is a factory for Jobs. Every time
+# the schedule fires, the CronJob controller stamps out one Job from
+# .spec.jobTemplate, and that Job creates the Pods. Three objects, three
+# controllers, one chain: CronJob -> Job -> Pod.
+#
+# concurrencyPolicy decides what happens when the clock comes round again and
+# the previous Job is still running:
+#
+#   Allow (default) — start the new run anyway; both are active
+#   Forbid          — skip this run entirely; the late Job keeps going
+#   Replace         — kill the running Job and start the new one
+#
+# Forbid is the right default for anything that touches shared state: a report
+# that takes 70 seconds should not have two copies writing the same rows.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: heartbeat
+spec:
+  schedule: "*/1 * * * *"
+  concurrencyPolicy: Forbid
+  # How many finished Jobs to keep around for inspection. These are the
+  # defaults, spelled out because they are the reason `kubectl get jobs` on a
+  # busy CronJob does not grow without bound.
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        spec:
+          # OnFailure here rather than Never: a heartbeat is cheap to rerun in
+          # place, and there is no history worth preserving as separate Pods.
+          restartPolicy: OnFailure
+          containers:
+            - name: beat
+              image: busybox:1.36
+              command:
+                - sh
+                - -c
+                - 'date -u +%Y-%m-%dT%H:%M:%SZ; echo "heartbeat"'

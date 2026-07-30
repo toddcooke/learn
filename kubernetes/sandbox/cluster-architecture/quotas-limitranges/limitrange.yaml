@@ -1,0 +1,26 @@
+# A LimitRange is the other half of the pattern. The quota says how much the
+# namespace may consume in total; the LimitRange says what an individual
+# container gets when it declines to say for itself.
+#
+# `defaultRequest` fills in a missing requests: block, `default` fills in a
+# missing limits: block. Both are applied by the LimitRanger admission plugin,
+# which runs BEFORE the ResourceQuota plugin -- so by the time the quota is
+# evaluated the Pod is no longer requestless, and the "must specify" rejection
+# disappears.
+#
+# type: Container applies per container. type: Pod would constrain the sum of
+# a Pod's containers instead, and a LimitRange may also set min, max and
+# maxLimitRequestRatio; this lab exercises only the defaulting half.
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: default-requests
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu: "100m"
+        memory: "64Mi"
+      default:
+        cpu: "200m"
+        memory: "128Mi"

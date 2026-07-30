@@ -1,0 +1,21 @@
+# A claim with no Pod behind it. Two things about it are deliberate.
+#
+# First, storageClassName is omitted entirely. That is not the same as setting
+# it to "" (which means "do not use a class at all, match a pre-created PV").
+# Omitting the field lets the DefaultStorageClass admission plugin fill in the
+# name of whichever class is marked storageclass.kubernetes.io/is-default-class,
+# which in this cluster is `standard`.
+#
+# Second, nothing consumes it. On an Immediate class that would not matter and
+# a volume would be provisioned straight away; on this cluster's
+# WaitForFirstConsumer class the claim will simply sit at Pending.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 64Mi

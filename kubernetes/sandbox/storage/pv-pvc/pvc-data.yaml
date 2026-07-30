@@ -1,0 +1,22 @@
+# The user's half of static provisioning: a request for storage that names no
+# volume at all. Every field here is a matching criterion the control plane
+# uses to pick a PV out of the pool.
+#
+#   storageClassName: ""  -> only volumes with no class
+#   accessModes           -> the PV's modes must be a superset of these
+#   resources.requests    -> the PV's capacity must be at least this
+#   selector              -> the PV's labels must match
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: ""
+  resources:
+    requests:
+      storage: 1Gi
+  selector:
+    matchLabels:
+      sandbox-lab: pv-pvc

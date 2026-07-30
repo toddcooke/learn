@@ -1,0 +1,12 @@
+# A ResourceQuota is a namespaced object, and it constrains exactly one
+# namespace: the one it was created in. A budget of a single Pod is a blunt
+# limit, but it makes the boundary visible in one command — the next Pod
+# created here is refused at admission, while an identical Pod created in
+# the sibling namespace is admitted without comment.
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: pod-budget
+spec:
+  hard:
+    pods: "1"

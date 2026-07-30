@@ -1,0 +1,29 @@
+# The first consumer of the `data` claim. Creating this Pod is what unblocks
+# the claim: the scheduler picks a node for the Pod, records that choice on the
+# claim as volume.kubernetes.io/selected-node, and only then does the
+# provisioner create a PersistentVolume — on that node and nowhere else.
+#
+# There is no nodeSelector and no affinity here on purpose. The Pod does not
+# choose a node; the Pod's requirements do, and later in the lab the volume it
+# leaves behind starts doing the choosing instead.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: writer
+  labels:
+    app: writer
+spec:
+  # Keep teardown quick: a namespace delete has to wait out the grace period
+  # before the claim's pvc-protection finalizer will release.
+  terminationGracePeriodSeconds: 1
+  containers:
+    - name: app
+      image: registry.k8s.io/e2e-test-images/agnhost:2.53
+      command: ["/agnhost", "netexec", "--http-port=8080"]
+      volumeMounts:
+        - name: data
+          mountPath: /data
+  volumes:
+    - name: data
+      persistentVolumeClaim:
+        claimName: data

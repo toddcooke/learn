@@ -1,0 +1,18 @@
+# Byte-for-byte the same spec as pvc-data.yaml, under a different name. It is
+# a perfect match for the PV on every criterion — and it still cannot have it,
+# because the PV is already bound to `data`. Binding is exclusive: one PV to
+# one PVC, no sharing and no queue-jumping.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data-2
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: ""
+  resources:
+    requests:
+      storage: 1Gi
+  selector:
+    matchLabels:
+      sandbox-lab: pv-pvc

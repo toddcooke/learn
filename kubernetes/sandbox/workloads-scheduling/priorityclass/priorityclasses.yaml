@@ -1,0 +1,39 @@
+# PriorityClasses are CLUSTER-SCOPED. Nothing about them is namespaced, so
+# `kubectl delete ns` will not remove them and a leftover one outlives the lab
+# that created it. That is why every name here carries a sandbox-priorityclass-
+# prefix and why run.sh deletes all three in its own trap.
+#
+# Two fields carry the whole meaning:
+#   .value            an int32 the scheduler compares between Pods. Higher wins.
+#   .preemptionPolicy what a Pod of this class may do when it does not fit —
+#                     make room by evicting lower-priority Pods, or just wait.
+#
+# .globalDefault is deliberately false on all three. Setting it true would give
+# every Pod in the cluster that omits priorityClassName this priority, which is
+# not a thing a sandbox lab should do to a shared cluster.
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: sandbox-priorityclass-low
+value: 1000
+globalDefault: false
+description: "Best-effort filler. Anything more important may take its place."
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: sandbox-priorityclass-high
+value: 1000000
+globalDefault: false
+# preemptionPolicy is left unset on purpose: the API server defaults it to
+# PreemptLowerPriority, which run.sh reads back off the stored object.
+description: "Urgent work that is allowed to evict lower-priority Pods to fit."
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: sandbox-priorityclass-high-nopreempt
+value: 1000000
+globalDefault: false
+preemptionPolicy: Never
+description: "Same value as sandbox-priorityclass-high; waits for room instead of making it."

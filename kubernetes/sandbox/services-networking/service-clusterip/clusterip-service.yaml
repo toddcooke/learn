@@ -1,0 +1,24 @@
+# The default kind of Service. Two things are worth noticing about what is
+# *not* here:
+#
+#   * There is no `type:` field. ClusterIP is the default, so the API server
+#     fills it in and `kubectl get svc` prints TYPE ClusterIP.
+#   * There is no list of Pods. A Service stores a label selector; the list of
+#     backing addresses lives in a separate EndpointSlice object that the
+#     endpoints controller maintains, and it is recomputed whenever a matching
+#     Pod appears, becomes Ready, or goes away.
+#
+# `port` and `targetPort` differ on purpose. Clients connect to the Service on
+# 80; kube-proxy rewrites the destination to a Pod IP on 8080 (the container
+# port named http). Nothing inside the Pod ever hears about port 80.
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+spec:
+  selector:
+    app: web
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

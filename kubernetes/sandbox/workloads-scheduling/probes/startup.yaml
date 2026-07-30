@@ -1,0 +1,76 @@
+# A controlled experiment in two Pods. Both run the same slow-starting
+# container: 25 seconds of doing nothing before the server exists. Both carry
+# the same deliberately impatient liveness probe. The single difference is
+# that slow-guarded also declares a startupProbe — so whatever happens
+# differently to the two of them is attributable to that one stanza.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: slow-guarded
+  labels:
+    app: slow
+spec:
+  terminationGracePeriodSeconds: 2
+  containers:
+    - name: server
+      image: registry.k8s.io/e2e-test-images/agnhost:2.53
+      # Stands in for a JVM warming up, a cache being loaded, or a database
+      # replaying its write-ahead log. /tmp/healthy does not exist until the
+      # slow part is over, so every probe fails until then.
+      command:
+        - sh
+        - -c
+        - sleep 25; echo ok > /tmp/healthy; exec /agnhost netexec --http-port=8080
+      ports:
+        - name: http
+          containerPort: 8080
+      # One failure and the container is killed. On its own this is fatal to a
+      # container that needs 25 seconds to boot.
+      livenessProbe:
+        exec:
+          command: ["sh", "-c", "test -s /tmp/healthy"]
+        periodSeconds: 3
+        timeoutSeconds: 2
+        failureThreshold: 1
+      # ...but while a startup probe is configured and has not yet succeeded,
+      # the kubelet runs neither the liveness nor the readiness probe. The
+      # budget is failureThreshold x periodSeconds = 20 x 3 = 60 seconds,
+      # comfortably more than the 25 the container needs. Spend the budget on
+      # failureThreshold rather than on a long initialDelaySeconds: a big
+      # threshold tolerates a slow start without also punishing a fast one,
+      # because the probe succeeds the moment the container is actually up.
+      startupProbe:
+        exec:
+          command: ["sh", "-c", "test -s /tmp/healthy"]
+        periodSeconds: 3
+        timeoutSeconds: 2
+        failureThreshold: 20
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: slow-unguarded
+  labels:
+    app: slow
+spec:
+  terminationGracePeriodSeconds: 2
+  containers:
+    - name: server
+      image: registry.k8s.io/e2e-test-images/agnhost:2.53
+      command:
+        - sh
+        - -c
+        - sleep 25; echo ok > /tmp/healthy; exec /agnhost netexec --http-port=8080
+      ports:
+        - name: http
+          containerPort: 8080
+      # Byte for byte the same liveness probe as above, and no startupProbe.
+      # initialDelaySeconds is left at its default of 0, so the first probe
+      # runs almost immediately and this container is killed roughly three
+      # seconds into a twenty-five second startup — over and over, forever.
+      livenessProbe:
+        exec:
+          command: ["sh", "-c", "test -s /tmp/healthy"]
+        periodSeconds: 3
+        timeoutSeconds: 2
+        failureThreshold: 1

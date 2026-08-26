@@ -1,0 +1,945 @@
+# Site Reliability Engineering — flashcards
+
+93 cards. Exported to Anki by scripts/export-anki.mjs.
+
+## SLIs, SLOs & Error Budgets
+
+### `sli` · SLI (Service Level Indicator)
+
+**What is an SLI, and why is it usually expressed as a ratio?**
+
+<details><summary>Answer</summary>
+
+A precise, quantitative measurement of one aspect of a service, such as request latency or the fraction of requests that succeeded, rather than a vague sense of health. Expressing it as good events over total events keeps every SLI on the same 0-to-100 scale, which makes targets and tooling comparable across very different services.
+
+</details>
+
+### `slo` · SLO (Service Level Objective)
+
+**What is an SLO, and how does it relate to an SLI?**
+
+<details><summary>Answer</summary>
+
+An SLO attaches a target to an SLI over a time window, such as '99.9% of requests succeed over a rolling 28 days.' It turns a raw measurement into a concrete promise that both the team and its users can plan around, and it is the number an error budget is derived from.
+
+</details>
+
+### `sla` · SLA (Service Level Agreement)
+
+**How does an SLA differ from an ordinary SLO?**
+
+<details><summary>Answer</summary>
+
+An SLA is an SLO wrapped in a contract: missing the target triggers a formal, usually financial, consequence for the provider, whereas an internal SLO miss only triggers an internal response. Teams typically set the SLO target tighter than the SLA target, so an SLO miss gives an early warning before the SLA is actually breached.
+
+</details>
+
+### `sli-spec-vs-implementation` · SLI specification vs. implementation
+
+**What is the difference between an SLI's specification and its implementation?**
+
+<details><summary>Answer</summary>
+
+The specification is the outcome you want to measure, kept independent of how you measure it — such as 'the fraction of home-page loads that complete in under 100 ms.' The implementation is how you actually measure that, such as reading load-balancer logs versus timing the page in a browser. The same specification can have several competing implementations, and measuring closer to the user usually produces a more faithful one.
+
+</details>
+
+### `error-budget` · Error budget
+
+**What is an error budget?**
+
+<details><summary>Answer</summary>
+
+The allowed amount of unreliability over an SLO window. It reframes reliability as a spendable resource shared between the team shipping features and the team keeping things stable, rather than a separate goal to chase in isolation.
+
+</details>
+
+### `error-budget-formula` · Error budget
+
+**How is an error budget's size calculated from its SLO?**
+
+<details><summary>Answer</summary>
+
+It's calculated as 100% minus the SLO target — for example, an SLO of 99.9% over 28 days leaves an error budget of the remaining 0.1% of requests allowed to fail.
+
+</details>
+
+### `error-budget-policy` · Error budget policy
+
+**What does an error budget policy do once the budget runs out?**
+
+<details><summary>Answer</summary>
+
+Most commonly it freezes further feature launches and non-critical releases until reliability recovers back above the target line, with narrow exceptions carved out for urgent fixes and security patches. The freeze is a reallocation rather than a punishment: a spent budget means users are already feeling instability, so engineering time shifts to reliability until the service is back inside its promise.
+
+</details>
+
+### `burn-rate` · Burn rate
+
+**What does a burn rate of 1 mean, versus a burn rate of 10?**
+
+<details><summary>Answer</summary>
+
+How fast a service is consuming its error budget relative to a steady, sustainable pace. A burn rate of 1 means the service will land at exactly zero budget right at the end of the SLO window if the current error rate holds; a burn rate of 10 means the same budget would be exhausted in one-tenth of the window, which is the kind of fast, dangerous spend that alerting wants to catch quickly.
+
+</details>
+
+### `availability-aggregate` · Aggregate (request-based) availability
+
+**How does request-based availability differ from simple uptime?**
+
+<details><summary>Answer</summary>
+
+Time-based uptime asks whether the service was up or down at a given moment, treating every minute equally regardless of traffic. Aggregate, request-based availability instead divides successful requests by total requests over a window, so an outage during a high-traffic hour counts for more than the same outage during a quiet one — a better match for what users actually experienced.
+
+</details>
+
+### `nines` · Nines (availability)
+
+**What does it mean for a service to have '4 nines' of availability?**
+
+<details><summary>Answer</summary>
+
+Industry shorthand for how many nines appear in the availability percentage: 99% is '2 nines,' 99.99% is '4 nines,' and so on. Each added nine shrinks the allowed downtime tenfold, and the ladder never tops out — 100% availability is never actually achievable.
+
+</details>
+
+### `cost-of-the-next-nine` · Choosing a reliability target
+
+**Why is chasing an extra nine of reliability usually a bad default goal?**
+
+<details><summary>Answer</summary>
+
+Each additional nine costs disproportionately more than the last one, both in engineering effort and in redundant infrastructure, while for most consumer-facing products users cannot even perceive the difference between, say, 99.99% and 99.999% availability. The SRE approach is to pick a target that matches what users actually need and can perceive, not the highest number achievable.
+
+</details>
+
+### `slo-floor-and-ceiling` · Running above the SLO target
+
+**Why should a team avoid running a service well above its SLO target for long stretches?**
+
+<details><summary>Answer</summary>
+
+An SLO is meant to be treated as both a floor (don't drop below it) and a ceiling (don't consistently blow far past it either), because users and dependent systems quietly start relying on the better-than-promised reliability they actually observe. That informal expectation can make a later, deliberate return to the published target feel like an outage even though the SLO itself was never breached.
+
+</details>
+
+### `durability` · Durability
+
+**How is durability different from availability for a storage system?**
+
+<details><summary>Answer</summary>
+
+Durability is the likelihood that data written today can still be read back correctly much later, as distinct from availability, which is about whether the system can serve a request right now. A storage system can have excellent aggregate durability numbers while still losing the one slice of data a particular user actually cares about, so durability SLIs need to be scoped carefully to what users will notice.
+
+</details>
+
+### `rolling-vs-calendar-window` · Rolling window vs. calendar-aligned window
+
+**What is the practical difference between a rolling SLO window and a calendar-aligned one?**
+
+<details><summary>Answer</summary>
+
+A rolling window (for example, a trailing 28 days) tracks closer to how users actually experience a service, since a bad outage doesn't simply vanish the moment a new calendar month begins. A calendar-aligned window (a fixed month or quarter) instead lines up with business planning cycles like headcount and roadmap reviews, at the cost of a sudden reset that can hide recent pain.
+
+</details>
+
+### `error-budget-policy-advance` · Error budget policy
+
+**Why must an error budget policy be written and agreed before the budget is ever exhausted?**
+
+<details><summary>Answer</summary>
+
+The moment the budget runs out is exactly when the consequences the policy prescribes are most painful and most contested — product wants to ship, reliability wants to stop, and any rule invented mid-crisis reads as one side winning a political fight. A policy agreed in calm conditions, with an escalation path for disagreements, turns the response into the automatic, impersonal consequence everyone already signed up for.
+
+</details>
+
+### `percentile-latency-slis` · Percentile latency SLIs
+
+**Why are latency SLIs usually defined on percentiles rather than the average?**
+
+<details><summary>Answer</summary>
+
+A mean folds the fast majority and the slow tail into one number, so a painfully slow 99th percentile can hide behind a healthy-looking average — and tying targets to the mean fails in other ways too, as when Bigtable's heavy tail dragged its mean-based SLO into constant violation and alerts fired voluminously without being actionable. Targets set on percentiles, often a tighter bound at the 90th and a looser one at the 99th, cover both the typical experience and the tail users actually complain about.
+
+</details>
+
+### `pipeline-slis` · Pipeline SLIs
+
+**Which SLI categories fit a data pipeline better than request availability?**
+
+<details><summary>Answer</summary>
+
+Pipelines usually have no discrete request to measure, so they are characterized by throughput and end-to-end latency, plus two pipeline-specific flavors: freshness (how recently the data behind a read was updated) and coverage or completeness (the fraction of records fully processed rather than skipped). Correctness — often measured by seeding synthetic records with known-good expected outputs — rounds out the set.
+
+</details>
+
+## Monitoring, Observability & Alerting
+
+### `four-golden-signals` · The four golden signals
+
+**What are the four golden signals of monitoring?**
+
+<details><summary>Answer</summary>
+
+Latency, traffic, errors, and saturation — two signals describing the request stream coming in (latency and traffic) and two describing things going wrong (errors and saturation). If a team can only instrument four things about a user-facing system, these four give the broadest possible coverage, and are the natural anchor for a top-level dashboard.
+
+</details>
+
+### `saturation-signal` · Saturation
+
+**Why is saturation not just "CPU percentage"?**
+
+<details><summary>Answer</summary>
+
+Saturation is how full a service is relative to the resource that will constrain it first, which is often memory, an open-connection limit, or a queue depth rather than raw CPU. A service can look fine on CPU while a different resource is quietly approaching its ceiling, so a good saturation signal has to be picked per system rather than assumed to be one generic metric.
+
+</details>
+
+### `black-box-monitoring` · Black-box monitoring
+
+**What does black-box monitoring test, and what is it best used for?**
+
+<details><summary>Answer</summary>
+
+Black-box monitoring probes a system from the outside the same way a user would, without any knowledge of its internals, so it tells you whether something is actively broken right now. It is well suited to paging a human, because by design it only fires on real, currently-occurring symptoms rather than on internal conditions that may or may not turn into a user-visible problem.
+
+</details>
+
+### `white-box-monitoring` · White-box monitoring
+
+**What does white-box monitoring add that black-box monitoring cannot see?**
+
+<details><summary>Answer</summary>
+
+White-box monitoring inspects a system's internals — logs, exported metrics, instrumented code paths — which lets it detect imminent problems, failures that are being silently masked by retries, and give the detailed context needed for debugging. Whether a given white-box signal is a symptom or a cause depends on which layer of a multilayered system is looking at it.
+
+</details>
+
+### `metrics-vs-logs` · Metrics vs. logs
+
+**What are metrics and logs each best suited for?**
+
+<details><summary>Answer</summary>
+
+Metrics are compact numeric time series that are cheap to store and query, making them ideal for dashboards, alerting, and spotting trends. Logs carry rich, per-event detail that metrics discard, which makes them the right tool for the deep-dive investigation that follows once an alert or a dashboard has already pointed at roughly where to look.
+
+</details>
+
+### `playbook` · Playbook
+
+**What is a playbook, and why does SRE practice pair one with every alert?**
+
+<details><summary>Answer</summary>
+
+A playbook is a written, linked-from-the-alert guide that explains an alert's severity and likely impact and lays out debugging steps and mitigations. A stressed, half-awake on-call engineer working from memory is far more error-prone than one following a checklist, so pairing every alert with a playbook turns 3 a.m. debugging from improvisation into executing a known-good procedure.
+
+</details>
+
+### `symptom-vs-cause-paging` · Paging on symptoms, not causes
+
+**Why does good alerting philosophy favor paging on symptoms over paging on causes?**
+
+<details><summary>Answer</summary>
+
+A page should mean a human needs to act now on something users are actually feeling; causes are numerous, often self-correcting, and paging on every one of them trains on-call engineers to ignore pages. Reserving pages for confirmed, user-visible symptoms and routing everything else to lower-urgency channels like a ticket keeps the signal-to-noise ratio high enough that a page is still taken seriously when it fires.
+
+</details>
+
+### `dashboards` · Dashboards
+
+**Why should a dashboard be treated as an interface rather than a data store?**
+
+<details><summary>Answer</summary>
+
+A dashboard is a view onto data that lives elsewhere in a monitoring system, not the authoritative record itself, so it should stay focused on answering a specific question at a glance rather than accumulating every metric someone once found interesting. A cluttered dashboard that tries to be everything ends up being useless during an actual incident, when speed of comprehension matters most.
+
+</details>
+
+### `mttr` · MTTR
+
+**What is MTTR, and what on-call practice did Google find cut repair times by roughly 3x?**
+
+<details><summary>Answer</summary>
+
+MTTR is the mean time to repair (sometimes 'recovery'): the average time from when a problem starts affecting users to when it is fully resolved. Google found that on-call engineers working from a playbook resolved incidents roughly three times faster than engineers improvising from memory, which makes playbook maintenance one of the most dependable levers on MTTR.
+
+</details>
+
+### `mtbf` · MTBF
+
+**What does MTBF measure, and how is that different from what MTTR measures?**
+
+<details><summary>Answer</summary>
+
+MTBF is the average stretch of working time between one failure and the next — a measure of how rarely a system breaks in the first place. MTTR measures something else: once a failure has happened, how long it takes to detect, diagnose, and fully resolve it. A system can have a great MTBF but a terrible MTTR, or the reverse, because the two describe different halves of an incident's timeline — how often it happens, and how fast it's handled once it does.
+
+</details>
+
+### `burn-rate-alerting` · Error budget burn-rate alerting
+
+**Why do production burn-rate alerts typically check more than one time window?**
+
+<details><summary>Answer</summary>
+
+No single burn-rate/window pair can catch both failure shapes, so production setups run several alerts in parallel — for example, a 14.4x burn over 1 hour and a 6x burn over 6 hours both page, while a 1x burn over 3 days files a ticket — so fast spikes and slow leaks each hit an alert sized for them. Each alert also requires a short window (typically 1/12 of the long one, such as 5 minutes alongside the 1-hour check) to exceed the same threshold, which keeps it firing only while budget is actively being burned and lets it reset promptly once the problem is fixed.
+
+</details>
+
+### `low-traffic-burn-rate-alerting` · Burn-rate alerting on low-traffic services
+
+**Why does burn-rate alerting break down for low-traffic services?**
+
+<details><summary>Answer</summary>
+
+With very few requests per hour, a single failed request can represent a huge instantaneous error rate and trigger a page-worthy burn rate on its own, even though it may just be an isolated, uninteresting failure. Low-traffic services need a different approach — generating synthetic traffic, combining several small services under one SLO, or lowering the target and lengthening the window — while for extreme-reliability targets no alerting math reacts fast enough, and the answer is preventing failure by design rather than detecting it.
+
+</details>
+
+### `time-series-to-page` · From a time series to a page
+
+**What has to be true before a monitoring rule should be allowed to page a human?**
+
+<details><summary>Answer</summary>
+
+The condition must be genuinely urgent, actionable, and something only a human can currently fix — anything a script could handle should be automated away instead, and anything that can wait should not wake anyone. Running every proposed new alert through that checklist before turning it on is what keeps a paging system trustworthy over time.
+
+</details>
+
+### `observability-time-horizons` · Two clocks of observability
+
+**Why does an observability strategy need both a fast clock and a slow one?**
+
+<details><summary>Answer</summary>
+
+Near-real-time monitoring and alerting operate on the timescale of minutes, catching things that need action right now, while longer-term trend analysis over weeks or months surfaces slow capacity creep or gradual regressions that no single alert would ever fire on. A system that only watches the fast clock will still get blindsided by problems that build up gradually.
+
+</details>
+
+### `alerting-vs-debugging-metrics` · Alerting vs. debugging metrics
+
+**How do metrics meant for alerting differ from metrics meant for debugging?**
+
+<details><summary>Answer</summary>
+
+An alerting metric should barely move except when something is genuinely wrong, so that any movement is itself the signal, while a debugging metric is expected to fluctuate constantly and just needs to point at what is fluctuating. Mixing the two on one dashboard confuses whoever is staring at it mid-incident — the alerting view says whether something is wrong, the debugging view says where to look next.
+
+</details>
+
+### `alert-rule-lifecycle` · Alert rule lifecycle
+
+**What stages does an alert rule pass through between first evaluating true and reaching a human?**
+
+<details><summary>Answer</summary>
+
+The condition is only pending when it first evaluates true, and must keep holding for a minimum duration before the rule transitions to firing — a debounce that keeps momentary blips from paging anyone. Once firing, a severity label decides the route: a page for conditions needing a human now, a ticket for things that can wait, or dashboard-only status that just adds context.
+
+</details>
+
+## Incident Response, On-Call & Postmortems
+
+### `on-call` · On-call response time
+
+**What determines a reasonable on-call response time target?**
+
+<details><summary>Answer</summary>
+
+The response time an on-call rotation commits to should be derived from the service's SLO and error budget, not from habit or gut feel — a service with a tight budget and a short window to react needs a faster guaranteed response than one with a generous budget. Setting the target this way keeps the on-call commitment tied to something the business actually agreed to.
+
+</details>
+
+### `escalation` · Escalation
+
+**Why does a healthy on-call setup need a clear escalation path?**
+
+<details><summary>Answer</summary>
+
+A single on-call engineer can be unavailable, overloaded, or simply out of their depth on a given problem, so a defined path to pull in a secondary, a manager, or a partner development team keeps an incident from stalling on one person. Escalating is a normal, expected part of incident response, not a sign that the primary on-call engineer failed.
+
+</details>
+
+### `incident-commander` · Incident commander
+
+**What is the incident commander's role during a live incident?**
+
+<details><summary>Answer</summary>
+
+The incident commander is the one person who keeps the overall picture of the incident in their head, structures the response by assigning the other roles, and by default personally covers any role they have not explicitly delegated to someone else. They do not necessarily do the hands-on technical work themselves; their job is coordination, prioritization, and removing roadblocks for the people who are.
+
+</details>
+
+### `operations-lead` · Operations lead
+
+**What does the operations lead do during an incident, and who else can touch the system?**
+
+<details><summary>Answer</summary>
+
+The operations lead works with the incident commander to apply the actual operational fixes to the system under the direction of the incident response. During a well-run incident, the operations team is meant to be the only group actively modifying the system, so changes stay coordinated instead of colliding with each other.
+
+</details>
+
+### `communications-lead` · Communications lead
+
+**What is the communications lead responsible for during an incident?**
+
+<details><summary>Answer</summary>
+
+The communications lead is the one voice speaking externally for the whole response effort, issuing periodic status updates to stakeholders and the wider response team and keeping the living incident document accurate and current. Centralizing communication in one role frees the people actually fixing the problem from having to field a stream of individual status requests.
+
+</details>
+
+### `planning-lead` · Planning lead
+
+**What does the planning lead handle that the other incident roles do not?**
+
+<details><summary>Answer</summary>
+
+The planning lead supports operations by handling the longer-term logistics of a drawn-out incident: filing follow-up bugs, arranging handoffs and food for a long-running response, and tracking exactly how the system has diverged from normal so those changes can be cleanly reverted once the incident ends.
+
+</details>
+
+### `incident-document` · Incident document
+
+**What is a living incident document, and why doesn't it need to be tidy?**
+
+<details><summary>Answer</summary>
+
+A shared, concurrently editable document that the incident commander (via the communications lead) keeps updated in real time with the current summary, status, command hierarchy, and a chronological log of what has been tried. It is expected to be messy in the moment — the priority is that it stays functional and current, not polished, since it also becomes the raw material for the postmortem afterward.
+
+</details>
+
+### `incident-command-system` · Incident Command System (ICS)
+
+**What is the Incident Command System, and why did Google's incident management borrow from it?**
+
+<details><summary>Answer</summary>
+
+ICS is a standardized emergency-response framework originally developed for firefighting and other large-scale civil emergencies, prized for how clearly it defines roles and how well it scales from a small incident to a huge one. Google's incident management process is explicitly modeled on it, reusing the same idea of a single commander delegating clearly named roles rather than inventing a bespoke scheme from scratch.
+
+</details>
+
+### `war-room` · War room / command post
+
+**What purpose does a designated command post serve during an incident?**
+
+<details><summary>Answer</summary>
+
+A single, well-known place — physical or virtual, such as a chat channel — where anyone involved in or curious about the incident knows they can reach the incident commander and the rest of the response team. Without one, interested parties waste time guessing where coordination is actually happening, and the response team wastes time fielding the same questions in scattered channels.
+
+</details>
+
+### `mitigate-first` · Mitigate first, understand second
+
+**Why does incident response prioritize mitigating impact over fully understanding root cause?**
+
+<details><summary>Answer</summary>
+
+Restoring service for users is the most urgent goal during an active incident, and a fix that stops the bleeding — such as a rollback or failover — can often be applied well before the team fully understands why the system broke in the first place. Chasing complete root-cause understanding before acting can leave users in a broken state far longer than necessary.
+
+</details>
+
+### `blameless-postmortem` · Blameless postmortem
+
+**What makes a postmortem blameless, and why does that matter?**
+
+<details><summary>Answer</summary>
+
+A blameless postmortem focuses on the systemic and contributing causes of an incident without singling out any individual or team for blame, on the assumption that everyone involved acted reasonably given the information they had at the time. A culture that punishes people for incidents teaches them to hide problems instead of surfacing them, which quietly makes the organization less reliable over time.
+
+</details>
+
+### `postmortem-action-item` · Postmortem action item
+
+**What is a postmortem action item, and what happens to it after the postmortem is written?**
+
+<details><summary>Answer</summary>
+
+A concrete, trackable follow-up task — usually filed as its own bug with an owner and a priority — meant to address a contributing cause or a gap the incident exposed, such as a missing alert or a manual step that should be automated. A postmortem is not considered done once the narrative is written; it is done once its action items are tracked to completion.
+
+</details>
+
+### `postmortem-trigger` · When a postmortem is required
+
+**What kinds of events commonly trigger a postmortem?**
+
+<details><summary>Answer</summary>
+
+The SRE book's common triggers: user-visible downtime or degradation beyond a severity threshold, data loss of any kind, on-call engineer intervention such as a release rollback or rerouting of traffic, resolution time above some threshold, and a monitoring failure — an incident discovered manually when alerting should have caught it. Many teams extend the list with significant error-budget burns and lucky near misses, so the organization learns from close calls before they become real outages.
+
+</details>
+
+### `on-call-load-limits` · On-call load limits
+
+**What limits does SRE place on on-call load, and what minimum team size falls out of them?**
+
+<details><summary>Answer</summary>
+
+At most about two incidents per 12-hour shift — properly working one incident through root cause, remediation, and postmortem follow-up averages around six hours — and no more than 25% of any SRE's time spent on call. Together those constraints are why the SRE book derives a minimum of roughly eight engineers for a single-site rotation, making on-call sustainability a staffing-math problem rather than a willpower problem.
+
+</details>
+
+### `incident-declaration` · Declaring an incident
+
+**What three questions decide whether to formally declare an incident?**
+
+<details><summary>Answer</summary>
+
+Declare if fixing the problem needs a second team pulled in, if the outage is visible to customers, or if the issue is still unsolved after roughly an hour of focused analysis. The asymmetry favors declaring early: a declared incident that fizzles costs a little extra paperwork, while standing up coordination hours into a spiraling problem forfeits exactly the structure that would have contained it.
+
+</details>
+
+### `three-cs-incident-roles` · Incident roles in the workbook
+
+**How does the workbook's framing of incident roles differ from the SRE book's four roles?**
+
+<details><summary>Answer</summary>
+
+The workbook organizes response around three Cs — coordinate, communicate, maintain control — and names only three core roles: Incident Commander, Communications Lead, and Operations Lead. It never elevates Planning to a fourth coequal role the way the SRE book does.
+
+</details>
+
+### `incident-handoff` · Incident handoff
+
+**How should command of a long-running incident be handed off?**
+
+<details><summary>Answer</summary>
+
+Explicitly and out loud: the outgoing Incident Commander states that command is transferring and stays on until the incoming commander confirms acceptance, with the change announced to everyone on the incident so nobody keeps taking direction from someone no longer in charge. The same ceremony applies at end-of-day and time-zone boundaries, where an informal fade-out would leave the response briefly unowned.
+
+</details>
+
+### `operational-underload` · Operational underload
+
+**What is operational underload, and how do teams guard against it?**
+
+<details><summary>Answer</summary>
+
+Operational underload is a rotation so quiet that engineers go too long without real production exposure, quietly losing incident-response calibration — a gap that only surfaces when a real page forces them to act on stale assumptions. Countermeasures include keeping a couple of on-call turns per quarter even on quiet services, Wheel of Misfortune sessions that re-run a past incident with new engineers cast into its roles, and disaster testing that manufactures controlled emergencies on purpose.
+
+</details>
+
+## Capacity Planning & Managing Load
+
+### `load-balancer-l4-l7` · Load balancer (L4 vs. L7)
+
+**What is the practical difference between an L4 and an L7 load balancer?**
+
+<details><summary>Answer</summary>
+
+An L4 (transport-layer) load balancer distributes connections based on IP address and port alone, without looking at the data being sent, which makes it fast and protocol-agnostic. An L7 (application-layer) load balancer parses the actual request — HTTP headers, path, cookies — and can route on that content, enabling smarter decisions at the cost of doing more work per request.
+
+</details>
+
+### `dns-load-balancing` · DNS load balancing
+
+**What is DNS load balancing?**
+
+<details><summary>Answer</summary>
+
+The simplest layer of load balancing: returning multiple IP addresses for a name and letting the client pick one, which spreads load before a connection is even opened.
+
+</details>
+
+### `dns-load-balancing-reply-limit` · DNS load balancing
+
+**What size limit caps how many backend addresses a single DNS reply can advertise?**
+
+<details><summary>Answer</summary>
+
+As the SRE book's frontend load-balancing chapter points out, a classic DNS reply is bound by RFC 1035's 512-byte limit, which caps how many addresses can be squeezed into a single reply — almost always far fewer than the real number of backend servers — so DNS alone is never sufficient on its own.
+
+</details>
+
+### `demand-forecasting` · Demand forecasting
+
+**Why does capacity planning treat a demand forecast as something to validate, not just trust?**
+
+<details><summary>Answer</summary>
+
+A forecast built from historical growth trends can be quietly wrong — organic growth can be outpaced by a viral spike, a new feature launch, or a one-off event — so capacity plans built on an untested forecast can leave a service dangerously under-provisioned. Regularly checking forecasted numbers against actual load, and load-testing against the forecast, is what turns a guess into something safe to plan around.
+
+</details>
+
+### `n-plus-2-redundancy` · N+2 redundancy
+
+**What does N+2 provisioning protect against that N+1 does not?**
+
+<details><summary>Answer</summary>
+
+N+2 means provisioning enough spare capacity to absorb the loss of two units of capacity at once — for example, one datacenter down for planned maintenance while a second suffers an unplanned outage — and still serve peak load. N+1 only covers a single simultaneous failure, which is not enough headroom for the realistic case of a planned event colliding with an unplanned one.
+
+</details>
+
+### `criticality-levels` · Criticality levels
+
+**What are the four criticality tiers used to decide whose requests survive an overload?**
+
+<details><summary>Answer</summary>
+
+Two base tiers, each with a stricter _PLUS variant: CRITICAL is the default for production traffic, with CRITICAL_PLUS marking requests whose failure causes serious user-visible impact, while SHEDDABLE and SHEDDABLE_PLUS cover traffic that can tolerate degrees of unavailability. When a backend is overloaded, it sheds the lowest tiers first, preserving capacity for the traffic that matters most.
+
+</details>
+
+### `sheddable-tiers` · Criticality levels
+
+**What distinguishes SHEDDABLE_PLUS traffic from plain SHEDDABLE?**
+
+<details><summary>Answer</summary>
+
+SHEDDABLE_PLUS tolerates partial unavailability — the classic example is a batch job that needs its work done eventually but not right now, so it can wait out an overload and retry later. Plain SHEDDABLE tolerates full unavailability: the request can simply never happen, which is why it is the first traffic dropped when a backend starts shedding load.
+
+</details>
+
+### `adaptive-throttling` · Adaptive throttling
+
+**How does client-side adaptive throttling decide when to back off, without any server coordination?**
+
+<details><summary>Answer</summary>
+
+Each client tracks its own recent history of requests sent versus requests accepted, and once a backend starts rejecting a meaningful share of its traffic, the client begins proactively rejecting some requests locally before they are even sent. Because the decision is made purely from local information, it needs no extra coordination or added latency, and in aggregate it settles into a stable rate of roughly one rejected request for every one actually processed under heavy overload.
+
+</details>
+
+### `retry-budget` · Retry budget
+
+**What three layered guards keep retries from amplifying an overload?**
+
+<details><summary>Answer</summary>
+
+A per-request cap of about three attempts, a per-client budget that stops retrying once retries exceed roughly 10% of outgoing traffic (backed by blunt server-wide caps such as 60 retries per minute), and the rule that only the layer immediately above the rejection retries — since retries at every level of a call stack compound multiplicatively. Without these guards, each failing request triggers more requests instead of fewer, and an overload amplifies itself toward a cascading failure.
+
+</details>
+
+### `graceful-degradation-vs-load-shedding` · Graceful degradation vs. load shedding
+
+**How does graceful degradation differ from load shedding?**
+
+<details><summary>Answer</summary>
+
+Graceful degradation means doing less work per request under load — returning a cached or lower-fidelity result instead of the full computation — so the service keeps answering, just with reduced quality. Load shedding means refusing to do the work at all for some requests, rejecting them outright to protect capacity for the ones that are served. Both trade something away, but degradation preserves a response while shedding does not.
+
+</details>
+
+### `deadline-propagation` · Deadline propagation
+
+**What problem does deadline propagation solve in a multi-hop RPC chain?**
+
+<details><summary>Answer</summary>
+
+Without it, each server in a call chain might invent its own timeout for downstream calls, so a request can keep consuming resources deep in the stack long after the original caller has already given up on it. With deadline propagation, one absolute deadline is set at the top of the stack and passed down, shrinking at each hop, so every server in the chain knows exactly how much time is actually left and can abandon doomed work immediately.
+
+</details>
+
+### `cascading-failure` · Cascading failure
+
+**What is a cascading failure, and what usually triggers the first domino?**
+
+<details><summary>Answer</summary>
+
+A failure that grows over time through positive feedback: part of a system fails, which increases load on the remaining healthy parts, which makes more of them fail in turn, and so on. Overload is by far the most common trigger — a service that was healthy at one traffic level starts crashing at a higher one, and simply dropping load back to the original level is often not enough to recover, since the surviving capacity has already shrunk.
+
+</details>
+
+### `positive-feedback-cascading` · Breaking a cascading failure
+
+**Once a cascading failure's positive-feedback loop has started, what does it take to break it?**
+
+<details><summary>Answer</summary>
+
+Blunt, immediate intervention: add capacity or restart servers stuck in states like GC death spirals, drastically drop traffic — allowing through, say, 1% until servers stabilize, then ramping back up — and enter degraded modes or eliminate batch and bad traffic so the surviving capacity goes to the requests that matter. Waiting for the system to recover on its own rarely works, because every new failure keeps adding load to the survivors and feeding the loop.
+
+</details>
+
+### `nalsd` · Non-Abstract Large System Design (NALSD)
+
+**What is NALSD, and why does the process insist on concrete numbers rather than staying abstract?**
+
+<details><summary>Answer</summary>
+
+NALSD is an iterative system-design skill: start from a problem statement, gather requirements, and repeatedly refine a design — sizing it in real machines, real QPS, real storage — until it holds up under both normal load and realistic failure scenarios. Working in concrete numbers instead of hand-waving forces early, often-wrong assumptions out into the open, where they can be checked and corrected rather than silently baked into a design that only looks sound.
+
+</details>
+
+### `lame-duck` · Lame duck state
+
+**What is a lame duck backend, and why does the state exist?**
+
+<details><summary>Answer</summary>
+
+A lame duck is a backend that tells clients to stop sending it new work while letting requests already in flight finish normally — distinct from a healthy backend accepting work and from one refusing connections outright. The state is what makes routine restarts and rolling updates invisible to users, since traffic drains cleanly instead of connections being dropped mid-request.
+
+</details>
+
+### `deterministic-subsetting` · Subsetting & weighted round robin
+
+**Why do clients connect to only a subset of backends, and why is picking that subset randomly a trap?**
+
+<details><summary>Answer</summary>
+
+A connection from every client to every backend wastes memory and CPU on both sides, so each client keeps connections to a limited subset. Choosing subsets randomly leaves some backends with far more connections than others; deterministic subsetting spreads clients evenly by construction, and weighted round robin then smooths the remaining per-request imbalance by favoring backends that report spare capacity.
+
+</details>
+
+### `autoscaling-supplement` · Autoscaling
+
+**Why is an autoscaler a supplement to capacity planning rather than a replacement?**
+
+<details><summary>Answer</summary>
+
+Autoscalers have sharp edges — unhealthy instances polluting the utilization average, stateful services that cannot rebalance just by adding machines, and runaway growth when a bug keeps scaling up — so they are tuned quick to add and slow to remove capacity, bounded with explicit min/max limits, and paired with a manual kill switch. Scaling one service up can also shove unplanned load onto its dependencies, which is why a dependency review belongs before deployment.
+
+</details>
+
+## Release Engineering & Change Management
+
+### `hermetic-build` · Hermetic build
+
+**What does it mean for a build to be hermetic?**
+
+<details><summary>Answer</summary>
+
+A hermetic build is insensitive to whatever happens to be installed on the machine that runs it, because it depends only on pinned, known versions of its own tools and libraries rather than reaching out to the ambient environment. Building the same revision on two different machines is guaranteed to produce identical output, which is what makes releases reproducible and auditable after the fact.
+
+</details>
+
+### `config-as-code` · Config-as-code
+
+**Why treat configuration the same way as application code, with review and version control?**
+
+<details><summary>Answer</summary>
+
+A misconfigured flag or limit is just as capable of causing an outage as a bad code change, so config-as-code applies the same discipline — checked into version control, code-reviewed, tested, and rolled out gradually — to configuration that used to be edited by hand in production. That symmetry closes off one of the most common ways teams historically shipped risk without going through any of their usual safety checks.
+
+</details>
+
+### `canary-release` · Canary release
+
+**Why is a canary release best thought of as an A/B test rather than just a safety net?**
+
+<details><summary>Answer</summary>
+
+A canary sends a new release to a small slice of production traffic first and compares its key metrics directly against the still-running old version, which is a genuine controlled comparison, not just a smaller blast radius in case something goes wrong. That framing is what makes it possible to say with real confidence whether the new version is actually behaving differently, not just to hope it isn't.
+
+</details>
+
+### `progressive-rollout` · Release rollout
+
+**In a progressive rollout, what gates each expansion stage after the canary, and what does the staging preserve?**
+
+<details><summary>Answer</summary>
+
+A health check gates every step: the release expands through increasingly larger stages — one datacenter, then one region, then everywhere — only after the metrics at the current stage look sound. That staging keeps the blast radius of any newly discovered problem bounded all the way through the rollout, not just at the very first, smallest stage.
+
+</details>
+
+### `rollback` · Rollback
+
+**What has to be prepared in advance for a rollback to actually be the fast path during an incident?**
+
+<details><summary>Answer</summary>
+
+A rollback is only fast when it has been kept cheap ahead of time: the previous known-good version stays deployable, the revert path is exercised as routinely as the forward path, and rolling back is treated as a normal pipeline operation rather than an emergency exception. Then incident response only needs to know the new version is implicated — the preserved bad release and its logs keep root-cause diagnosis available for later, once users are no longer suffering.
+
+</details>
+
+### `rollout-detection-rollback` · Automating rollout, detection, and rollback
+
+**Why automate the rollout-detection-rollback loop instead of relying on a human watching a dashboard?**
+
+<details><summary>Answer</summary>
+
+A human watching metrics during a rollout is slower and less consistent than an automated system that compares canary metrics against a threshold and reverts the moment they cross it. Automating the whole loop — push a stage, watch for a regression, roll back automatically on one — shrinks the window between a bad release going out and it being undone, without depending on someone being alert at the right moment.
+
+</details>
+
+### `self-service-releases` · Self-service releases
+
+**What is the case for making releases self-service rather than routed through a dedicated release team?**
+
+<details><summary>Answer</summary>
+
+When product teams can build, test, and push their own releases through a standardized, guardrailed pipeline, they ship faster and the release process scales with the number of teams rather than being bottlenecked on a small central team's calendar. The guardrails — review, canarying, automated rollback — are what make removing that human gatekeeper safe rather than reckless.
+
+</details>
+
+### `config-design-fewer-knobs` · Configuration design
+
+**In SRE configuration design, what should determine whether a setting is exposed as a knob at all?**
+
+<details><summary>Answer</summary>
+
+Only settings that genuinely need to vary between deployments earn a knob; everything else gets a sensible default, because every exposed option is a place where an operator can make a mistake and the number of possible mistakes grows with the number of knobs. The price is some flexibility for the rare case that truly needs it — a trade the design accepts deliberately.
+
+</details>
+
+### `release-engineering-discipline` · Release engineering as a discipline
+
+**Why does release engineering warrant being its own discipline, separate from software engineering?**
+
+<details><summary>Answer</summary>
+
+Building and shipping software reliably at scale — consistent builds, config management, deployment tooling, rollback paths — requires a distinct, deep set of expertise from writing the software itself, and treating it as a first-class specialty rather than an afterthought is what keeps releases from being the single riskiest thing a team does.
+
+</details>
+
+### `guardrails` · Release guardrails
+
+**What kinds of guardrails typically wrap a release pipeline?**
+
+<details><summary>Answer</summary>
+
+Mandatory code review before a change can ship, access controls on who can trigger a production push, and an automatically generated change report showing exactly what is different between the current and proposed release. Together they make a release auditable and give a reviewer a real chance to catch a problem before it reaches users, without requiring every release to be manually walked through step by step.
+
+</details>
+
+### `outages-from-changes` · Change-induced outages
+
+**Roughly what fraction of outages does Google attribute to changes in a live system, and what follows from that?**
+
+<details><summary>Answer</summary>
+
+About 70% of outages trace back to a change — a binary push, a configuration push, or even a launch that shifts the traffic profile — made to a system that was already running. The response is not to freeze changes but to automate three practices around them: progressive rollouts, fast and accurate problem detection, and safe rollback the moment something looks wrong.
+
+</details>
+
+### `config-change-safety` · Safe configuration changes
+
+**What three properties make a configuration change safe to apply?**
+
+<details><summary>Answer</summary>
+
+It must be deployable gradually rather than as one all-or-nothing global push, it must be reversible with a real, exercised path back to the previous configuration, and any change that could strand an operator without control needs an automatic rollback — or at minimum an automatic halt — rather than depending on a human noticing in time. Together these turn reverting a bad config from a scramble into a routine, low-drama response.
+
+</details>
+
+### `canary-vs-before-after` · Canary evaluation
+
+**Why is before/after evaluation riskier than a true canary-vs-control comparison?**
+
+<details><summary>Answer</summary>
+
+Comparing a fully replaced system against its own past behavior lets time itself confound the result — day of week, time of day, and unrelated background events all move metrics for reasons that have nothing to do with the change. A simultaneous canary-and-control split removes those confounds, which is also why teams run only one canary at a time: overlapping canaries contaminate each other's signal.
+
+</details>
+
+## Reliability Patterns & Toil Reduction
+
+### `toil` · Toil
+
+**What makes work "toil" rather than just work someone dislikes doing?**
+
+<details><summary>Answer</summary>
+
+Toil is hands-on production work that is manual, repetitive, and automatable — a machine could in principle do it just as well. Disliking a task does not make it toil, and a task done for the first time is not toil either; the term specifically describes recurring work that could be engineered away.
+
+</details>
+
+### `toil-traits-role` · Toil
+
+**Beyond being manual, repetitive, and automatable, what three traits mark a task's role as toil?**
+
+<details><summary>Answer</summary>
+
+It's tactical — reactive and interrupt-driven rather than planned; it leaves no enduring value behind, since the service is in the same state after the task as before; and it scales linearly with the service, growing in step with traffic or user count. Work that leaves lasting improvement, or whose volume stays flat as the service grows, escapes the definition even when it's dull.
+
+</details>
+
+### `automation-hierarchy` · Hierarchy of automation
+
+**What is the highest rung on the hierarchy of automation, above having a good automation script?**
+
+<details><summary>Answer</summary>
+
+The hierarchy runs from no automation, to an ad hoc script one person maintains, to a generic externally maintained tool, to automation shipped inside the system itself, and finally to a system engineered so well that it needs no automation at all because it handles the failure mode natively. The best outcome is not a great external script — it's redesigning the system so the operational problem the script solved simply stops existing.
+
+</details>
+
+### `accidental-vs-essential-complexity` · Accidental vs. essential complexity
+
+**What is the difference between essential and accidental complexity, and why does it matter for SREs?**
+
+<details><summary>Answer</summary>
+
+Essential complexity is inherent to the problem itself and cannot be removed no matter how good the engineering is; accidental complexity is extra difficulty introduced by a particular implementation choice and can be engineered away. Because accidental complexity is the kind a team actually controls, pushing back on it wherever it creeps into a system is a direct, ongoing lever for keeping that system reliable and operable.
+
+</details>
+
+### `quorum` · Quorum
+
+**What is a quorum in a consensus-based system, and what does the 2f+1 rule mean?**
+
+<details><summary>Answer</summary>
+
+A quorum is the minimum number of replicas that must agree before a consensus system accepts a value as durable. The 2f+1 rule means a group of 2f+1 replicas can tolerate up to f simultaneous failures and keep operating — for example, three replicas tolerate one failure — which is why odd, small replica counts are the common building block for critical state.
+
+</details>
+
+### `circuit-breaker` · Circuit breaker (pattern)
+
+**What does the circuit breaker pattern do, and how does Google's own SRE literature relate to it?**
+
+<details><summary>Answer</summary>
+
+A circuit breaker stops a client from repeatedly calling a dependency that is already failing, by 'tripping' after enough failures and briefly refusing calls outright so the failing dependency gets a chance to recover instead of being pounded by retries. Google's SRE books do not actually use the term 'circuit breaker' — the same protective idea shows up there under names like retry budgets and load shedding, which serve a closely related purpose without a single unified name.
+
+</details>
+
+### `redundancy-replica-pools` · Redundancy through replica pools
+
+**How does spreading a service across a pool of replicas behind a load balancer improve reliability?**
+
+<details><summary>Answer</summary>
+
+A pool of interchangeable replicas means the loss of any single one just shifts its share of traffic onto the survivors instead of taking down the service, and the load balancer is what makes that shift automatic and fast. This is the basic redundancy pattern underneath most of the more specific techniques — N+2 provisioning, quorum-based state, and graceful degradation all build on the assumption that no single replica is a single point of failure.
+
+</details>
+
+### `toil-cap-50` · The 50% toil cap
+
+**What is Google's 50% cap on toil, and how does it differ from the ~33% SREs actually report?**
+
+<details><summary>Answer</summary>
+
+Google caps toil and other operational work at 50% of each SRE's time as a policy ceiling, reserving the other half for engineering that reduces future toil or adds features — because toil expands to fill all available time if nobody pushes back. Surveys of Google SREs measure actual toil around 33%, an empirical average that happens to sit under the cap, not the cap itself.
+
+</details>
+
+### `overhead-vs-toil` · Overhead vs. toil
+
+**How do overhead and engineering work differ from toil?**
+
+<details><summary>Answer</summary>
+
+Overhead is administrative work with no direct tie to running a production service — meetings, hiring, performance reviews — so it is not toil even though nobody enjoys it. Engineering work is toil's true opposite: novel, judgment-driven effort that leaves the service durably better, which is why a grungy one-off cleanup of a tangled alerting config is not toil while a recurring hand-run migration that leaves the service unchanged is.
+
+</details>
+
+### `automation-value-drivers` · Value drivers of automation
+
+**What five value drivers does the SRE book credit automation with?**
+
+<details><summary>Answer</summary>
+
+Five distinct drivers: consistency (machines repeat a procedure identically where humans drift), a platform (a reusable base that centralizes mistakes so a bug gets fixed once instead of rediscovered by every operator), faster repairs (automation resolving common faults drives down MTTR), faster action (software reacts quicker than any human in well-defined situations like failover), and time savings that compound because anyone can run the automation once it exists.
+
+</details>
+
+### `code-as-liability` · Code as liability
+
+**Why does SRE treat every line of code in a production service as a liability?**
+
+<details><summary>Answer</summary>
+
+More code means more surface area for defects, so deleting dead code, refusing to comment things out just in case, and removing features permanently hidden behind flags all count as genuine reliability work rather than tidying. The discipline traces to Hoare's maxim that reliability requires pursuing the utmost simplicity — in production software, an absence of surprise is a virtue, not a bore.
+
+</details>
+
+### `defensive-automation` · Defensive automation
+
+**What safeguards must powerful automation carry, and what incident taught the lesson?**
+
+<details><summary>Answer</summary>
+
+Automation should validate its inputs defensively, keep the safeguards a careful human would use (even something as simple as a timeout or rate limit), and hand control back to a human whenever it hits a condition it was not explicitly built to handle. The lesson comes from Google's Diskerase incident, where a decommissioning workflow given an empty machine list treated it as matching everything and started wiping disks across a CDN's servers.
+
+</details>

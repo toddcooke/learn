@@ -299,7 +299,7 @@ export function questionsMarkdown(module, DOMAINS, QUESTIONS) {
   for (const domain of DOMAINS) {
     const qs = QUESTIONS.filter((q) => q.domain === domain.id);
     if (qs.length === 0) continue;
-    out.push(`## ${domain.name}`, '', `${qs.length} questions`, '');
+    out.push(`## ${mdText(domain.name)}`, '', `${qs.length} questions`, '');
     for (const q of qs) {
       const n = q.correctIndexes.length;
       if (n < 1 || n > 4) {
@@ -474,7 +474,7 @@ export function flashcardsMarkdown(module, FLASHCARD_DOMAINS, FLASHCARDS) {
   for (const domain of FLASHCARD_DOMAINS) {
     const cards = FLASHCARDS.filter((c) => c.domain === domain);
     if (cards.length === 0) continue;
-    out.push(`## ${domain}`, '');
+    out.push(`## ${mdText(domain)}`, '');
     for (const card of cards) {
       if (seen.has(card.id)) throw new Error(`${module}: duplicate card id "${card.id}"`);
       seen.add(card.id);
@@ -537,7 +537,7 @@ export function parseFlashcardsForVerify(text) {
   for (const line of text.split('\n')) {
     if (line.startsWith('## ')) {
       flush();
-      domain = line.slice(3).trim();
+      domain = unmdText(line.slice(3).trim());
     } else if (line.startsWith('### ')) {
       flush();
       const m = line.slice(4).match(/^`([^`]+)` · (.+)$/);
@@ -627,7 +627,7 @@ export function servicesMarkdown(SERVICES) {
     '',
   ];
   for (const category of categories) {
-    out.push(`## ${category}`, '', '| Service | What it\'s for |', '| --- | --- |');
+    out.push(`## ${mdText(category)}`, '', '| Service | What it\'s for |', '| --- | --- |');
     for (const s of SERVICES.filter((x) => x.domain === category)) {
       if (/[|\n]/.test(s.name) || /[|\n]/.test(s.blurb)) {
         throw new Error(`aws service "${s.id}": name or blurb contains a pipe or newline`);
@@ -890,7 +890,7 @@ export function parseFlashcardMarkdown(text, moduleName) {
   for (const line of text.split('\n')) {
     if (line.startsWith('## ')) {
       flush();
-      domain = line.slice(3).trim();
+      domain = unmdText(line.slice(3).trim());
     } else if (line.startsWith('### ')) {
       flush();
       const m = line.slice(4).match(HEADING);

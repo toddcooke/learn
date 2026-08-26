@@ -2,10 +2,11 @@
 // Exports each module's FLASHCARDS deck to a plain-text file Anki can
 // import directly (File > Import). See
 // docs/superpowers/specs/2026-07-10-anki-export-design.md.
-import { mkdirSync, writeFileSync, readdirSync, existsSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readdirSync, existsSync, readFileSync } from 'node:fs';
+import { parseFlashcardMarkdown } from './lib/flashcard-md.mjs';
 
 const ALL_MODULES = readdirSync(new URL('..', import.meta.url), { withFileTypes: true })
-  .filter((e) => e.isDirectory() && existsSync(new URL(`../${e.name}/js/data/flashcards.js`, import.meta.url)))
+  .filter((e) => e.isDirectory() && existsSync(new URL(`../${e.name}/flashcards.md`, import.meta.url)))
   .map((e) => e.name)
   .sort();
 
@@ -25,7 +26,8 @@ function sanitizeField(text) {
 }
 
 async function exportModule(name) {
-  const { FLASHCARDS } = await import(`../${name}/js/data/flashcards.js`);
+  const source = readFileSync(new URL(`../${name}/flashcards.md`, import.meta.url), 'utf8');
+  const FLASHCARDS = parseFlashcardMarkdown(source, name);
   const date = new Date().toISOString().slice(0, 10);
   const lines = [
     '#separator:tab',

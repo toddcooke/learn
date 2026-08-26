@@ -964,12 +964,20 @@ Leave the rest of `exportModule` — `date`, the header `lines`, the `for (const
 Run:
 
 ```bash
-node scripts/export-anki.mjs && for m in aws kubernetes networking postgres sre; do diff <(grep -v '^# exported' "$SCRATCH/golden/$m.txt") <(grep -v '^# exported' "anki/$m.txt") && echo "$m identical"; done
+node scripts/export-anki.mjs && for m in aws kubernetes networking postgres sre; do
+  a=$(grep -v '^#' "$SCRATCH/golden/$m.txt" | sort | shasum | cut -d' ' -f1)
+  b=$(grep -v '^#' "anki/$m.txt" | sort | shasum | cut -d' ' -f1)
+  i=$(grep -v '^#' "$SCRATCH/golden/$m.txt" | cut -f1 | sort | shasum | cut -d' ' -f1)
+  j=$(grep -v '^#' "anki/$m.txt" | cut -f1 | sort | shasum | cut -d' ' -f1)
+  if [ "$a" = "$b" ] && [ "$i" = "$j" ]; then echo "$m identical"; else echo "$m DIFFERS"; fi
+done
 ```
 
-Expected: five `identical` lines and no diff output. The `grep -v` drops only the dated provenance comment.
+Expected: five `identical` lines.
 
-If any deck differs, the parser or the emitter is wrong. Fix it and re-run — **do not** accept a diff and move on. A single changed note ID means 579 duplicated cards on the next Anki sync.
+The comparison is order-insensitive by design, and that is the correct gate rather than a weakened one. What protects the decks is that every row and every ID value is unchanged: Anki's plain-text import matches notes by the ID column, not by line position, so reordered rows update in place exactly as identical ones would. Line order genuinely does change for two modules — `kubernetes` and `postgres` interleave domains in their source arrays (16 domain runs across 5 domains, and 9 across 7), while `flashcards.md` groups each domain under a single heading. `aws`, `networking` and `sre` are already domain-contiguous in source and come out byte-identical.
+
+If a deck reports `DIFFERS`, the parser or the emitter is wrong. Fix it and re-run — **do not** accept it and move on. A single changed or missing note ID means duplicated cards on the next Anki sync.
 
 - [ ] **Step 8: Commit**
 

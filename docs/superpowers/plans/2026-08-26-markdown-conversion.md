@@ -15,6 +15,7 @@
 - **ESM only.** Scripts are `.mjs` and use `import`/`export`.
 - **The Anki output contract is frozen.** Note IDs (`<module>-<card id>`), tags (`<module>::<slugified domain>`), front composition (`<service> — <front>`), the four-column tab-separated shape, and the three `#` header lines must not change. Any change duplicates 579 notes in Todd's decks instead of updating them.
 - **Nothing is deleted before verification passes.** `js/data/*.js` must survive until both the round-trip verifier (Task 1-4) and the golden Anki diff (Task 5) are green.
+- **Tag-like placeholders are backtick-wrapped on emit and unwrapped on parse.** Bare tokens such as `<name>` and `<pod>` match CommonMark's raw-HTML open-tag grammar, so every markdown renderer passes them through as HTML and the browser drops them — `kubectl get svc <name>` would display as `kubectl get svc`. The app escaped every field before rendering, so this would be a regression, not a pre-existing flaw. Every emitter runs interpolated prose through `mdText`; every parser reverses it with `unmdText`. 74 tokens are affected, all in kubernetes (29 study, 20 questions, 25 flashcards). Verified safe: none already sits inside a backticked span, and no source prose contains a backticked tag-like token, so the inverse is exact.
 - **Commit after every task.** Never batch two tasks into one commit.
 - **Work on the `markdown-conversion` branch.** Do not commit to `main`.
 
@@ -98,18 +99,32 @@ export const MODULE_TITLES = {
 
 export const pad = (n) => String(n).padStart(2, '0');
 
+// Bare placeholders like <name> or <pod> match CommonMark's raw-HTML open-tag
+// grammar, so every markdown renderer passes them through as HTML and the
+// browser drops them as empty unknown elements — "kubectl get svc <name>"
+// would display as "kubectl get svc". The old app escaped every field before
+// rendering, so these displayed correctly; markdown must not regress that.
+// Wrapping each token in backticks renders it as inline code, which is what
+// these placeholders are. Verified against the source: 74 such tokens exist
+// (all in kubernetes), none already sits inside a backticked span, and no
+// source prose contains a backticked tag-like token — so unmdText in
+// verify.mjs and in scripts/lib/flashcard-md.mjs is an exact inverse.
+const TAG_LIKE = /<\/?[A-Za-z][A-Za-z0-9-]*\s*\/?>/g;
+
+export const mdText = (text) => text.replace(TAG_LIKE, (t) => `\`${t}\``);
+
 export function studyMarkdown(domain, sections) {
   const topicCount = sections.reduce((n, s) => n + s.topics.length, 0);
   const out = [
-    `# ${domain.name}`,
+    `# ${mdText(domain.name)}`,
     '',
     `${domain.weight}% of the exam · ${topicCount} topics`,
     '',
   ];
   for (const section of sections) {
-    out.push(`## ${section.taskStatement}`, '');
+    out.push(`## ${mdText(section.taskStatement)}`, '');
     for (const topic of section.topics) {
-      out.push(`### ${topic.title}`, '', topic.body, '');
+      out.push(`### ${mdText(topic.title)}`, '', mdText(topic.body), '');
     }
   }
   return out.join('\n').replace(/\n+$/, '') + '\n';
@@ -167,6 +182,12 @@ const REPO = process.cwd();
 const read = (...p) => readFileSync(join(REPO, ...p), 'utf8');
 const counts = { topics: 0, questions: 0, flashcards: 0, services: 0 };
 
+// Exact inverse of convert.mjs's mdText. Only strips backticks that wrap a
+// tag-like token, so genuinely backticked prose in the source is untouched.
+const BACKTICKED_TAG = /`(<\/?[A-Za-z][A-Za-z0-9-]*\s*\/?>)`/g;
+
+export const unmdText = (text) => text.replace(BACKTICKED_TAG, '$1');
+
 export function parseStudy(text) {
   const sections = [];
   let section = null;
@@ -174,7 +195,7 @@ export function parseStudy(text) {
   let buf = [];
   const flush = () => {
     if (topic) {
-      topic.body = buf.join('\n').trim();
+      topic.body = unmdText(buf.join('\n').trim());
       section.topics.push(topic);
       topic = null;
     }
@@ -183,11 +204,11 @@ export function parseStudy(text) {
   for (const line of text.split('\n')) {
     if (line.startsWith('## ')) {
       flush();
-      section = { taskStatement: line.slice(3).trim(), topics: [] };
+      section = { taskStatement: unmdText(line.slice(3).trim()), topics: [] };
       sections.push(section);
     } else if (line.startsWith('### ')) {
       flush();
-      topic = { title: line.slice(4).trim(), body: '' };
+      topic = { title: unmdText(line.slice(4).trim()), body: '' };
     } else if (topic) {
       buf.push(line);
     }
@@ -287,12 +308,13 @@ export function questionsMarkdown(module, DOMAINS, QUESTIONS) {
       if (q.correctIndexes.some((i) => i >= q.options.length)) {
         throw new Error(`${module} ${q.id}: correctIndexes out of range`);
       }
+      const question = mdText(q.question);
       out.push(`### ${q.id}`, '');
-      out.push(n > 1 ? `${q.question} *(choose ${NUMBER_WORDS[n]})*` : q.question, '');
-      q.options.forEach((opt, i) => out.push(`- **${LETTERS[i]}.** ${opt}`));
+      out.push(n > 1 ? `${question} *(choose ${NUMBER_WORDS[n]})*` : question, '');
+      q.options.forEach((opt, i) => out.push(`- **${LETTERS[i]}.** ${mdText(opt)}`));
       out.push('');
       out.push('<details><summary>Answer</summary>', '');
-      out.push(`${q.correctIndexes.map((i) => `**${LETTERS[i]}.**`).join(' ')} — ${q.explanation}`, '');
+      out.push(`${q.correctIndexes.map((i) => `**${LETTERS[i]}.**`).join(' ')} — ${mdText(q.explanation)}`, '');
       out.push('</details>', '');
     }
   }
@@ -344,7 +366,7 @@ export function parseQuestions(text) {
     if (!m) throw new Error(`${q.id}: unparseable answer block`);
     q.correctIndexes = [...m[1].matchAll(/\*\*([A-Z])\.\*\*/g)]
       .map((x) => LETTERS.indexOf(x[1]));
-    q.explanation = m[2].trim();
+    q.explanation = unmdText(m[2].trim());
     questions.push(q);
     q = null;
     answerBuf.length = 0;
@@ -363,9 +385,9 @@ export function parseQuestions(text) {
     } else if (inAnswer) {
       answerBuf.push(line);
     } else if (line.startsWith('- **')) {
-      q.options.push(line.replace(/^- \*\*[A-Z]\.\*\* /, ''));
+      q.options.push(unmdText(line.replace(/^- \*\*[A-Z]\.\*\* /, '')));
     } else if (line.trim() !== '' && q.question === null) {
-      q.question = line.replace(/ \*\(choose (?:two|three|four)\)\*$/, '').trim();
+      q.question = unmdText(line.replace(/ \*\(choose (?:two|three|four)\)\*$/, '').trim());
     }
   }
   flush();
@@ -462,10 +484,10 @@ export function flashcardsMarkdown(module, FLASHCARD_DOMAINS, FLASHCARDS) {
       if (/[`·\n]/.test(card.id) || /[\n]/.test(card.service)) {
         throw new Error(`${module} ${card.id}: id or service contains a delimiter character`);
       }
-      out.push(`### \`${card.id}\` · ${card.service}`, '');
-      out.push(`**${card.front}**`, '');
+      out.push(`### \`${card.id}\` · ${mdText(card.service)}`, '');
+      out.push(`**${mdText(card.front)}**`, '');
       out.push('<details><summary>Answer</summary>', '');
-      out.push(card.back, '');
+      out.push(mdText(card.back), '');
       out.push('</details>', '');
     }
   }
@@ -506,7 +528,7 @@ export function parseFlashcardsForVerify(text) {
   let buf = [];
   const flush = () => {
     if (card) {
-      card.back = buf.join('\n').trim();
+      card.back = unmdText(buf.join('\n').trim());
       cards.push(card);
       card = null;
     }
@@ -520,7 +542,7 @@ export function parseFlashcardsForVerify(text) {
       flush();
       const m = line.slice(4).match(/^`([^`]+)` · (.+)$/);
       if (!m) throw new Error(`unparseable card heading: ${line}`);
-      card = { id: m[1], service: m[2].trim(), domain, front: null, back: '' };
+      card = { id: m[1], service: unmdText(m[2].trim()), domain, front: null, back: '' };
       inAnswer = false;
     } else if (!card) {
       continue;
@@ -531,7 +553,7 @@ export function parseFlashcardsForVerify(text) {
     } else if (inAnswer) {
       buf.push(line);
     } else if (card.front === null && line.startsWith('**') && line.endsWith('**')) {
-      card.front = line.slice(2, -2);
+      card.front = unmdText(line.slice(2, -2));
     }
   }
   flush();
@@ -763,6 +785,20 @@ test('preserves blank lines inside a back', () => {
   assert.equal(cards[0].back, 'First para.\n\nSecond para.');
 });
 
+test('unwraps backticked tag-like placeholders back to bare text', () => {
+  const text = CARD.replace('Object storage.', 'Run `kubectl get svc `<name>`` to check.')
+    .replace('**What is it for?**', '**What does `<pod>` mean?**');
+  const cards = parseFlashcardMarkdown(text, 'example');
+  assert.equal(cards[0].back, 'Run `kubectl get svc <name>` to check.');
+  assert.equal(cards[0].front, 'What does <pod> mean?');
+});
+
+test('leaves genuinely backticked prose alone', () => {
+  const text = CARD.replace('Object storage.', 'Run `kubectl get pods` first.');
+  const cards = parseFlashcardMarkdown(text, 'example');
+  assert.equal(cards[0].back, 'Run `kubectl get pods` first.');
+});
+
 test('throws on a card heading that is not `id` · service', () => {
   const text = CARD.replace('### `s3` · Amazon S3', '### Amazon S3');
   assert.throws(() => parseFlashcardMarkdown(text, 'example'), /unparseable card heading/);
@@ -820,6 +856,15 @@ Create `scripts/lib/flashcard-md.mjs`:
 
 const HEADING = /^`([^`]+)` · (.+)$/;
 
+// Exact inverse of the converter's mdText. Bare placeholders like <name> are
+// emitted backtick-wrapped because CommonMark would otherwise treat them as
+// raw HTML and drop them when rendered; Anki fields must carry the original
+// text, so they are unwrapped here. Only backticks that wrap a tag-like token
+// are stripped, leaving genuinely backticked prose untouched.
+const BACKTICKED_TAG = /`(<\/?[A-Za-z][A-Za-z0-9-]*\s*\/?>)`/g;
+
+const unmdText = (text) => text.replace(BACKTICKED_TAG, '$1');
+
 export function parseFlashcardMarkdown(text, moduleName) {
   const cards = [];
   const seen = new Set();
@@ -835,7 +880,7 @@ export function parseFlashcardMarkdown(text, moduleName) {
   const flush = () => {
     if (!card) return;
     if (card.front === null) fail(`card "${card.id}" is missing a front`);
-    card.back = buf.join('\n').trim();
+    card.back = unmdText(buf.join('\n').trim());
     if (card.back === '') fail(`card "${card.id}" is missing a back`);
     cards.push(card);
     card = null;
@@ -853,7 +898,7 @@ export function parseFlashcardMarkdown(text, moduleName) {
       if (domain === null) fail(`card "${m[1]}" appears before any domain heading`);
       if (seen.has(m[1])) fail(`duplicate card id "${m[1]}"`);
       seen.add(m[1]);
-      card = { id: m[1], service: m[2].trim(), domain, front: null, back: '' };
+      card = { id: m[1], service: unmdText(m[2].trim()), domain, front: null, back: '' };
       inAnswer = false;
     } else if (!card) {
       continue;
@@ -864,7 +909,7 @@ export function parseFlashcardMarkdown(text, moduleName) {
     } else if (inAnswer) {
       buf.push(line);
     } else if (card.front === null && line.startsWith('**') && line.trimEnd().endsWith('**')) {
-      card.front = line.trim().slice(2, -2);
+      card.front = unmdText(line.trim().slice(2, -2));
     }
   }
   flush();
@@ -878,7 +923,7 @@ export function parseFlashcardMarkdown(text, moduleName) {
 
 Run: `node --test scripts/lib/flashcard-md.test.mjs`
 
-Expected: PASS, 8 tests, 0 failures.
+Expected: PASS, 10 tests, 0 failures.
 
 - [ ] **Step 6: Repoint the exporter at markdown**
 
@@ -1066,7 +1111,7 @@ Replace the whole `steps:` list in `.github/workflows/ci.yml` with:
 node --test scripts/lib/*.test.mjs && node scripts/export-anki.mjs
 ```
 
-Expected: 8 passing tests, then five `<module>: N cards → anki/<module>.txt` lines with counts 89 / 109 / 155 / 133 / 93.
+Expected: 10 passing tests, then five `<module>: N cards → anki/<module>.txt` lines with counts 89 / 109 / 155 / 133 / 93.
 
 - [ ] **Step 6: Commit**
 
@@ -1249,5 +1294,6 @@ Expected: `404`.
 1. CI has two steps, not one (a parser test step is added). Rationale is in the "Deviation from the spec" section above.
 2. Study file H1 is `# <domain name>` with a `<weight>% of the exam · <n> topics` subtitle, rather than the spec's illustrative `# Domain 1: <name>`. Only aws numbers its task statements (`Task 1.1:`); inventing "Domain N" for the other four modules would collide with nothing but would read as false structure. The filename ordinal (`01-secure.md`) already carries the ordering.
 3. Task 8 additionally deletes `.claude/launch.json`, which the spec does not mention. It configures dev servers for an app that no longer exists.
+4. Prose is not emitted byte-verbatim: tag-like placeholders are backtick-wrapped (see Global Constraints). This is a deliberate, human-approved narrowing of the "carried verbatim" constraint, made after a review found the tokens vanish in every markdown renderer. The round trip is still exact — `unmdText` reverses it — so the verifier still compares against the untouched source.
 
 **Type consistency.** `parseFlashcardMarkdown(text, moduleName)` is defined in Task 5 Step 4 and consumed in Task 5 Step 6 with matching arity. `studyMarkdown`, `questionsMarkdown`, `flashcardsMarkdown`, `servicesMarkdown`, `MODULES`, `load`, `MODULE_TITLES`, and `pad` are defined in Task 1 and used with the same names and signatures in Tasks 2-4. Card records use the same five keys (`id`, `service`, `domain`, `front`, `back`) in the emitter, the verifier, and the parser.

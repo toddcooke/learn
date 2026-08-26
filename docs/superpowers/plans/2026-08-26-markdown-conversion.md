@@ -849,7 +849,7 @@ test('throws on a domain heading appearing inside an answer', () => {
     'Object storage.\n\n</details>',
     'Object storage.\n\n## Compute\n\n</details>'
   );
-  assert.throws(() => parseFlashcardMarkdown(text, 'example'), /card "s3" has content after its answer/);
+  assert.throws(() => parseFlashcardMarkdown(text, 'example'), /card "s3" has a heading inside its unclosed answer/);
 });
 
 test('throws on a second <details> block within one card', () => {
@@ -871,6 +871,28 @@ test('throws on a card id containing a tab, CR, or LF', () => {
 
   const withCR = CARD.replace('### `s3` · Amazon S3', '### `s\r3` · Amazon S3');
   assert.throws(() => parseFlashcardMarkdown(withCR, 'example'), /card id .* contains/s);
+});
+
+test('throws on stray content between a card\'s front and its <details> opener', () => {
+  const text = CARD.replace(
+    '**What is it for?**\n\n<details>',
+    '**What is it for?**\n\nstray leftover note\n\n<details>'
+  );
+  assert.throws(
+    () => parseFlashcardMarkdown(text, 'example'),
+    /card "s3" has content between its front and its answer/
+  );
+});
+
+test('throws on a duplicate front line before the answer', () => {
+  const text = CARD.replace(
+    '**What is it for?**\n\n<details>',
+    '**What is it for?**\n\n**What is it for? old draft**\n\n<details>'
+  );
+  assert.throws(
+    () => parseFlashcardMarkdown(text, 'example'),
+    /card "s3" has content between its front and its answer/
+  );
 });
 
 test('carries the correct domain across a second domain heading', () => {
@@ -995,11 +1017,11 @@ export function parseFlashcardMarkdown(text, moduleName) {
 
   for (const line of text.split('\n')) {
     if (line.startsWith('## ')) {
-      if (card && inAnswer) fail(`card "${card.id}" has content after its answer`);
+      if (card && inAnswer) fail(`card "${card.id}" has a heading inside its unclosed answer`);
       flush();
       domain = unmdText(line.slice(3).trim());
     } else if (line.startsWith('### ')) {
-      if (card && inAnswer) fail(`card "${card.id}" has content after its answer`);
+      if (card && inAnswer) fail(`card "${card.id}" has a heading inside its unclosed answer`);
       flush();
       const m = line.slice(4).match(HEADING);
       if (!m) fail(`unparseable card heading: ${line}`);
@@ -1024,6 +1046,8 @@ export function parseFlashcardMarkdown(text, moduleName) {
       card.front = unmdText(line.trim().slice(2, -2));
     } else if (sawClose && line.trim() !== '') {
       fail(`card "${card.id}" has content after its answer`);
+    } else if (card.front !== null && line.trim() !== '') {
+      fail(`card "${card.id}" has content between its front and its answer`);
     }
   }
   flush();
@@ -1037,7 +1061,7 @@ export function parseFlashcardMarkdown(text, moduleName) {
 
 Run: `node --test scripts/lib/flashcard-md.test.mjs`
 
-Expected: PASS, 16 tests, 0 failures.
+Expected: PASS, 18 tests, 0 failures.
 
 - [ ] **Step 6: Repoint the exporter at markdown**
 
@@ -1233,7 +1257,7 @@ Replace the whole `steps:` list in `.github/workflows/ci.yml` with:
 node --test scripts/lib/*.test.mjs && node scripts/export-anki.mjs
 ```
 
-Expected: 16 passing tests, then five `<module>: N cards → anki/<module>.txt` lines with counts 89 / 109 / 155 / 133 / 93.
+Expected: 18 passing tests, then five `<module>: N cards → anki/<module>.txt` lines with counts 89 / 109 / 155 / 133 / 93.
 
 - [ ] **Step 6: Commit**
 

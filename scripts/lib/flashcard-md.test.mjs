@@ -110,7 +110,7 @@ test('throws on a domain heading appearing inside an answer', () => {
     'Object storage.\n\n</details>',
     'Object storage.\n\n## Compute\n\n</details>'
   );
-  assert.throws(() => parseFlashcardMarkdown(text, 'example'), /card "s3" has content after its answer/);
+  assert.throws(() => parseFlashcardMarkdown(text, 'example'), /card "s3" has a heading inside its unclosed answer/);
 });
 
 test('throws on a second <details> block within one card', () => {
@@ -132,6 +132,28 @@ test('throws on a card id containing a tab, CR, or LF', () => {
 
   const withCR = CARD.replace('### `s3` · Amazon S3', '### `s\r3` · Amazon S3');
   assert.throws(() => parseFlashcardMarkdown(withCR, 'example'), /card id .* contains/s);
+});
+
+test('throws on stray content between a card\'s front and its <details> opener', () => {
+  const text = CARD.replace(
+    '**What is it for?**\n\n<details>',
+    '**What is it for?**\n\nstray leftover note\n\n<details>'
+  );
+  assert.throws(
+    () => parseFlashcardMarkdown(text, 'example'),
+    /card "s3" has content between its front and its answer/
+  );
+});
+
+test('throws on a duplicate front line before the answer', () => {
+  const text = CARD.replace(
+    '**What is it for?**\n\n<details>',
+    '**What is it for?**\n\n**What is it for? old draft**\n\n<details>'
+  );
+  assert.throws(
+    () => parseFlashcardMarkdown(text, 'example'),
+    /card "s3" has content between its front and its answer/
+  );
 });
 
 test('carries the correct domain across a second domain heading', () => {

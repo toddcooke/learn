@@ -47,11 +47,11 @@ export function parseFlashcardMarkdown(text, moduleName) {
 
   for (const line of text.split('\n')) {
     if (line.startsWith('## ')) {
-      if (card && inAnswer) fail(`card "${card.id}" has content after its answer`);
+      if (card && inAnswer) fail(`card "${card.id}" has a heading inside its unclosed answer`);
       flush();
       domain = unmdText(line.slice(3).trim());
     } else if (line.startsWith('### ')) {
-      if (card && inAnswer) fail(`card "${card.id}" has content after its answer`);
+      if (card && inAnswer) fail(`card "${card.id}" has a heading inside its unclosed answer`);
       flush();
       const m = line.slice(4).match(HEADING);
       if (!m) fail(`unparseable card heading: ${line}`);
@@ -76,6 +76,8 @@ export function parseFlashcardMarkdown(text, moduleName) {
       card.front = unmdText(line.trim().slice(2, -2));
     } else if (sawClose && line.trim() !== '') {
       fail(`card "${card.id}" has content after its answer`);
+    } else if (card.front !== null && line.trim() !== '') {
+      fail(`card "${card.id}" has content between its front and its answer`);
     }
   }
   flush();

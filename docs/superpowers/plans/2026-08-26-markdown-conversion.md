@@ -1133,9 +1133,9 @@ git rm -q .claude/launch.json
 
 - [ ] **Step 6: Confirm the repo no longer references the site**
 
-Run: `grep -rn 'toddcooke\.github\.io' --include='*.md' --include='*.html' --include='*.json' --include='*.yml' . | grep -v '^\./docs/superpowers/'`
+Run: `grep -rn 'toddcooke\.github\.io' --include='*.md' --include='*.html' --include='*.json' --include='*.yml' . | grep -v '/docs/superpowers/' | grep -v '^\./\.claude/'`
 
-Expected: no output. The `docs/superpowers/` specs and plans are historical records and legitimately still mention it.
+Expected: no output. Both exclusions are deliberate: `docs/superpowers/` at the repo root *and* inside each module holds specs and plans that are historical records and legitimately still mention the URL, and `.claude/worktrees/` holds an untracked worktree copy that is not part of this change.
 
 - [ ] **Step 7: Commit**
 

@@ -108,7 +108,7 @@ Which of the following statements about granting API permissions to ServiceAccou
 
 <details><summary>Answer</summary>
 
-**A.** **B.** **D.** — Application-specific ServiceAccount bindings rank as the most secure documented approach, and granting cluster-admin to every ServiceAccount cluster-wide is flagged as a policy to avoid; a Pod without an explicit serviceAccountName falls back to its namespace's default ServiceAccount. Binding a role to every ServiceAccount in one namespace is in fact possible via a group like system:serviceaccounts:<namespace>, and none of the built-in view, edit, or admin roles carry a default ClusterRoleBinding at all.
+**A.** **B.** **D.** — Application-specific ServiceAccount bindings rank as the most secure documented approach, and granting cluster-admin to every ServiceAccount cluster-wide is flagged as a policy to avoid; a Pod without an explicit serviceAccountName falls back to its namespace's default ServiceAccount. Binding a role to every ServiceAccount in one namespace is in fact possible via a group like system:serviceaccounts:`<namespace>`, and none of the built-in view, edit, or admin roles carry a default ClusterRoleBinding at all.
 
 </details>
 
@@ -1621,8 +1621,8 @@ kubectl get pods shows a Pod stuck in the Terminating state well after it was de
 
 A container's image is deliberately minimal (distroless) and has already crashed, so there's no shell left to exec into. Which documented tool is designed exactly for this situation?
 
-- **A.** kubectl debug -it <pod> --image=<debug-image> --target=<container>, which attaches a throwaway ephemeral container and, when the container runtime supports it, shares the target container's process namespace.
-- **B.** kubectl exec -it <pod> -- sh, since exec works against any container regardless of what its image actually contains.
+- **A.** kubectl debug -it `<pod>` --image=`<debug-image>` --target=`<container>`, which attaches a throwaway ephemeral container and, when the container runtime supports it, shares the target container's process namespace.
+- **B.** kubectl exec -it `<pod>` -- sh, since exec works against any container regardless of what its image actually contains.
 - **C.** kubectl cp a shell binary into the crashed container's filesystem, then kubectl exec into it once the binary is in place.
 - **D.** kubectl logs --previous, opened in an interactive mode that drops into a shell inside the previous container instance.
 
@@ -1634,7 +1634,7 @@ A container's image is deliberately minimal (distroless) and has already crashed
 
 ### troubleshooting-007
 
-Which statement about kubectl debug node/<name> is accurate, per the documentation?
+Which statement about kubectl debug node/`<name>` is accurate, per the documentation?
 
 - **A.** It requires the target node to already have SSH access properly configured and reachable ahead of time, since the whole mechanism works by tunneling its interactive shell session over an existing SSH connection.
 - **B.** The resulting debugging Pod is deleted automatically by the control plane the moment its interactive shell session ends or the terminal disconnects, so no manual cleanup step is ever required afterward.
@@ -1651,9 +1651,9 @@ Which statement about kubectl debug node/<name> is accurate, per the documentati
 
 To capture network traffic from one specific Pod's own network namespace, rather than everything passing through the whole node, which documented command form is used?
 
-- **A.** kubectl exec <pod> -- tcpdump -i any -n, run straight against the existing container with no separate debugging session at all.
-- **B.** kubectl debug --profile=sysadmin pod/<name> -n <namespace> -it --image=ubuntu:latest, then installing and running tcpdump inside the resulting privileged debug container.
-- **C.** kubectl debug node/<node> -it --image=ubuntu, which is documented as scoped to exactly one Pod's network namespace and never anything else on the node.
+- **A.** kubectl exec `<pod>` -- tcpdump -i any -n, run straight against the existing container with no separate debugging session at all.
+- **B.** kubectl debug --profile=sysadmin pod/`<name>` -n `<namespace>` -it --image=ubuntu:latest, then installing and running tcpdump inside the resulting privileged debug container.
+- **C.** kubectl debug node/`<node>` -it --image=ubuntu, which is documented as scoped to exactly one Pod's network namespace and never anything else on the node.
 - **D.** kubectl cp a prebuilt tcpdump binary into the Pod's container filesystem, then kubectl exec to invoke it directly.
 
 <details><summary>Answer</summary>
@@ -1773,7 +1773,7 @@ Why can a kubeadm v1.18-or-later kubeadm join fail against a cluster that was or
 
 Which of the following statements about diagnosing kubectl and API-server connectivity problems are accurate, per the documentation? (Select all that apply.) *(choose three)*
 
-- **A.** kubectl config get-contexts followed by kubectl config use-context <name> is the documented way to confirm which cluster/context is actually active when a kubeconfig defines more than one.
+- **A.** kubectl config get-contexts followed by kubectl config use-context `<name>` is the documented way to confirm which cluster/context is actually active when a kubeconfig defines more than one.
 - **B.** TLS certificate expiry errors and RBAC authorization errors are documented as having the exact same root cause and the same fix.
 - **C.** A stale $KUBECONFIG environment variable, or the wrong file passed via --kubeconfig, can point kubectl at an unintended kubeconfig file.
 - **D.** Reconnecting an active VPN session is a documented troubleshooting step when a cluster is normally accessed through one.
@@ -1909,7 +1909,7 @@ What must a cluster administrator set up, per the documentation, to make the Met
 
 Which of the following statements about the Metrics API and metrics-server are accurate, per the documentation? (Select all that apply.) *(choose three)*
 
-- **A.** The Metrics API is reachable directly, e.g. via kubectl get --raw against a path like /apis/metrics.k8s.io/v1beta1/nodes/<name>, independent of kubectl top.
+- **A.** The Metrics API is reachable directly, e.g. via kubectl get --raw against a path like /apis/metrics.k8s.io/v1beta1/nodes/`<name>`, independent of kubectl top.
 - **B.** A container runtime that isolates workloads through something other than ordinary Linux cgroups must separately implement the CRI Container Metrics interface for the kubelet to have anything to expose.
 - **C.** The Metrics API is a stable (GA) part of the kube-apiserver binary, enabled in every cluster by default with no separate deployment step required.
 - **D.** Anything beyond the Metrics API's basic CPU-and-memory autoscaling signals requires a second, separate metrics pipeline built on the Custom Metrics API.
@@ -1939,7 +1939,7 @@ Which of the following statements about how CPU and memory usage are measured in
 
 ### troubleshooting-027
 
-What does kubectl logs <pod> --previous specifically retrieve, and why is that useful?
+What does kubectl logs `<pod>` --previous specifically retrieve, and why is that useful?
 
 - **A.** The logs of the previous container in a multi-container Pod, ordered by how containers are listed in the spec.
 - **B.** Only the last 100 lines of whatever the current container's own log file happens to contain at the exact moment the command itself is actually run, nothing further back than that at all.
@@ -2049,7 +2049,7 @@ A Service seems not to be working. What does the documented Service-debugging wa
 
 - **A.** Whether the cluster's own DNS Service itself is healthy overall — worth starting there first, well ahead of checking anything at all about this one particular Service in question.
 - **B.** Whether the Pod running behind the Service is crashing or otherwise unhealthy in some way, which is documented as being the very first place the whole walkthrough actually starts from.
-- **C.** Whether the Service object actually exists at all, e.g. via kubectl get svc <name> — the single most common reason a Service "doesn't work" is that it was never created.
+- **C.** Whether the Service object actually exists at all, e.g. via kubectl get svc `<name>` — the single most common reason a Service "doesn't work" is that it was never created.
 - **D.** Whether a cloud provider's own external load balancer has already been fully provisioned and is actively forwarding traffic in front of the Service being investigated.
 
 <details><summary>Answer</summary>
@@ -2090,7 +2090,7 @@ A Pod's /etc/resolv.conf shows "options ndots:5". Per the documented explanation
 
 ### troubleshooting-037
 
-Reading a Service back with kubectl get service <name> -o json, which mismatch does the documentation explicitly call out as something to check regarding how the Service maps to its Pods?
+Reading a Service back with kubectl get service `<name>` -o json, which mismatch does the documentation explicitly call out as something to check regarding how the Service maps to its Pods?
 
 - **A.** Whether targetPort correctly names or numbers the port the Pods actually listen on, and whether a numeric port got accidentally quoted as a string.
 - **B.** Whether the Service's own metadata.creationTimestamp field happens to predate the creation timestamp recorded on any one of the Pods it's currently supposed to be fronting traffic for.
@@ -2105,7 +2105,7 @@ Reading a Service back with kubectl get service <name> -o json, which mismatch d
 
 ### troubleshooting-038
 
-An EndpointSlice for a Service shows no addresses at all (ENDPOINTS: <none>). What does the documented walkthrough say is almost always the cause?
+An EndpointSlice for a Service shows no addresses at all (ENDPOINTS: `<none>`). What does the documented walkthrough say is almost always the cause?
 
 - **A.** The Service's ClusterIP has already been reassigned to a different Service.
 - **B.** kube-proxy has crashed and stopped programming EndpointSlices for that Service.
@@ -2123,13 +2123,13 @@ An EndpointSlice for a Service shows no addresses at all (ENDPOINTS: <none>). Wh
 In kube-proxy's iptables mode, per the documented rule structure, how does traffic for a Service actually reach one of its backing Pods?
 
 - **A.** A single flat iptables rule maps the Service's own ClusterIP address straight to just one single Pod IP, with an identical rule then duplicated separately for every additional backing Pod behind it.
-- **B.** One rule in KUBE-SERVICES routes to a per-Service KUBE-SVC-<hash> chain, which fans out — one weighted choice per backing Pod — into per-Pod KUBE-SEP-<hash> chains that perform the actual DNAT.
+- **B.** One rule in KUBE-SERVICES routes to a per-Service KUBE-SVC-`<hash>` chain, which fans out — one weighted choice per backing Pod — into per-Pod KUBE-SEP-`<hash>` chains that perform the actual DNAT.
 - **C.** iptables mode is documented as not using DNAT for this purpose at all; instead it is described as relying purely on ARP spoofing tricks to redirect traffic toward whichever Pod gets selected.
 - **D.** Every single Service is documented as getting exactly one shared KUBE-SEP chain used in common across all of its backing Pods together, no matter how many replicas it actually happens to have.
 
 <details><summary>Answer</summary>
 
-**B.** — The documented iptables-save output shows exactly this structure: a KUBE-SERVICES rule pointing at a KUBE-SVC-<hash> chain, which uses weighted --probability jumps to fan out across one KUBE-SEP-<hash> chain per Pod endpoint, and each KUBE-SEP chain performs the actual "-j DNAT --to-destination" — not a single flattened rule, ARP spoofing, or one shared chain across every Pod.
+**B.** — The documented iptables-save output shows exactly this structure: a KUBE-SERVICES rule pointing at a KUBE-SVC-`<hash>` chain, which uses weighted --probability jumps to fan out across one KUBE-SEP-`<hash>` chain per Pod endpoint, and each KUBE-SEP chain performs the actual "-j DNAT --to-destination" — not a single flattened rule, ARP spoofing, or one shared chain across every Pod.
 
 </details>
 

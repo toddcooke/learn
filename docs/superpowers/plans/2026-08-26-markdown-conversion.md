@@ -632,7 +632,7 @@ export function servicesMarkdown(SERVICES) {
       if (/[|\n]/.test(s.name) || /[|\n]/.test(s.blurb)) {
         throw new Error(`aws service "${s.id}": name or blurb contains a pipe or newline`);
       }
-      out.push(`| ${s.name} | ${s.blurb} |`);
+      out.push(`| ${mdText(s.name)} | ${mdText(s.blurb)} |`);
     }
     out.push('');
   }
@@ -673,7 +673,7 @@ async function verifyServices() {
       // by index leaves blurb undefined and throws. Anchor on the row shape.
       const m = l.match(/^\|\s*(.*?)\s*\|\s*(.*?)\s*\|$/);
       if (!m) throw new Error(`unparseable services row: ${l}`);
-      return { name: m[1], blurb: m[2] };
+      return { name: unmdText(m[1]), blurb: unmdText(m[2]) };
     });
   const expected = SERVICES.map((s) => ({ name: s.name, blurb: s.blurb }));
   assert.deepEqual(rows, expected, 'aws services round-trip mismatch');

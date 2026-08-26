@@ -1,0 +1,2150 @@
+# CKA — question bank
+
+140 questions. Answers are collapsed; expand to check yourself.
+
+## Cluster Architecture, Installation and Configuration
+
+28 questions
+
+### cluster-001
+
+Which statement correctly distinguishes a Role from a ClusterRole in Kubernetes RBAC?
+
+- **A.** A ClusterRole can only be used to grant access across every namespace at once; it has no way to scope permissions to a single namespace.
+- **B.** A Role only sets permissions inside the namespace it was created in, while a ClusterRole is not tied to any namespace and can cover cluster-scoped resources such as Nodes.
+- **C.** As long as it is attached with a ClusterRoleBinding, a Role can grant permissions over cluster-scoped resources like Nodes.
+- **D.** Role and ClusterRole are both cluster-scoped objects; the only difference between them is which verbs each one supports.
+
+<details><summary>Answer</summary>
+
+**B.** — A Role must be created within, and only ever applies to, a specific namespace, whereas a ClusterRole is cluster-scoped and can grant access to resources that live outside any namespace, such as Nodes, as well as non-resource API paths.
+
+</details>
+
+### cluster-002
+
+A RoleBinding named 'secrets-viewer' lives in the 'billing' namespace and its roleRef points at the ClusterRole 'secret-reader', with the user 'priya' as its only subject. What access does priya end up with?
+
+- **A.** Priya can read Secrets in every namespace in the cluster, because binding any ClusterRole always grants that ClusterRole permissions cluster-wide.
+- **B.** The binding is invalid, because a RoleBinding is not allowed to reference a ClusterRole as its roleRef.
+- **C.** Priya can read Secrets only inside the 'billing' namespace, since the RoleBinding's own namespace determines where the referenced ClusterRole's permissions actually apply.
+- **D.** Priya receives full administrative rights over the 'billing' namespace, since referencing any ClusterRole through a binding is equivalent to granting cluster-admin there.
+
+<details><summary>Answer</summary>
+
+**C.** — A RoleBinding can reference a ClusterRole to reuse a common set of rules across namespaces, but the permissions it grants still only take effect within the RoleBinding's own namespace, not cluster-wide.
+
+</details>
+
+### cluster-003
+
+A cluster administrator needs to change which role a particular RoleBinding grants to its subjects. What does Kubernetes require them to do?
+
+- **A.** Delete the existing RoleBinding and create a new one that points at the desired role.
+- **B.** Run kubectl edit on the RoleBinding and change its roleRef.name field in place.
+- **C.** Use kubectl patch to update only the roleRef.kind field, leaving roleRef.name untouched.
+- **D.** Add a second roleRef block to the same RoleBinding so both roles apply together.
+
+<details><summary>Answer</summary>
+
+**A.** — A binding's roleRef is immutable once created; attempting to change it produces a validation error, so swapping in a different role requires deleting the binding and creating a replacement rather than editing the existing object.
+
+</details>
+
+### cluster-004
+
+A brand-new ServiceAccount is created in an application namespace with no RoleBindings pointing at it yet. Under the default RBAC policies, what can this ServiceAccount do?
+
+- **A.** Read and write most resources within its own namespace, similar to the built-in 'edit' role.
+- **B.** Read every Secret across all namespaces, so its Pods can fetch credentials as needed.
+- **C.** Everything the built-in 'admin' ClusterRole permits, since that is the implicit default for new accounts.
+- **D.** Essentially nothing beyond the read-only API discovery information already available to any authenticated identity.
+
+<details><summary>Answer</summary>
+
+**D.** — Default RBAC policy grants no permissions to ServiceAccounts outside kube-system beyond what the API discovery ClusterRoles already expose to authenticated users; anything else a workload needs must be granted through an explicit binding.
+
+</details>
+
+### cluster-005
+
+Why does the built-in 'view' ClusterRole deliberately exclude the ability to read Secrets, even though it otherwise grants broad read-only access?
+
+- **A.** Because Secrets are stored outside etcd and are therefore technically unreadable through the standard API regardless of permission.
+- **B.** Because reading a Secret's contents could expose ServiceAccount credentials, letting the reader act as any ServiceAccount in the namespace.
+- **C.** Because the 'view' role only covers cluster-scoped resources, and Secrets are always namespaced objects.
+- **D.** Because Secrets require a separate authentication mechanism that RBAC rules are not able to express.
+
+<details><summary>Answer</summary>
+
+**B.** — The view role withholds Secret access specifically because reading Secrets can reveal ServiceAccount credentials, which would let the viewer act with that ServiceAccount's own API access — a form of privilege escalation the role is designed to avoid.
+
+</details>
+
+### cluster-006
+
+A user cannot currently list Secrets cluster-wide. Under what condition can that user still create a new ClusterRole whose rules include permission to list Secrets cluster-wide?
+
+- **A.** Automatically, as soon as the user is granted the create verb on clusterroles, regardless of what the new role contains.
+- **B.** Only if the user belongs to the system:authenticated group, which is exempt from the escalation check.
+- **C.** Only if the user has been explicitly granted authorization to use the escalate verb against the clusterroles resource type.
+- **D.** Never — only a cluster-admin binding itself can create a role that contains a permission the creator lacks.
+
+<details><summary>Answer</summary>
+
+**C.** — Creating or updating a Role or ClusterRole requires either already holding every permission it would contain, or carrying explicit authorization to perform the escalate verb against roles or clusterroles resources; merely holding the create verb on the object itself is not enough.
+
+</details>
+
+### cluster-007
+
+Which of the following statements about granting API permissions to ServiceAccounts are accurate? (Select all that apply.) *(choose three)*
+
+- **A.** Granting a role to an application-specific ServiceAccount, one created just for that workload, is the most secure of the documented approaches.
+- **B.** Granting cluster-admin to every ServiceAccount in the cluster at once is called out as a policy that should be avoided.
+- **C.** It is impossible to grant a role to every ServiceAccount in a namespace at once; each ServiceAccount must be bound individually.
+- **D.** A Pod that does not set serviceAccountName in its spec automatically runs under the 'default' ServiceAccount of its own namespace.
+- **E.** The built-in 'view' ClusterRole is automatically bound to the default ServiceAccount of every namespace as soon as the namespace is created.
+
+<details><summary>Answer</summary>
+
+**A.** **B.** **D.** — Application-specific ServiceAccount bindings rank as the most secure documented approach, and granting cluster-admin to every ServiceAccount cluster-wide is flagged as a policy to avoid; a Pod without an explicit serviceAccountName falls back to its namespace's default ServiceAccount. Binding a role to every ServiceAccount in one namespace is in fact possible via a group like system:serviceaccounts:<namespace>, and none of the built-in view, edit, or admin roles carry a default ClusterRoleBinding at all.
+
+</details>
+
+### cluster-008
+
+An administrator runs kubeadm init on a single machine without setting --control-plane-endpoint, planning to keep it a single-node cluster indefinitely. Months later, growth requires making it highly available. What does the kubeadm documentation say about this path?
+
+- **A.** It isn't possible: kubeadm does not support later adding that shared endpoint and converting a lone control-plane node into an HA setup.
+- **B.** It works automatically the first time a second machine runs kubeadm join with the --control-plane flag.
+- **C.** It's supported, but only if the cluster's etcd was configured as an external topology from the very first init.
+- **D.** It's supported by re-running kubeadm init --upload-certs on the original node without any cluster downtime.
+
+<details><summary>Answer</summary>
+
+**A.** — kubeadm's own guidance flags this exact scenario as unsupported: once a cluster has been bootstrapped without a shared control-plane endpoint address, there is no supported path to retrofit high availability onto it, which is precisely why setting that flag on day one is recommended for any cluster that might eventually grow.
+
+</details>
+
+### cluster-009
+
+Per kubeadm's stated prerequisites, what is the minimum number of CPUs required on a machine intended to serve as a control-plane node?
+
+- **A.** 1
+- **B.** 4
+- **C.** 8
+- **D.** 2
+
+<details><summary>Answer</summary>
+
+**D.** — kubeadm's documented prerequisites call for at least 2 CPUs on any machine used as a control-plane node, alongside a minimum of 2 GiB of RAM on every machine in the cluster.
+
+</details>
+
+### cluster-010
+
+On a cluster that has just finished kubeadm init but has no Pod network add-on applied yet, what is true of CoreDNS?
+
+- **A.** CoreDNS starts immediately after kubeadm init completes, independent of whether any Pod network add-on exists.
+- **B.** CoreDNS will not start running until a CNI-based Pod network add-on has been deployed with kubectl apply.
+- **C.** CoreDNS only fails to start if the cluster has more than one control-plane node.
+- **D.** CoreDNS requires a worker node to have already joined before it can be scheduled anywhere.
+
+<details><summary>Answer</summary>
+
+**B.** — kubeadm's setup guidance is explicit that cluster DNS will not start up before a Pod network add-on is installed, which is why applying a CNI-based network add-on comes right after control-plane initialization, ahead of joining any other nodes.
+
+</details>
+
+### cluster-011
+
+How many separate Pod network add-ons can be active on a single kubeadm-managed cluster at the same time?
+
+- **A.** Exactly two — one to handle IPv4 traffic and a second for IPv6.
+- **B.** As many as an administrator wants to install, one per namespace.
+- **C.** Exactly one.
+- **D.** None by default; kubeadm ships with a built-in Pod network that can't be replaced.
+
+<details><summary>Answer</summary>
+
+**C.** — The documentation states that only one Pod network can be installed per cluster; kubeadm itself doesn't bundle a default Pod network implementation, so the single add-on has to be chosen and applied by the administrator.
+
+</details>
+
+### cluster-012
+
+kubeadm init produces both an admin.conf and a super-admin.conf kubeconfig file. What makes the identity inside super-admin.conf different from the one in admin.conf?
+
+- **A.** It belongs to the system:masters group, a break-glass identity that bypasses normal authorization checks.
+- **B.** It is a read-only identity meant for auditors rather than for cluster administrators.
+- **C.** It authenticates with a short-lived ServiceAccount token instead of an X.509 client certificate.
+- **D.** It is deleted automatically once the two-hour window for --upload-certs certificate sharing expires.
+
+<details><summary>Answer</summary>
+
+**A.** — admin.conf carries a certificate bound to the cluster-admin ClusterRole through the kubeadm:cluster-admins group, while super-admin.conf carries a certificate in system:masters, a break-glass superuser group that bypasses the authorization layer entirely; both files are sensitive and neither should be shared.
+
+</details>
+
+### cluster-013
+
+What is the correct sequence for cleanly removing a node from a kubeadm-created cluster?
+
+- **A.** Delete the Node object with kubectl delete node first, then run kubeadm reset, then drain the node.
+- **B.** Run kubeadm reset on the node first, then drain it, and finally delete the Node object.
+- **C.** Delete the Node object and run kubeadm reset at the same time; draining is only needed for control-plane nodes.
+- **D.** Drain the node with kubectl drain, run kubeadm reset on that node, then delete its Node object with kubectl delete node.
+
+<details><summary>Answer</summary>
+
+**D.** — Cleanly decommissioning a node means draining it first so the scheduler can move its workloads elsewhere, then running kubeadm reset locally to undo the local state kubeadm created, and only afterward removing the Node object from the API.
+
+</details>
+
+### cluster-014
+
+Which of the following are described as considerations when moving from a single-machine learning setup to a production-quality Kubernetes cluster? (Select all that apply.) *(choose three)*
+
+- **A.** Keeping control-plane services off the worker machines and running each control-plane component on more than one node.
+- **B.** Confining the cluster to a single availability zone, which the documentation recommends for simplifying network routing.
+- **C.** Putting a load balancer in front of the cluster's API server.
+- **D.** Standardizing on one shared ServiceAccount that every workload in the cluster uses, to simplify auditing.
+- **E.** Choosing an authentication method, such as client certificates or bearer tokens, together with an authorization mode like RBAC.
+
+<details><summary>Answer</summary>
+
+**A.** **C.** **E.** — Production planning covers separating and replicating the control plane, load-balancing API server traffic, and layering authentication with an authorization mode such as RBAC. The documentation actually favors spanning multiple zones for resilience rather than confining a cluster to one, and it recommends a dedicated ServiceAccount per application rather than one shared account for everything.
+
+</details>
+
+### cluster-015
+
+At a high level, what order does kubeadm follow when upgrading a cluster to a new Kubernetes minor version?
+
+- **A.** Upgrade every worker node first so the new version is validated before any control-plane node changes.
+- **B.** Upgrade the first control-plane node, then the remaining control-plane nodes, then the worker nodes.
+- **C.** Upgrade all control-plane nodes and all worker nodes at the same time to shorten the maintenance window.
+- **D.** Upgrade the etcd hosts first, then the worker nodes, and finish with the control-plane nodes.
+
+<details><summary>Answer</summary>
+
+**B.** — kubeadm's documented upgrade workflow starts with the primary control-plane node, moves on to any additional control-plane nodes, and only afterward reaches the worker nodes, a few at a time so running capacity is never compromised.
+
+</details>
+
+### cluster-016
+
+Which command does an administrator run on the very first control-plane node during a kubeadm minor-version upgrade, that is not used on the remaining control-plane nodes?
+
+- **A.** kubeadm upgrade node
+- **B.** kubeadm join --control-plane --upgrade
+- **C.** kubeadm upgrade apply
+- **D.** kubeadm init --upgrade-existing
+
+<details><summary>Answer</summary>
+
+**C.** — The first control-plane node runs kubeadm upgrade apply against the target version; every remaining control-plane node instead runs kubeadm upgrade node, which is also what worker nodes use for their own kubelet-configuration upgrade.
+
+</details>
+
+### cluster-017
+
+A cluster is running Kubernetes 1.34. Which upgrade target is a single kubeadm upgrade apply operation able to reach?
+
+- **A.** 1.35
+- **B.** 1.36
+- **C.** 1.37
+- **D.** 1.33
+
+<details><summary>Answer</summary>
+
+**A.** — kubeadm only supports advancing one Kubernetes minor version per upgrade; skipping a minor version is unsupported, so from 1.34 the only valid forward target for a single upgrade is 1.35.
+
+</details>
+
+### cluster-018
+
+Why does kubeadm's upgrade guidance call for draining a control-plane node before touching its kubelet, even though it's a control-plane node rather than an ordinary worker?
+
+- **A.** Because draining is a prerequisite step for renewing the node's etcd certificates.
+- **B.** Because kubeadm refuses to touch static Pod manifests on any node that still has Pods scheduled to it.
+- **C.** Because the node must be powered off entirely before kubeadm upgrade node will run.
+- **D.** Because that control-plane node could currently be hosting CoreDNS or another critical workload.
+
+<details><summary>Answer</summary>
+
+**D.** — Control-plane nodes can end up running ordinary workloads such as CoreDNS, so draining before a minor-version kubelet upgrade gives the scheduler a chance to move those Pods elsewhere before the upgrade disrupts that node.
+
+</details>
+
+### cluster-019
+
+What structurally distinguishes the stacked etcd topology from the external etcd topology in a kubeadm HA cluster?
+
+- **A.** The stacked topology relies on one shared etcd instance for the whole cluster, while external etcd gives every control-plane node its own private etcd cluster.
+- **B.** In the stacked topology, each control-plane node runs its own etcd member; in the external topology, etcd instead runs as its own separate cluster reached over the network.
+- **C.** External etcd removes the need for a load balancer in front of the API servers, while stacked etcd still requires one.
+- **D.** Stacked etcd is limited to two control-plane nodes, while external etcd requires at least five.
+
+<details><summary>Answer</summary>
+
+**B.** — Stacked etcd co-locates an etcd member with each control-plane node's other services, needing less infrastructure; external etcd separates etcd onto its own independent machines that every control-plane node reaches over the network, needing more hardware but isolating etcd failures from the rest of the control plane. Both topologies still call for a load balancer in front of the API servers.
+
+</details>
+
+### cluster-020
+
+Which of the following are accurate about the minimum setup needed for a highly-available kubeadm cluster? (Select all that apply.) *(choose three)*
+
+- **A.** A load balancer in front of the control-plane nodes only becomes necessary once the cluster has more than five control-plane nodes.
+- **B.** At least three machines are needed for the control-plane nodes.
+- **C.** An odd number of control-plane nodes helps with leader election if a machine or zone is lost.
+- **D.** In an external etcd topology, at least three separate machines are needed to run etcd.
+- **E.** SSH access from a single device to every node is unnecessary as long as kubeadm join is run manually on each host.
+
+<details><summary>Answer</summary>
+
+**B.** **C.** **D.** — The documentation calls for at least three control-plane machines, and for external etcd at least three separate etcd machines, with an odd count helping the consensus protocol reach a clean majority. It lists a load balancer in front of every control-plane API server, and SSH access from one device to every node, as prerequisites from the very first control-plane node onward, not optional conveniences added later.
+
+</details>
+
+### cluster-021
+
+Which of the following statements about etcd backups and kubeadm's own backup behavior are accurate? (Select all that apply.) *(choose three)*
+
+- **A.** A kubeadm cluster running a single control-plane node has no built-in resilience against that node failing, since etcd holds the cluster's entire state.
+- **B.** Once an upgrade finishes successfully, kubeadm automatically deletes its backup folders to reclaim disk space.
+- **C.** Backing up etcd is described as unnecessary in a stacked-etcd HA topology, since control-plane nodes replicate each other automatically.
+- **D.** kubeadm's default location for the etcd data directory on a control-plane host is /var/lib/etcd.
+- **E.** kubeadm upgrade automatically writes backup folders for etcd and static Pod manifests before an upgrade proceeds.
+
+<details><summary>Answer</summary>
+
+**A.** **D.** **E.** — Because etcd holds every object and Secret in the cluster, a single-control-plane kubeadm cluster has effectively no resilience against that node's loss; kubeadm defaults to /var/lib/etcd for its data directory and writes its own etcd and manifest backups before an upgrade. Those backup folders are left in place for manual cleanup rather than deleted automatically, and nothing in the documentation exempts HA topologies from needing their own backup plan.
+
+</details>
+
+### cluster-022
+
+In Helm's terminology, what gets created every time helm install is run against a chart, even if that same chart is installed several times in one cluster?
+
+- **A.** A brand-new chart, since Helm treats each install as authoring a fresh chart definition.
+- **B.** A new entry in the chart's source repository pointing back to this install.
+- **C.** A new, independently named release.
+- **D.** A dedicated Kubernetes namespace created just for that one installation.
+
+<details><summary>Answer</summary>
+
+**C.** — Helm calls each installed instance of a chart a release; installing the same chart twice — two separate database instances, say — produces two independent, separately named releases that can each be tracked, upgraded, or removed on their own.
+
+</details>
+
+### cluster-023
+
+What does helm upgrade do differently from tearing down a release entirely and reinstalling the chart from scratch?
+
+- **A.** It tries to perform the least invasive change, updating only the pieces of the release that actually changed.
+- **B.** It always recreates every resource in the release, even ones that didn't change, to guarantee a clean state.
+- **C.** It only takes effect if the --recreate-pods flag is passed alongside it.
+- **D.** It automatically reverts to the prior revision the moment any resource in the release is modified.
+
+<details><summary>Answer</summary>
+
+**A.** — Because charts can be large and complex, Helm's upgrade path is deliberately conservative — it updates only what changed since the previous release rather than rebuilding everything, which is also why a separate helm rollback command exists for undoing an upgrade that didn't go well.
+
+</details>
+
+### cluster-024
+
+Which command renders and prints the manifests a kustomization directory describes, without those resources needing to already exist in the cluster?
+
+- **A.** kubectl apply -k <kustomization_directory> --preview-only
+- **B.** kubectl get -k <kustomization_directory>
+- **C.** kubectl edit -k <kustomization_directory>
+- **D.** kubectl kustomize <kustomization_directory>
+
+<details><summary>Answer</summary>
+
+**D.** — kubectl kustomize renders and prints the resources a kustomization directory describes without touching the cluster; kubectl get -k, by contrast, queries objects that have already been applied and must already be live in the cluster, so it is not a stand-in for a pure preview.
+
+</details>
+
+### cluster-025
+
+Starting with which Kubernetes version does the kubelet refuse to register a node whose container runtime doesn't implement the v1 CRI API?
+
+- **A.** v1.14
+- **B.** v1.26
+- **C.** v1.20
+- **D.** v1.30
+
+<details><summary>Answer</summary>
+
+**B.** — From Kubernetes v1.26 onward, the kubelet requires its container runtime to support the v1 CRI API; if the runtime does not implement that version, the kubelet will not register the node at all.
+
+</details>
+
+### cluster-026
+
+Which CNI plugin does the Kubernetes documentation point administrators toward for adding hostPort support to their network configuration?
+
+- **A.** The official bandwidth plugin.
+- **B.** The loopback plugin.
+- **C.** The official portmap plugin.
+- **D.** The CoreDNS plugin.
+
+<details><summary>Answer</summary>
+
+**C.** — hostPort support comes from the portmap plugin (or an equivalent with portMapping capability); the bandwidth plugin instead handles traffic shaping, and the loopback plugin only supplies the lo interface each sandbox needs — CoreDNS isn't a CNI plugin at all.
+
+</details>
+
+### cluster-027
+
+Which of the following are advantages of a CustomResourceDefinition (CRD) over building an aggregated API server, according to the Kubernetes documentation? (Select all that apply.) *(choose three)*
+
+- **A.** A CRD can use a custom storage backend with a different performance profile than the default.
+- **B.** A CRD doesn't require writing and running a separate API server.
+- **C.** Creating a CRD requires no programming at all.
+- **D.** A CRD gives client applications built around Protocol Buffers native support out of the box.
+- **E.** There's no additional service to run, since the existing API server handles CRDs directly.
+
+<details><summary>Answer</summary>
+
+**B.** **C.** **E.** — CRDs skip the need for a separate API server, need no programming to define, and add no extra service for the cluster to run since the main API server handles them directly. Custom storage backends and out-of-the-box Protocol Buffers support are advantages the documentation reserves for aggregated API servers, not CRDs.
+
+</details>
+
+### cluster-028
+
+Which of the following statements about the Container Storage Interface (CSI) are accurate? (Select all that apply.) *(choose three)*
+
+- **A.** Migrating to a CSI driver via CSIMigration requires rewriting every existing StorageClass, PersistentVolume, and PersistentVolumeClaim to name the new driver.
+- **B.** A single CSI driver deployment can only ever serve one Kubernetes cluster at a time.
+- **C.** CSI lets a storage vendor ship a driver for their system without that vendor's code being compiled into Kubernetes itself.
+- **D.** Before CSI existed, storage integrations were built directly into Kubernetes' own source tree as 'in-tree' plugins.
+- **E.** A csi-type volume can be consumed in a Pod through a reference to a PersistentVolumeClaim.
+
+<details><summary>Answer</summary>
+
+**C.** **D.** **E.** — CSI is an out-of-tree interface that replaced building storage support directly into Kubernetes' source tree, and Pods can consume CSI-backed storage the ordinary way, through a PersistentVolumeClaim. CSIMigration is specifically designed to redirect existing configuration to the equivalent CSI driver without requiring changes to existing StorageClasses, PersistentVolumes, or PersistentVolumeClaims, and nothing in the documentation limits a CSI driver to a single cluster.
+
+</details>
+
+## Services and Networking
+
+25 questions
+
+### services-001
+
+A cluster uses separate components to hand out addresses to Pods, Services, and Nodes. Which component takes on the job of handing Pods their IP addresses?
+
+- **A.** The kube-apiserver.
+- **B.** kube-proxy.
+- **C.** The network plugin.
+- **D.** Either the kubelet or, where one exists, the cloud-controller-manager.
+
+<details><summary>Answer</summary>
+
+**C.** — Kubernetes documentation splits address allocation three ways: Pod addressing falls to the network plugin, Service addressing falls to the kube-apiserver, and Node addressing falls to whichever of the kubelet and cloud-controller-manager is present; kube-proxy plays no role in this allocation.
+
+</details>
+
+### services-002
+
+The Kubernetes documentation identifies highly-coupled container-to-container communication as one of four distinct networking problems a cluster must address. How does it say this particular problem is solved?
+
+- **A.** By giving each container its own routable address through the cluster's CNI plugin, the same mechanism used for Pod-to-Pod traffic.
+- **B.** By grouping the containers together inside a shared Pod, where they can reach each other over localhost.
+- **C.** By placing a Service in front of the containers so callers get a stable virtual IP no matter which node they land on.
+- **D.** By having kube-proxy forward requests between the containers whenever they share a node.
+
+<details><summary>Answer</summary>
+
+**B.** — Kubernetes lists four networking problems, and it solves the container-to-container case through Pods themselves: containers in the same Pod share a network namespace and can talk over localhost, without needing a CNI-assigned address, a Service, or kube-proxy involvement.
+
+</details>
+
+### services-003
+
+What actually implements the Kubernetes Pod network model on each node, according to the documentation?
+
+- **A.** The kube-scheduler, when it chooses which node has free IP addresses available.
+- **B.** Whichever Ingress controller is deployed in the cluster.
+- **C.** kube-proxy, by writing the iptables or IPVS rules for every Pod interface.
+- **D.** The container runtime on that node, most commonly through a CNI plugin.
+
+<details><summary>Answer</summary>
+
+**D.** — Per the documentation, each node's container runtime is what carries out the Pod network model in practice, and most of those runtimes lean on CNI plugins to handle the networking and security work.
+
+</details>
+
+### services-004
+
+Before any NetworkPolicy in a namespace selects a given Pod, what is that Pod's isolation state?
+
+- **A.** Non-isolated for both ingress and egress, so every inbound and outbound connection is allowed.
+- **B.** Isolated for ingress only, since inbound traffic is denied by default until a policy allows it.
+- **C.** Isolated for egress only, since outbound traffic is denied by default until a policy allows it.
+- **D.** Isolated for both ingress and egress, matching a default-deny security posture.
+
+<details><summary>Answer</summary>
+
+**A.** — Kubernetes leaves a Pod free of restriction in both directions right up until some NetworkPolicy actually selects it and names that direction under policyTypes; only from that point on does isolation, and therefore filtering, begin for the Pod in that direction.
+
+</details>
+
+### services-005
+
+Pod A is isolated for egress by a policy whose egress list allows connections to Pod B. Pod B is also isolated for ingress, but no policy's ingress list grants Pod B permission to receive traffic from Pod A. What happens when Pod A tries to connect to Pod B?
+
+- **A.** The connection succeeds, since only the connecting Pod's own egress rules matter for the attempt.
+- **B.** The connection is blocked only if Pod A and Pod B run on different nodes.
+- **C.** The connection is blocked, because both the source's egress policy and the destination's ingress policy must allow it.
+- **D.** The connection succeeds, because NetworkPolicies never restrict traffic between two Pods in the same namespace.
+
+<details><summary>Answer</summary>
+
+**C.** — For a connection to succeed, the source Pod's applicable egress policy and the destination Pod's applicable ingress policy both have to allow it; if either side withholds permission, the connection does not happen, regardless of same-namespace placement or node location.
+
+</details>
+
+### services-006
+
+A NetworkPolicy's ingress rule has a single `from` list entry that nests both a `namespaceSelector` and a `podSelector` under it, rather than listing them as two separate entries. What traffic does that one entry allow?
+
+- **A.** Traffic from any Pod that matches either the podSelector or the namespaceSelector alone.
+- **B.** Only traffic from Pods matching podSelector that also run in a namespace matching namespaceSelector.
+- **C.** Traffic from every Pod in any namespace matching the namespaceSelector, ignoring Pod-level labels entirely.
+- **D.** The API server rejects the policy, since one entry cannot combine two different selector types.
+
+<details><summary>Answer</summary>
+
+**B.** — Nesting namespaceSelector and podSelector inside the same from entry narrows the match to Pods carrying the given labels within namespaces carrying the given labels (an AND). Splitting them into two separate list entries instead produces a broader OR: Pods matching either selector.
+
+</details>
+
+### services-007
+
+A namespace gets a NetworkPolicy with an empty podSelector, policyTypes set to Egress, and no egress rules, intended as a default-deny-egress baseline. What commonly-needed traffic does this policy silently break on its own?
+
+- **A.** Traffic to the Pod's own node, since default-deny-egress also blocks node-local connections.
+- **B.** All ingress traffic into those same Pods, since Kubernetes treats deny-egress and deny-ingress rules as permanently linked together.
+- **C.** Nothing; DNS lookups are automatically exempted from NetworkPolicy enforcement.
+- **D.** DNS resolution, since Pods can no longer reach the cluster's own DNS service without an added policy.
+
+<details><summary>Answer</summary>
+
+**D.** — The documentation carries an explicit caution that this kind of default-deny-egress rule has the side effect of cutting off DNS lookups too, so any workload that still needs name resolution needs its own extra NetworkPolicy explicitly permitting egress to the cluster's DNS service.
+
+</details>
+
+### services-008
+
+According to the Kubernetes documentation, which of the following are things you cannot currently do using the NetworkPolicy API alone? (Select all that apply.) *(choose three)*
+
+- **A.** Restrict which destination TCP port a Pod's egress traffic may use.
+- **B.** Target a specific Service by name inside an ingress rule or an egress rule.
+- **C.** Select traffic using a namespaceSelector combined with a podSelector.
+- **D.** Write an explicit "deny" rule; the model only supports adding allow rules on top of an implicit deny.
+- **E.** Log which connections a given policy blocked or permitted.
+
+<details><summary>Answer</summary>
+
+**B.** **D.** **E.** — The documentation's list of NetworkPolicy limitations explicitly includes targeting Services by name, explicitly denying traffic (the model is additive-allow only), and logging blocked or accepted connections. Restricting a destination port and combining namespaceSelector with podSelector are both ordinary, supported NetworkPolicy capabilities.
+
+</details>
+
+### services-009
+
+A Service manifest omits the `type` field entirely and leaves `.spec.clusterIP` unset. What kind of Service results?
+
+- **A.** A ClusterIP Service, reachable only inside the cluster, with a cluster-assigned virtual IP.
+- **B.** A headless Service, since leaving both fields unset is how a headless Service is requested.
+- **C.** A NodePort Service, since Kubernetes defaults new Services to be reachable from outside the cluster.
+- **D.** An ExternalName Service that resolves through a DNS CNAME record.
+
+<details><summary>Answer</summary>
+
+**A.** — ClusterIP is the default Service type used whenever type isn't explicitly set, and it assigns a cluster-internal virtual IP from the cluster's reserved address pool. A headless Service instead requires explicitly setting clusterIP to the string "None".
+
+</details>
+
+### services-010
+
+With the default NodePort range of 30000-32767, which statement correctly describes how the static and dynamic port bands work?
+
+- **A.** Both bands are exactly the same size, and neither one gets preference during automatic assignment.
+- **B.** The bands only matter for LoadBalancer Services; plain NodePort Services ignore the split entirely.
+- **C.** Auto-assignment reaches for the upper band (30086-32767) first, so a manually chosen port from the lower band (30000-30085) risks fewer collisions.
+- **D.** Manually requested NodePort values must come from the dynamic band; the static band is reserved for system Services.
+
+<details><summary>Answer</summary>
+
+**C.** — Splitting the default range into a lower band (30000-30085) and an upper band (30086-32767) matters because Kubernetes reaches for the upper one first whenever it auto-picks a port, so an administrator manually requesting a port from the lower band faces less chance of a collision with something auto-assigned.
+
+</details>
+
+### services-011
+
+On a cloud provider that supports it, what does Kubernetes typically do first when a Service of type LoadBalancer is created, before the external load balancer itself is configured?
+
+- **A.** It writes a public IP address directly into the Service's spec.clusterIP field right away.
+- **B.** It makes the same changes as a type: NodePort Service, then the cloud-controller-manager points the external load balancer at that node port.
+- **C.** It sends traffic straight to Pod IPs in every configuration, skipping any node-level port entirely.
+- **D.** It converts the Service to type: ExternalName so clients resolve it straight to the cloud load balancer hostname.
+
+<details><summary>Answer</summary>
+
+**B.** — Kubernetes documentation states that implementing a LoadBalancer Service typically starts by making the same changes as a NodePort Service; from there, the cloud-controller-manager sets up the external load balancer so it directs traffic at that already-assigned node port, with the balancer's own provisioning happening asynchronously.
+
+</details>
+
+### services-012
+
+Which of the following are reasons the Kubernetes documentation gives for preferring the EndpointSlice API over the older, deprecated Endpoints API? (Select all that apply.) *(choose three)*
+
+- **A.** EndpointSlice supports dual-stack clusters, which the Endpoints API does not.
+- **B.** EndpointSlice is required before a Service can use a label selector at all; Endpoints never supported selectors.
+- **C.** EndpointSlice avoids truncating the list of endpoints when a Service has a very large number of backing Pods.
+- **D.** Only EndpointSlice objects can be created for headless Services; Endpoints objects are rejected for them.
+- **E.** EndpointSlice carries information needed for newer features, such as trafficDistribution, that Endpoints lacks.
+
+<details><summary>Answer</summary>
+
+**A.** **C.** **E.** — The documentation lists three specific problems with the deprecated Endpoints API relative to EndpointSlice: no dual-stack support, missing data for newer features like trafficDistribution, and truncation once the endpoint list grows too large for one object. Selector-based Services and headless Services both predate and work with either API.
+
+</details>
+
+### services-013
+
+Gateway API's resource model is described as "role-oriented." Which option correctly matches a concern with the organizational role the documentation associates it with?
+
+- **A.** Infrastructure Provider: concerned with per-app configuration settings and how one Service is put together.
+- **B.** Application Developer: concerned with managing infrastructure that lets isolated clusters serve multiple tenants.
+- **C.** GatewayClass: a human role played by whoever writes HTTPRoute objects, not an API kind.
+- **D.** Cluster Operator: concerned with policies, network access, and application permissions across the cluster.
+
+<details><summary>Answer</summary>
+
+**D.** — The documentation assigns policies, network access, and application permissions to the Cluster Operator role; per-app settings and how a Service gets put together fall to the Application Developer instead, and standing up multi-tenant infrastructure is the Infrastructure Provider's job — the two distractors describing those roles have simply swapped which role owns which concern, and GatewayClass is an API kind, not a role at all.
+
+</details>
+
+### services-014
+
+What is the relationship between a Gateway object and a GatewayClass?
+
+- **A.** A Gateway must reference one GatewayClass, which names the controller implementing Gateways of that class.
+- **B.** A GatewayClass is optional; a Gateway can function correctly without ever referencing one.
+- **C.** A single GatewayClass can only ever be referenced by one Gateway object at a time.
+- **D.** GatewayClass defines the HTTP routing rules directly, while Gateway only stores the controller's name.
+
+<details><summary>Answer</summary>
+
+**A.** — Each Gateway points at a single GatewayClass, and that GatewayClass is what identifies the controller tasked with managing every Gateway built from it; many Gateways can share one GatewayClass, and routing rules live in Route objects, not in GatewayClass.
+
+</details>
+
+### services-015
+
+By default, from which namespaces will a Gateway accept attached Routes, such as HTTPRoutes?
+
+- **A.** Routes from any namespace in the cluster, with no restriction unless one is explicitly configured.
+- **B.** Only Routes that happen to share the same name as the Gateway, regardless of namespace.
+- **C.** Only Routes that were created in that Gateway's own namespace, unless allowedRoutes says otherwise.
+- **D.** Only Routes created in whichever namespace the Gateway's GatewayClass itself lives in.
+
+<details><summary>Answer</summary>
+
+**C.** — Out of the box, a Gateway restricts itself to Routes living alongside it in that one namespace; letting a Route from elsewhere attach means setting the Gateway's allowedRoutes field to permit it.
+
+</details>
+
+### services-016
+
+What does adopting Gateway API mean for a cluster that already has existing Ingress resources?
+
+- **A.** Ingress and Gateway API share the exact same underlying resource, so no conversion of existing objects is needed.
+- **B.** Ingress resources need a one-time conversion to Gateway API resources, since Gateway API doesn't include an Ingress kind.
+- **C.** Gateway API can only be installed in clusters that have never created an Ingress object.
+- **D.** Existing Ingress objects are automatically translated into HTTPRoutes as soon as Gateway API's CRDs are installed.
+
+<details><summary>Answer</summary>
+
+**B.** — Gateway API is documented as the successor to Ingress, but it does not include an Ingress kind of its own, so migrating means a one-time, manual-or-tooled conversion of existing Ingress resources into Gateway API resources; nothing happens automatically.
+
+</details>
+
+### services-017
+
+Which of the following statements about Gateway API's HTTPRoute and GRPCRoute kinds are correct, according to the documentation? (Select all that apply.) *(choose three)*
+
+- **A.** HTTPRoute takes HTTP traffic arriving at a Gateway listener and maps it onward to backend endpoints, typically a Service.
+- **B.** A Gateway handling GRPCRoute traffic must speak HTTP/2 from the very first request, skipping any upgrade from a plain HTTP/1 connection.
+- **C.** Only one HTTPRoute can ever attach to a given Gateway listener at a time.
+- **D.** A GRPCRoute can restrict its match to one specific gRPC service and method, instead of routing all traffic for a hostname.
+- **E.** HTTPRoute and GRPCRoute are both deprecated in favor of the older Ingress path-matching rules.
+
+<details><summary>Answer</summary>
+
+**A.** **B.** **D.** — HTTPRoute and GRPCRoute are current, actively-used Gateway API kinds, not deprecated ones. HTTPRoute maps HTTP traffic to backends such as Services; GRPCRoute needs HTTP/2 without an upgrade dance so gRPC works, and it can narrow matching down to a specific service-and-method pair, as shown in the documentation's Login-method example. Multiple HTTPRoutes may attach to one listener.
+
+</details>
+
+### services-018
+
+A cluster administrator creates an Ingress resource but has not deployed any Ingress controller. What is the practical effect?
+
+- **A.** The kube-apiserver rejects the Ingress object at creation time with a validation error.
+- **B.** Kubernetes automatically installs a default Ingress controller the first time an Ingress object is created.
+- **C.** The cluster's default Service proxy routes traffic for it until a dedicated controller is installed.
+- **D.** Nothing observable happens; the Ingress object alone has no effect without a controller.
+
+<details><summary>Answer</summary>
+
+**D.** — The documentation is explicit that a running Ingress controller is what actually satisfies an Ingress; the Ingress object on its own, with nothing implementing it, changes nothing about how traffic flows.
+
+</details>
+
+### services-019
+
+Which statement correctly describes how TLS works for a standard Ingress resource?
+
+- **A.** Ingress supports only port 443 for TLS, terminating it right at the ingress, so the onward hop to the Service and Pods stays unencrypted.
+- **B.** Ingress lets administrators terminate TLS on any port they choose, and the connection to backend Pods stays encrypted end-to-end.
+- **C.** TLS on an Ingress is configured per-Service rather than per-hostname, so every Service behind one Ingress must share a certificate.
+- **D.** Ingress resources cannot terminate TLS at all; that responsibility always falls to the backend Pods themselves.
+
+<details><summary>Answer</summary>
+
+**A.** — Only port 443 can carry TLS on an Ingress, and decryption happens right there at the ingress point, so what continues on toward the Service and its Pods travels as plain, unencrypted traffic rather than staying encrypted end-to-end.
+
+</details>
+
+### services-020
+
+An Ingress rule sets `pathType: Prefix` with `path: /foo`. Based on the documented path-matching examples, which incoming request path is NOT matched by this rule?
+
+- **A.** /foo
+- **B.** /foo/bar
+- **C.** /foobar
+- **D.** /foo/
+
+<details><summary>Answer</summary>
+
+**C.** — Prefix matching works element by element, splitting both the rule's path and the request path on slashes and comparing piece by piece; a trailing substring like /foobar doesn't line up element-for-element and so fails to match, mirroring the documented /aaa/bbb-versus-/aaa/bbbxyz case. /foo, /foo/, and /foo/bar are each documented as matches (an exact hit, a match ignoring the trailing slash, and a matched subpath).
+
+</details>
+
+### services-021
+
+Which of the following statements about IngressClass are accurate, according to the Kubernetes documentation? (Select all that apply.) *(choose three)*
+
+- **A.** The ingressClassName field on an Ingress is a direct, one-to-one equivalent of the older kubernetes.io/ingress.class annotation.
+- **B.** Marking more than one IngressClass as default causes the admission controller to block creation of Ingress objects lacking an ingressClassName.
+- **C.** An IngressClass's .spec.controller field names the controller that should implement Ingresses of that class.
+- **D.** The IngressClass API object itself can be created as a namespaced resource whenever its parameters are namespace-scoped.
+- **E.** IngressClass parameters can be scoped to a single namespace instead of being cluster-wide.
+
+<details><summary>Answer</summary>
+
+**B.** **C.** **E.** — The documentation warns that having more than one default IngressClass makes the admission controller block Ingresses without an explicit ingressClassName, states that .spec.controller names the implementing controller, and allows .spec.parameters to be namespace-scoped. It also explicitly says ingressClassName is a replacement for the old annotation but "not a direct equivalent," and that no matter how its parameters are scoped, the IngressClass object stays a cluster-scoped API on its own.
+
+</details>
+
+### services-022
+
+A workload running inside the `test` namespace looks up the plain name `data`, with no dot and no namespace qualifier. A Service named `data` exists only in the `prod` namespace. What happens?
+
+- **A.** The query resolves successfully to the prod Service, because CoreDNS searches every namespace by default.
+- **B.** The query returns no results, because an unqualified DNS query is scoped to the Pod's own namespace.
+- **C.** The query fails outright, because unqualified single-label names are always invalid Kubernetes DNS queries.
+- **D.** The query resolves only if the Pod's own ServiceAccount happens to hold RBAC permission to read Services over in prod.
+
+<details><summary>Answer</summary>
+
+**B.** — Leaving a namespace out of a DNS query confines the lookup to whatever namespace the requesting Pod itself lives in, so a bare lookup for "data" from a Pod in test returns nothing; the same client would need to query "data.prod" to reach the Service that actually lives in the prod namespace.
+
+</details>
+
+### services-023
+
+A headless Service (clusterIP: None) defines a selector. How does its DNS resolution differ from a normal ClusterIP Service?
+
+- **A.** The DNS name does not resolve at all, since headless Services are not assigned any DNS records.
+- **B.** The DNS name resolves to the same cluster IP a normal Service would get, just without proxy-layer load balancing.
+- **C.** The DNS name resolves only through SRV records; A/AAAA lookups always fail for headless Services.
+- **D.** The DNS name resolves directly to the set of individual Pod IP addresses backing the Service, instead of one cluster IP.
+
+<details><summary>Answer</summary>
+
+**D.** — For a headless Service with a selector, the cluster's DNS layer hands back address records that point straight at the IPs of the individual Pods behind the Service, rather than one virtual cluster IP, leaving clients to pick from or round-robin across that set themselves.
+
+</details>
+
+### services-024
+
+A Pod spec does not set the `dnsPolicy` field at all. Which DNS policy actually applies to it?
+
+- **A.** "ClusterFirst", even though a policy literally named "Default" also exists.
+- **B.** "Default", since that is the literal name of the fallback policy Kubernetes documents.
+- **C.** "None", which forces the Pod to supply its own dnsConfig or receive no DNS resolution.
+- **D.** "ClusterFirstWithHostNet", used as the safe fallback for Pods lacking an explicit policy.
+
+<details><summary>Answer</summary>
+
+**A.** — The documentation flags this as a naming trap: even though a policy literally called "Default" exists, it is not the one Kubernetes falls back to; leaving dnsPolicy unset instead yields "ClusterFirst."
+
+</details>
+
+### services-025
+
+Which of the following statements about a Pod's dnsConfig field and the "None" DNS policy are correct, according to the documentation? (Select all that apply.) *(choose three)*
+
+- **A.** Choosing "None" as the dnsPolicy value means dnsConfig.nameservers has to list at least one entry.
+- **B.** dnsConfig only has an effect when dnsPolicy is set to "None"; it does nothing under any other policy.
+- **C.** A Pod's dnsConfig can specify at most 3 nameserver IP addresses.
+- **D.** A Pod's merged DNS search domain list can hold as many as 32 entries.
+- **E.** Setting dnsPolicy to "None" makes the Pod inherit DNS settings from its node, the same as the "Default" policy.
+
+<details><summary>Answer</summary>
+
+**A.** **C.** **D.** — The documentation requires dnsConfig to list at least one nameserver address once dnsPolicy is "None", caps that same list at 3 addresses, and permits as many as 32 search domains overall. It also describes dnsConfig as compatible with every dnsPolicy value, not only "None," contradicting the claim that it does nothing elsewhere; inheriting the node's DNS settings is what the "Default" policy does, not "None", which instead relies entirely on dnsConfig.
+
+</details>
+
+## Workloads and Scheduling
+
+32 questions
+
+### workloads-001
+
+A Deployment runs 3 replicas of image v1. An operator runs `kubectl scale deployment/myapp --replicas=5`, changing only `.spec.replicas`. What effect does this have on the Deployment's rollout history?
+
+- **A.** It does not create a new revision, since a Deployment revision is only created when its Pod template changes — scaling alone does not touch the template.
+- **B.** It creates a brand-new revision, because the documentation treats any change at all to `.spec` — including a bare replica-count adjustment like this one — as triggering a fresh ReplicaSet and revision.
+- **C.** It creates a new revision, but only in the specific case where a HorizontalPodAutoscaler happens to already be attached to the Deployment and actively managing its replica count at that moment.
+- **D.** It does create a new revision here, but that previous revision is then deleted immediately afterward, meaning no rollback to the prior state remains possible once the scaling operation finishes.
+
+<details><summary>Answer</summary>
+
+**A.** — A Deployment only creates a new revision when its Pod template (.spec.template) actually changes — scaling the replica count is a separate kind of update that leaves the revision count untouched, which is what lets manual or automatic scaling coexist with an in-progress rollout history.
+
+</details>
+
+### workloads-002
+
+With no custom rolling-update settings configured, what are a Deployment's default `maxUnavailable` and `maxSurge` values?
+
+- **A.** 10% max unavailable and 10% max surge, matching the HPA's default tolerance value.
+- **B.** 25% max unavailable and 25% max surge.
+- **C.** 50% max unavailable and 50% max surge.
+- **D.** 0% unavailable and 0% surge — by default a rolling update keeps the full replica count online with no extra Pods at any point.
+
+<details><summary>Answer</summary>
+
+**B.** — Both rollingUpdate fields default to 25%: maxUnavailable ensures at least 75% of desired Pods stay available during an update, and maxSurge allows up to 125% of desired Pods to exist at once while the new ReplicaSet ramps up.
+
+</details>
+
+### workloads-003
+
+A Deployment's `.spec.strategy.type` is set to `Recreate` instead of `RollingUpdate`. What happens when its Pod template is updated?
+
+- **A.** Kubernetes creates all of the new Pods first, then terminates the old ones once the new Pods are healthy — the mirror image of what RollingUpdate does.
+- **B.** Half of the old Pods are terminated immediately upon the update, and the remaining half keep running normally until the new ReplicaSet reaches full availability on its own.
+- **C.** Every Pod belonging to the old revision is torn down first, and the controller confirms each one is fully gone before creating any Pod from the new revision.
+- **D.** The Deployment refuses to proceed with the update at all until a cluster administrator steps in and manually deletes every Pod belonging to the old ReplicaSet first.
+
+<details><summary>Answer</summary>
+
+**C.** — Recreate is an all-or-nothing strategy: every old-revision Pod is killed and confirmed gone before any new-revision Pod is created, unlike RollingUpdate's overlapping scale-down/scale-up approach.
+
+</details>
+
+### workloads-004
+
+A cluster admin wants to permanently give up the ability to roll a particular Deployment back, in exchange for saving the etcd storage its old ReplicaSets consume. Which single configuration change achieves this?
+
+- **A.** Set `.spec.progressDeadlineSeconds` to 0.
+- **B.** Set `.spec.minReadySeconds` to 0.
+- **C.** Set `.spec.paused` to true.
+- **D.** Set `.spec.revisionHistoryLimit` to 0.
+
+<details><summary>Answer</summary>
+
+**D.** — Explicitly setting revisionHistoryLimit to 0 cleans up all of a Deployment's retained history, which means that Deployment can no longer be rolled back; the other three fields govern stall detection, minimum availability timing, and temporarily halting rollouts, none of which touch retained revision history.
+
+</details>
+
+### workloads-005
+
+A RollingUpdate Deployment is mid-rollout: the old ReplicaSet has 8 running Pods and the new one has 5. While the rollout is still in progress, an autoscaler raises the Deployment from 10 to 15 desired replicas. Under proportional scaling, what happens to the 5 additional replicas?
+
+- **A.** They are spread across both active ReplicaSets in proportion to each one’s current size, with the larger share going to whichever ReplicaSet already has more running Pods.
+- **B.** All 5 additional replicas are added exclusively to the new ReplicaSet, on the theory that only the ReplicaSet representing the rollout’s desired end state should receive newly requested capacity.
+- **C.** All 5 additional replicas are added exclusively to the old ReplicaSet, on the theory that whichever ReplicaSet currently has the most running Pods should absorb any newly requested capacity.
+- **D.** The scale request from the autoscaler is rejected outright and left pending until the in-progress rollout finishes completely, at which point the replica count is re-evaluated.
+
+<details><summary>Answer</summary>
+
+**A.** — Proportional scaling mitigates risk by distributing new replicas across every active ReplicaSet rather than dumping them all into one, weighting the split toward whichever ReplicaSet already holds more Pods; a ReplicaSet already scaled to zero is skipped entirely.
+
+</details>
+
+### workloads-006
+
+Which of the following statements about Deployment rollouts and rollbacks are accurate, according to the documentation? (Select all that apply.) *(choose three)*
+
+- **A.** `kubectl rollout undo deployment/x` without `--to-revision` rolls back to the immediately preceding revision.
+- **B.** Once a Deployment has blown through its progress deadline, checking on it with `kubectl rollout status` reports failure through a non-zero exit status rather than a zero one.
+- **C.** A Deployment can be rolled back even while its rollout is currently paused.
+- **D.** Rolling back a Deployment only reverts the Pod template portion of the spec, not things like an in-flight replica count change.
+- **E.** By default, Kubernetes keeps Deployment revision history forever unless an administrator explicitly sets revisionHistoryLimit to 10.
+
+<details><summary>Answer</summary>
+
+**A.** **B.** **D.** — Without a --to-revision flag, kubectl rollout undo reverts to the previous revision, and kubectl rollout status reports a non-zero exit once the progress deadline is exceeded; because only a template change creates a new revision, rolling back likewise only restores the Pod template. A paused Deployment cannot be rolled back until it is resumed, and the retained-revision default is already 10, not unlimited.
+
+</details>
+
+### workloads-007
+
+A team wants to store a 5 MiB JSON configuration blob for their application, mounted into containers via a volume. Is a ConfigMap a suitable place to store it?
+
+- **A.** Yes — ConfigMaps have no documented upper bound on size at all, so as long as etcd itself has enough room to store the data, any amount can be kept there.
+- **B.** No — ConfigMap data is capped at 1 MiB; larger settings call for mounting a volume backed by other storage, a separate database, or a dedicated file service instead.
+- **C.** No — a ConfigMap can only ever hold short, single-line property values; the object format has no way to represent larger, file-like multi-line blobs at all.
+- **D.** Yes, but only if the data is placed in the ConfigMap's `binaryData` field rather than its `data` field, since binaryData is meant for exactly this kind of larger payload.
+
+<details><summary>Answer</summary>
+
+**B.** — A ConfigMap's stored data cannot exceed 1 MiB; anything larger needs a different mechanism such as a volume backed by other storage, a database, or a file service. ConfigMaps can hold both simple values and file-like multi-line values, so the object type itself isn't the limiting factor here — its size cap is.
+
+</details>
+
+### workloads-008
+
+A running Pod reads one ConfigMap key via `env.valueFrom.configMapKeyRef`, and mounts the entire ConfigMap as a volume in the same container. The ConfigMap is then updated. Without restarting the Pod, what happens to each consumption method?
+
+- **A.** Both the environment variable and the mounted file are refreshed automatically and immediately, since Kubernetes propagates every ConfigMap change to all of its consumers in exactly the same way.
+- **B.** The mounted file never updates on its own until the Pod is deleted and recreated from scratch, whereas the environment variable is reset to the new value the instant the ConfigMap changes.
+- **C.** The environment variable is not updated automatically and needs a Pod restart to pick up the change, while the mounted volume's projected file is eventually updated without any restart.
+- **D.** Neither consumption method ever reflects the update on a running Pod; both the environment variable and the mounted file require deleting and recreating the ConfigMap object itself.
+
+<details><summary>Answer</summary>
+
+**C.** — A ConfigMap value pulled in through an environment variable gets fixed at container start and needs a Pod restart before any change shows up, whereas a ConfigMap mounted as a volume is eventually refreshed in place by the kubelet as it periodically resyncs, without needing a restart.
+
+</details>
+
+### workloads-009
+
+A ConfigMap was created with `immutable: true`. The team now needs to change one of its values. What does Kubernetes require them to do?
+
+- **A.** Run `kubectl patch` against just the specific key that changed, since immutability is documented as only blocking whole-object replacement operations, not smaller, targeted partial patches like this one.
+- **B.** Temporarily set `immutable` back to `false`, make the necessary edit to the data, and then flip it back to `true` once the change has been saved.
+- **C.** Nothing at all needs to change here — immutable ConfigMaps are documented as still refreshing their mounted volumes automatically on a fixed background schedule, immutability notwithstanding.
+- **D.** Delete the ConfigMap and create a new one with the updated data, then recreate any Pods that had mounted the old one.
+
+<details><summary>Answer</summary>
+
+**D.** — Once a ConfigMap is marked immutable, that setting cannot be reverted and its data can't be mutated by any means; the only path forward is deleting and recreating the object, and recreating any Pods that mounted the deleted ConfigMap so they pick up a live mount point again.
+
+</details>
+
+### workloads-010
+
+A platform team is deciding how a workload should obtain a credential to authenticate as a ServiceAccount. What does current Kubernetes guidance (v1.22 and later) recommend, compared with manually creating a `kubernetes.io/service-account-token` Secret?
+
+- **A.** Get a short-lived token that rotates on its own via the TokenRequest API (for example, through a projected volume or `kubectl create token`), reserving a manually created token Secret for situations where TokenRequest genuinely can’t be used.
+- **B.** Manually creating a long-lived `kubernetes.io/service-account-token` Secret is always the preferred approach in every scenario, since an embedded, non-expiring credential is the only mechanism guaranteed to survive Pod restarts and node reboots alike.
+- **C.** There is no real difference between the two approaches at all — both a manually created Secret and a TokenRequest-issued credential produce functionally identical tokens with identical rotation and expiry characteristics.
+- **D.** Store the ServiceAccount's credential inside a ConfigMap object instead of a Secret, since ConfigMaps are documented as refreshing themselves automatically and are just as suitable a place to keep authentication material.
+
+<details><summary>Answer</summary>
+
+**A.** — Since v1.22, the recommended path is a short-lived, auto-rotating token obtained through the TokenRequest API rather than a long-lived Secret; a manually created ServiceAccount token Secret is meant only for situations where TokenRequest genuinely can't be used and a non-expiring credential is an acceptable tradeoff.
+
+</details>
+
+### workloads-011
+
+In a namespace with no RBAC restrictions beyond letting a user create Deployments, what does the documentation's caution about Secrets imply about that user's ability to read Secrets in the same namespace?
+
+- **A.** Nothing at all — the ability to create Deployments is a completely separate permission from Secret access, and having it never opens up any path whatsoever to reading Secret contents in that namespace.
+- **B.** The user gains indirect read access to every Secret in that namespace, since any privilege that results in new Pods coming into existence — such as creating a Deployment — can be leveraged to mount and expose Secret data.
+- **C.** The user can only read Secrets that RBAC explicitly names one by one in a `resourceNames` list attached to their Role, gaining nothing beyond whatever Secrets are individually enumerated that way.
+- **D.** The user could read Secrets only in the specific case where Encryption at Rest happened to be disabled across the whole cluster, since that setting is what actually governs API-level read access.
+
+<details><summary>Answer</summary>
+
+**B.** — The documentation specifically warns that having any privilege that lets someone get a Pod running in a namespace — even indirectly, like being allowed to create a Deployment — hands that person a path to every Secret in the same namespace, since a Pod spec can mount or reference Secret data.
+
+</details>
+
+### workloads-012
+
+Which of the following statements about Kubernetes Secrets are accurate, according to the documentation? (Select all that apply.) *(choose three)*
+
+- **A.** Mounting a Secret into a container through a subPath reference means that container’s copy stays live and refreshes automatically whenever the underlying Secret changes.
+- **B.** By default, every container in a namespace automatically has read access to all Secrets in that namespace, not just the ones referenced in its own Pod's spec.
+- **C.** Unless an administrator has turned on encryption at rest, Secret contents sit in cleartext form inside etcd, the datastore behind the API server.
+- **D.** Individual Secrets are limited to 1 MiB in size.
+- **E.** A workload that runs one of its containers as `privileged: true` effectively gains a back door to every Secret Kubernetes has placed on that same node.
+
+<details><summary>Answer</summary>
+
+**C.** **D.** **E.** — Secrets are unencrypted in etcd by default, capped at 1 MiB, and fully exposed to any privileged container on the same node. By contrast, a subPath-mounted Secret does not receive automatic updates, and a container's Secret visibility is otherwise limited to its own default ServiceAccount's Secret plus anything explicitly wired into that same Pod — not every Secret sitting in the namespace.
+
+</details>
+
+### workloads-013
+
+A team wants to configure a HorizontalPodAutoscaler to scale a DaemonSet based on CPU usage. What happens?
+
+- **A.** This works exactly like autoscaling a Deployment or StatefulSet, since a DaemonSet also exposes a `scale` subresource that the HPA controller can read from and adjust the same way.
+- **B.** It works fine, but only when the HPA object is defined using the `autoscaling/v1` API version rather than the newer `autoscaling/v2` version, which lacks DaemonSet scale-target support.
+- **C.** The HPA mechanism has no effect on workload types that lack an adjustable replica count in the first place, and a DaemonSet is precisely that kind of object.
+- **D.** It works, but only after the DaemonSet has first been converted into an equivalent ReplicaSet or Deployment, since only those controller types expose an adjustable replica count.
+
+<details><summary>Answer</summary>
+
+**C.** — The documentation states plainly that the HPA mechanism is limited to workload types that actually support being resized this way, and calls out a DaemonSet as an object that falls outside that group — DaemonSets run one Pod per eligible node rather than an adjustable replica count, so there is nothing for an HPA to scale.
+
+</details>
+
+### workloads-014
+
+An HPA targets a Deployment currently running 4 replicas. The current average value of the tracked metric is 300m, and the target value is 100m. Using the HPA's basic scaling formula, and ignoring tolerance, what is the resulting desired replica count?
+
+- **A.** 4 replicas (no change, since CPU-based scaling always rounds down to the current replica count).
+- **B.** 8 replicas.
+- **C.** 2 replicas.
+- **D.** 12 replicas.
+
+<details><summary>Answer</summary>
+
+**D.** — The HPA's core formula scales replicas by the ratio of current to desired metric value: desiredReplicas = ceil(currentReplicas × currentMetricValue / desiredMetricValue) = ceil(4 × 300/100) = ceil(12) = 12.
+
+</details>
+
+### workloads-015
+
+An HPA has `behavior.scaleDown.stabilizationWindowSeconds` set to 300. A brief dip in load would otherwise trigger an immediate scale-down. What effect does the stabilization window have?
+
+- **A.** It makes the algorithm look back across the last 300 seconds of previously computed desired states and use the highest of those values, avoiding removal of Pods only to recreate them moments later.
+- **B.** It simply delays the scale-down by exactly 300 seconds and then applies whatever size was most recently computed all at once, with no averaging or smoothing of the intervening values.
+- **C.** It disables scale-down entirely for the full 300 seconds and then automatically falls back to behaving as though `selectPolicy: Disabled` had been set for that direction.
+- **D.** It only ever affects scale-up decisions made by the HPA controller in response to rising load, and has absolutely no bearing whatsoever on how scale-down recommendations get computed or applied.
+
+<details><summary>Answer</summary>
+
+**A.** — The stabilization window approximates a rolling maximum: rather than reacting instantly, the algorithm considers every desired-state recommendation computed within the configured window and picks the highest one, which avoids removing Pods only to need them back moments later as metrics fluctuate.
+
+</details>
+
+### workloads-016
+
+A Deployment is actively managed by a HorizontalPodAutoscaler. An engineer then runs `kubectl apply -f deployment.yaml`, and the manifest still has `spec.replicas: 3` hardcoded from before autoscaling was enabled. What is the documented risk?
+
+- **A.** Nothing happens at all — once an HPA object is attached to a Deployment, every future `kubectl apply` automatically and silently ignores whatever value the `replicas` field holds in the file.
+- **B.** Applying the manifest tells the control plane to resize the Pod set down to whatever `spec.replicas` says in the file, which can fight with the HPA and cause thrashing; the fix is to drop `spec.replicas` from the manifest.
+- **C.** The `apply` command fails outright with a validation error from the API server, since a Deployment that already has an HPA attached permanently rejects all further `kubectl apply` operations against it.
+- **D.** The HPA object itself is permanently disabled and has to be deleted and recreated from scratch every time a `kubectl apply` command touches the underlying Deployment it targets.
+
+<details><summary>Answer</summary>
+
+**B.** — Leaving spec.replicas in the manifest means every subsequent apply reasserts that stale number, overriding whatever count the HPA had settled on and potentially causing flapping; the documented fix is to strip spec.replicas out of the manifest file entirely once an HPA owns scaling for that workload.
+
+</details>
+
+### workloads-017
+
+Which of the following statements about the HorizontalPodAutoscaler are accurate, according to the documentation? (Select all that apply.) *(choose three)*
+
+- **A.** By default, the HPA controller queries metrics roughly every 15 seconds, via the `--horizontal-pod-autoscaler-sync-period` setting.
+- **B.** The HPA control loop runs continuously, recalculating immediately on every metrics change rather than on a fixed interval.
+- **C.** Resource metrics like CPU are typically served by an add-on called Metrics Server through the `metrics.k8s.io` API.
+- **D.** If a Pod's containers aren't configured with the matching resource request, the HPA treats that Pod's CPU utilization as 0% for scaling purposes.
+- **E.** Custom metrics are typically served through the `custom.metrics.k8s.io` API, provided by adapter API servers from metrics solution vendors.
+
+<details><summary>Answer</summary>
+
+**A.** **C.** **E.** — The HPA control loop runs intermittently (every 15 seconds by default, not continuously), pulling per-Pod resource metrics such as CPU from Metrics Server via metrics.k8s.io and custom metrics from vendor-supplied adapters via custom.metrics.k8s.io. When a container is missing its resource request, that Pod's utilization is left undefined and the autoscaler simply takes no action on that metric — it is not treated as 0%.
+
+</details>
+
+### workloads-018
+
+A bare Pod, created directly with no owner reference, happens to carry labels that match an existing ReplicaSet’s selector. What happens?
+
+- **A.** Nothing happens at all; a ReplicaSet only ever manages the Pods it created from its own template, and has no mechanism for noticing or reacting to Pods that already existed beforehand.
+- **B.** The API server rejects the bare Pod's creation outright, right at admission time, because its labels happen to collide with the selector already claimed by an existing ReplicaSet in that namespace.
+- **C.** The ReplicaSet immediately acquires the Pod through its selector, and if that pushes the count above the desired replica total, the ReplicaSet terminates a Pod to bring the count back down.
+- **D.** The ReplicaSet notices the label collision between its selector and the new Pod but only records a warning Event about it, leaving the Pod itself completely alone and unmanaged.
+
+<details><summary>Answer</summary>
+
+**C.** — A ReplicaSet acquires any Pod with no controller owner reference whose labels match its selector, not just Pods it created itself; once acquired, if the ReplicaSet is now over its desired replica count, it deletes a Pod to bring the total back in line.
+
+</details>
+
+### workloads-019
+
+A team is managing a bare ReplicaSet directly (not through a Deployment) and wants to perform a controlled rolling update of the container image. What does the documentation say about this?
+
+- **A.** ReplicaSets natively support rolling updates through `kubectl rollout`, behaving identically to Deployments in every respect, including how maxSurge and maxUnavailable are honored during the update.
+- **B.** ReplicaSets only ever support the abrupt `Recreate`-style replacement of Pods and have no concept whatsoever that resembles a gradual, rolling update process.
+- **C.** Performing a rolling update on a bare ReplicaSet requires deleting it first, since a new Pod template can never be applied to an existing ReplicaSet in place.
+- **D.** A bare ReplicaSet has no built-in mechanism for a rolling update; achieving a controlled, gradual switch to a new Pod spec means using a Deployment instead.
+
+<details><summary>Answer</summary>
+
+**D.** — The documentation is explicit that a ReplicaSet on its own has nothing built in for rolling updates, and points readers toward a Deployment whenever Pods need to transition to a new spec gradually and under control.
+
+</details>
+
+### workloads-020
+
+A StatefulSet named `web` sets `serviceName: nginx`. Which of the following is required for the Pods' stable network identities to work as documented?
+
+- **A.** A Headless Service (with `clusterIP: None`), created by the user and matching the StatefulSet's `serviceName`, is required to control the Pods' network domain.
+- **B.** A regular ClusterIP Service is entirely sufficient for this purpose; the StatefulSet is documented as resolving headless-style DNS internally, without needing any Service the user creates themselves.
+- **C.** No Service object is needed here at all — the kubelet is responsible for assigning each StatefulSet Pod its own stable DNS name directly, with no Service involved.
+- **D.** A NodePort Service is what is actually required here, so that each Pod ordinal in the StatefulSet maps to its own distinct, externally reachable port number on every node.
+
+<details><summary>Answer</summary>
+
+**A.** — StatefulSets require a Headless Service to govern the network identity of their Pods, and creating that Service is the user's responsibility, not something the StatefulSet sets up on its own.
+
+</details>
+
+### workloads-021
+
+A StatefulSet named `web` has 3 replicas and the default Pod management policy. During initial rollout, `web-1` becomes Running and Ready, but `web-0` then fails before `web-2` is launched. What happens to `web-2`?
+
+- **A.** `web-2` is created immediately anyway and proceeds on its own schedule, since only the very first Pod's readiness in the whole set actually affects the rest of the rollout.
+- **B.** `web-2` stays unlaunched until `web-0` comes back up and reaches Running-and-Ready, because a StatefulSet won't skip ahead of an unhealthy predecessor.
+- **C.** `web-2` simply takes over `web-0`'s abandoned ordinal number, since StatefulSets are documented as filling in gaps left by failed Pods using whichever Pod gets created next in line.
+- **D.** `web-2` is permanently skipped from that point forward, and the whole StatefulSet is immediately marked Failed without any further attempt to recover `web-0`.
+
+<details><summary>Answer</summary>
+
+**B.** — StatefulSets enforce strict ordering: a Pod's predecessor must be Running and Ready before the next ordinal is created, so web-2 is held back until web-0 recovers, even though web-1 had already come up successfully.
+
+</details>
+
+### workloads-022
+
+Why can DaemonSet Pods run on a node that is marked `unschedulable`, when ordinary Deployment Pods cannot?
+
+- **A.** DaemonSet Pods bypass the scheduler entirely and are placed directly by the kubelet on every matching node.
+- **B.** Unschedulable nodes are automatically excluded from DaemonSet management, so this situation can never arise.
+- **C.** Every DaemonSet Pod automatically receives, courtesy of the DaemonSet controller, a toleration for the `node.kubernetes.io/unschedulable:NoSchedule` taint.
+- **D.** DaemonSet Pods run with `priorityClassName: system-node-critical` by default, which overrides every taint on a node.
+
+<details><summary>Answer</summary>
+
+**C.** — The DaemonSet controller automatically tolerates several node conditions, including the unschedulable taint, so its Pods can still land on nodes an ordinary scheduler would otherwise skip for new work.
+
+</details>
+
+### workloads-023
+
+A platform team needs a network-plugin agent that must run as exactly one copy on every node providing connectivity for that node, alongside a stateless web frontend that just needs a configurable number of interchangeable replicas. Which controllers does the documentation point to for each?
+
+- **A.** Deployment for both workloads, since a Deployment configured with a `nodeSelector` and a replica count matched to the node count guarantees exactly one Pod lands on every node in the cluster.
+- **B.** DaemonSet for both workloads, since a DaemonSet can also be scaled up or down to an arbitrary replica count that stays completely independent of how many nodes the cluster actually has.
+- **C.** StatefulSet for the network-plugin agent, since it needs the kind of stable, per-node identity a StatefulSet provides, paired with a DaemonSet for the stateless frontend instead.
+- **D.** DaemonSet for the network-plugin agent, because it is a node-level function tied to each host, and Deployment for the stateless frontend, where scaling and rollout behavior matter more than which host runs it.
+
+<details><summary>Answer</summary>
+
+**D.** — The documentation recommends a DaemonSet exactly for node-level functionality — network plugins are its own example — where a copy must run on every relevant host, and a Deployment for stateless services where scaling and rolling updates matter more than pinning Pods to specific nodes.
+
+</details>
+
+### workloads-024
+
+A Job is created with `.spec.completions` left unset and `.spec.parallelism` set to 5; its Pods coordinate through an external work queue to decide what to process. Which Job pattern is this, and how does the Job know it is done?
+
+- **A.** Work-queue Job: once any single Pod finishes successfully, the Job controller stops creating new Pods, and the whole Job counts as done only after every remaining Pod has also exited and at least one succeeded.
+- **B.** Non-parallel Job: only one Pod is ever started at a time, and the whole Job completes the moment that single Pod finishes successfully, regardless of the parallelism value configured.
+- **C.** Fixed-completion-count Job: the Job represents one overall task and is complete only once exactly 5 Pods have succeeded, a number drawn from `.spec.completions` rather than `.spec.parallelism`.
+- **D.** Indexed Job: each of the 5 Pods is assigned its own unique completion index in the range 0 through 4, and the Job is complete once every index has a successful Pod.
+
+<details><summary>Answer</summary>
+
+**A.** — Leaving completions unset while setting parallelism describes the work-queue pattern: once any single Pod exits successfully no further Pods are started, and the Job is considered done only after every remaining Pod has also terminated, with at least one success recorded.
+
+</details>
+
+### workloads-025
+
+A Job has `backoffLimit: 5` and `activeDeadlineSeconds: 100`. After 100 seconds, only 2 of the 5 allowed pod-failure retries have occurred and the Job is still actively retrying. What happens?
+
+- **A.** The Job keeps retrying until `backoffLimit` is reached, because `activeDeadlineSeconds` only takes effect after the retry budget is exhausted.
+- **B.** The Job is terminated and marked failed with reason `DeadlineExceeded`, because `activeDeadlineSeconds` takes precedence over `backoffLimit` regardless of remaining retries.
+- **C.** The Job pauses rather than failing, waiting for an operator to intervene manually.
+- **D.** The Job's deadline timer restarts for another 100 seconds since retries are still available under `backoffLimit`.
+
+<details><summary>Answer</summary>
+
+**B.** — A Job's activeDeadlineSeconds outranks its backoffLimit: hitting the time limit stops every Pod still running and flips the Job's status to Failed with reason DeadlineExceeded, even if the retry budget hasn't been used up yet.
+
+</details>
+
+### workloads-026
+
+Which of the following statements about Kubernetes Jobs are accurate, according to the documentation? (Select all that apply.) *(choose three)*
+
+- **A.** A DaemonSet is the controller the documentation points to for workloads that finish up and exit by themselves, batch-style tasks being the typical example.
+- **B.** A Job's Pod template must use a `restartPolicy` of either `Never` or `OnFailure` — `Always` is not permitted.
+- **C.** The default value of `.spec.backoffLimit` is always 6, regardless of whether a per-index backoff limit is configured.
+- **D.** Setting `.spec.ttlSecondsAfterFinished` lets a finished Job (and its Pods) be automatically deleted some time after it completes.
+- **E.** When a Job is suspended, any running Pods that aren't already `Completed` are terminated, and the `activeDeadlineSeconds` timer is stopped and reset.
+
+<details><summary>Answer</summary>
+
+**B.** **D.** **E.** — Jobs require restartPolicy Never or OnFailure, ttlSecondsAfterFinished enables automatic post-completion cleanup, and suspending a Job terminates its non-completed Pods while pausing and resetting the activeDeadlineSeconds timer. A Job — not a DaemonSet — is the controller meant for self-terminating batch work, and backoffLimit's default of 6 only holds when no per-index backoff limit is set; specifying one changes the overall default to MaxInt32.
+
+</details>
+
+### workloads-027
+
+Which of the following statements about StatefulSets are accurate, according to the documentation? (Select all that apply.) *(choose three)*
+
+- **A.** Each Pod in a StatefulSet gets a stable hostname of the form `$(statefulset-name)-$(ordinal)`.
+- **B.** With `podManagementPolicy: Parallel`, the StatefulSet controller launches and terminates all Pods in parallel instead of waiting for one Pod to become Ready before starting the next.
+- **C.** A partitioned rolling update only touches Pods whose ordinal number is at least as large as the configured partition value.
+- **D.** Deleting a StatefulSet or scaling it down automatically deletes the PersistentVolumes associated with it, unless a retention policy says otherwise.
+- **E.** The default `.spec.updateStrategy.type` for a StatefulSet is `OnDelete`.
+
+<details><summary>Answer</summary>
+
+**A.** **B.** **C.** — StatefulSet Pods get hostnames of the form name-ordinal, Parallel pod management drops the wait-for-Ready ordering for both launch and termination, and a rolling-update partition only touches ordinals at or above the partition value. By default, deleting or scaling down a StatefulSet leaves its PersistentVolumes untouched precisely to protect data, and the default update strategy is RollingUpdate, not OnDelete.
+
+</details>
+
+### workloads-028
+
+A team currently uses `nodeSelector` to place Pods on SSD-labeled nodes, but now also wants the scheduler to still place the Pod somewhere — just with lower priority — when no SSD node is available. Which mechanism supports this kind of soft requirement, unlike plain `nodeSelector`?
+
+- **A.** `nodeSelector` already supports this kind of soft, best-effort matching on its own, as long as more than a single label happens to be listed in its match criteria.
+- **B.** `nodeName`, because the scheduler is documented as automatically falling back to any other available node whenever the specifically named node doesn't happen to exist.
+- **C.** Node affinity's `preferredDuringSchedulingIgnoredDuringExecution` rule, which lets the scheduler still place the Pod even when no node satisfies the preference.
+- **D.** Node affinity's `requiredDuringSchedulingIgnoredDuringExecution` rule, since the IgnoredDuringExecution suffix means the scheduler may relax the rule and place the Pod elsewhere when no matching node is available.
+
+<details><summary>Answer</summary>
+
+**C.** — Node affinity's preferred form is the documented soft constraint: the scheduler tries to honor it but still schedules the Pod elsewhere if no matching node exists, unlike nodeSelector or the required affinity form, both of which are hard requirements.
+
+</details>
+
+### workloads-029
+
+What distinguishes inter-pod affinity/anti-affinity from node affinity?
+
+- **A.** Inter-pod affinity can only ever express anti-affinity toward other Pods; there is no equivalent way within the feature to express a positive affinity of any kind.
+- **B.** Inter-pod affinity rules are evaluated on an ongoing, continuous basis even after the Pod starts running, unlike node affinity, which the scheduler only checks once, at scheduling time.
+- **C.** Inter-pod affinity replaces `nodeSelector` outright and, per the documentation, can never be combined with any node affinity rules defined within that same Pod's spec.
+- **D.** Inter-pod affinity constrains Pod placement using the labels of other Pods already running within a topology domain, rather than labels on the node itself.
+
+<details><summary>Answer</summary>
+
+**D.** — Rules keyed off other Pods — the inter-Pod affinity feature (and its anti-affinity counterpart) — look at labels carried by Pods that happen to be running within a given topology domain, such as a node or zone, instead of labels attached to the node itself the way node affinity and nodeSelector do; a positive podAffinity and a repelling podAntiAffinity both exist, and neither is re-evaluated once scheduling has already happened.
+
+</details>
+
+### workloads-030
+
+How does Kubernetes handle a container that exceeds its CPU limit, versus one that exceeds its memory limit?
+
+- **A.** CPU overuse is throttled as a hard ceiling the container can’t exceed, while memory overuse can lead to a reactive out-of-memory kill that only fires once the kernel actually detects memory pressure.
+- **B.** Both cases result in the kernel immediately and unconditionally OOM-killing the offending container the instant either limit is crossed, with no throttling or grace period involved for either resource.
+- **C.** CPU overuse always triggers an immediate container restart initiated by the kubelet, while memory overuse is silently ignored entirely unless a ResourceQuota object also happens to be configured for that namespace.
+- **D.** Both cases are handled identically through CPU throttling at the cgroup level, since memory limits in Kubernetes are documented as purely advisory hints rather than anything the kernel actually enforces.
+
+<details><summary>Answer</summary>
+
+**A.** — CPU limits are enforced as a hard ceiling through throttling, so a container simply can't use more CPU than its limit allows, while memory limits are enforced reactively: the kernel only intervenes with an OOM kill once it actually detects memory pressure, so brief overshoots aren't guaranteed to be caught instantly.
+
+</details>
+
+### workloads-031
+
+A namespace has a ResourceQuota with a hard limit on `requests.cpu` and `requests.memory`. A user then tries to create a Pod that specifies no CPU or memory requests or limits at all. What happens?
+
+- **A.** The Pod is created successfully with completely unlimited CPU and memory, since ResourceQuota is documented as only constraining the specific Pods that explicitly opt in by declaring their own requests.
+- **B.** The control plane may reject the Pod’s admission, because a namespace that enforces a quota on cpu or memory requires every new Pod to declare a request or limit for that resource.
+- **C.** The Pod is created normally, and the scheduler automatically and retroactively assigns it whatever quota capacity happens to remain unused in the namespace, treating that leftover amount as its implicit request.
+- **D.** The quota is simply ignored for that one particular Pod, and any violation of the configured hard limits is only ever reported afterward, after the fact, through a plain Kubernetes Event.
+
+<details><summary>Answer</summary>
+
+**B.** — Once a namespace has a ResourceQuota covering cpu or memory, every new Pod submitted there needs to declare a request or a limit for that resource, or the control plane may turn away its admission outright; a LimitRange can auto-fill sensible defaults so nobody has to remember this by hand.
+
+</details>
+
+### workloads-032
+
+Which of the following statements about ResourceQuota and Pod scheduling are accurate, according to the documentation? (Select all that apply.) *(choose three)*
+
+- **A.** If a Deployment requests more resources than a namespace's quota allows, creating the Deployment object itself fails outright at the API server.
+- **B.** A `LimitRange` can be used to apply default resource requests automatically, sparing users from having to set them by hand on every Pod.
+- **C.** Extended resources can't be split between more usage than is actually granted, which is why a container's request and its limit for the same extended resource have to match whenever both are given.
+- **D.** ResourceQuota enforcement is tied to overall cluster capacity, so adding more nodes automatically raises a namespace's effective quota.
+- **E.** For any given resource type, the scheduler keeps the combined requests of every Pod it places on a node from climbing past what that node can actually provide.
+
+<details><summary>Answer</summary>
+
+**B.** **C.** **E.** — A LimitRange can supply default requests automatically, extended resources require equal request and limit values because they can't be overcommitted, and the scheduler always keeps a node's summed Pod requests under its capacity. Creating a Deployment that exceeds quota actually succeeds at the API level — it just may not get all of its Pods admitted — and ResourceQuota amounts are fixed, absolute values independent of cluster capacity, so adding nodes doesn't raise them.
+
+</details>
+
+## Storage
+
+15 questions
+
+### storage-001
+
+A PVC has no matching static PersistentVolume, so the cluster must create one on the fly for that class. Which three StorageClass fields drive that on-the-fly creation?
+
+- **A.** provisioner, parameters, and reclaimPolicy
+- **B.** apiVersion, kind, and metadata
+- **C.** accessModes, capacity, and volumeMode
+- **D.** storageClassName, selector, and resources
+
+<details><summary>Answer</summary>
+
+**A.** — A StorageClass always carries provisioner, parameters, and reclaimPolicy, which the dynamic-provisioning process uses when a PV in that class needs to be created to satisfy a PVC. apiVersion/kind/metadata belong to every Kubernetes object generically, accessModes/capacity/volumeMode describe a PV's own spec, and storageClassName/selector/resources describe a PVC's spec — none of those three groupings is what actually drives a StorageClass's dynamic-provisioning behavior.
+
+</details>
+
+### storage-002
+
+A cluster has two StorageClasses, both annotated storageclass.kubernetes.io/is-default-class: "true", created at different times. A PVC is then created with no storageClassName set. Which StorageClass does Kubernetes actually use for that PVC?
+
+- **A.** Whichever of the two default StorageClasses has a name that sorts first alphabetically
+- **B.** Whichever of the two default StorageClasses was created most recently
+- **C.** Neither — the API server rejects the PVC until only one default StorageClass remains
+- **D.** Whichever default StorageClass was created first, since Kubernetes never lets a newer default override an older one
+
+<details><summary>Answer</summary>
+
+**B.** — When more than one StorageClass is marked default, Kubernetes breaks the tie by favoring whichever of those defaults came into existence latest, for any PVC that doesn't specify storageClassName — it doesn't sort alphabetically, reject the PVC, or prefer the oldest default.
+
+</details>
+
+### storage-003
+
+A new StorageClass object is created without setting its reclaimPolicy field at all. What reclaim policy do PersistentVolumes dynamically created from that class end up with?
+
+- **A.** Recycle, so the underlying storage gets a basic scrub and then goes back into the pool ready for the next claim
+- **B.** Retain, since leaving reclaimPolicy unset is treated the same as explicitly requesting manual reclamation
+- **C.** Delete, removing the PV object and its backing storage asset when the claim is released
+- **D.** There is no default — the StorageClass fails to create until reclaimPolicy is explicitly specified
+
+<details><summary>Answer</summary>
+
+**C.** — If a StorageClass doesn't specify reclaimPolicy, it defaults to Delete, not Retain or Recycle, and the class is still created successfully without an explicit value — omitting the field doesn't block creation.
+
+</details>
+
+### storage-004
+
+A StorageClass currently uses the default Immediate volume binding mode, and Pods keep landing in an unschedulable state because their PVs get provisioned somewhere that doesn't match the Pod's other scheduling constraints. Switching that StorageClass to volumeBindingMode: WaitForFirstConsumer addresses this how?
+
+- **A.** It makes the scheduler ignore the PVC's storage-capacity requirement entirely when placing the Pod
+- **B.** It provisions the PersistentVolume immediately, before the PersistentVolumeClaim object itself even exists
+- **C.** It turns off dynamic provisioning for that class, requiring an administrator to pre-create a matching PV by hand
+- **D.** It delays binding and provisioning until some Pod actually claims the PVC, so the PV fits that Pod's scheduling constraints
+
+<details><summary>Answer</summary>
+
+**D.** — WaitForFirstConsumer holds off binding or provisioning a PersistentVolume until some Pod referencing the PVC actually gets created, letting the PV be selected or provisioned in line with that Pod's scheduling requirements — it doesn't disable dynamic provisioning, reorder provisioning ahead of the PVC's existence, or drop the storage-capacity requirement.
+
+</details>
+
+### storage-005
+
+Which of the following statements about StorageClass configuration are accurate, according to the documentation? (Select all that apply.) *(choose three)*
+
+- **A.** A StorageClass can define at most 512 parameters, and everything in that parameters map — every key plus every value combined — has to fit within a 256 KiB size ceiling.
+- **B.** The volume-expansion feature enabled by a StorageClass's allowVolumeExpansion field can only be used to make a volume bigger, never to shrink it.
+- **C.** Mount options listed in a StorageClass's mountOptions field are checked by the API server at creation time, so a typo there gets rejected immediately.
+- **D.** Naming an external, non-"kubernetes.io"-prefixed program in a StorageClass's provisioner field is a normal, supported way to provision storage, not just the built-in internal provisioners.
+- **E.** Recycle is the reclaim policy a newly created StorageClass gets whenever its reclaimPolicy field is left unset.
+
+<details><summary>Answer</summary>
+
+**A.** **B.** **D.** — StorageClass parameters are capped at 512 entries and 256 KiB total, volume expansion only ever grows a volume, and external provisioners are an explicitly supported alternative to the built-in internal ones. Mount options, however, are never validated at either the class or the PV — an invalid one only surfaces as a failed mount later — and an omitted reclaimPolicy defaults to Delete, not Recycle.
+
+</details>
+
+### storage-006
+
+A Pod defines an emptyDir volume, and one of its containers crashes and gets restarted by the kubelet. Separately, at some later point, the Pod itself is removed from the node entirely. What happens to the emptyDir contents in each case?
+
+- **A.** The container crash leaves the emptyDir's data intact; only removing the Pod from the node deletes that data permanently.
+- **B.** Both events permanently delete the emptyDir's data immediately, since emptyDir is only ever backed by ephemeral node storage.
+- **C.** Neither event touches the emptyDir's data — it is only cleared when the whole node is rebooted.
+- **D.** The container crash deletes the emptyDir's data, but removing the Pod from the node leaves the volume behind for the next Pod scheduled there.
+
+<details><summary>Answer</summary>
+
+**A.** — A crashing container is restarted in place without its Pod ever leaving the node, so an emptyDir's data rides out that restart untouched; it's only when the Pod itself is removed from the node — for any reason — that the emptyDir's contents are permanently deleted, not on every container restart and not tied to a node reboot.
+
+</details>
+
+### storage-007
+
+A Pod's hostPath volume sets type: DirectoryOrCreate for a path that doesn't yet exist on the node. What does the kubelet do?
+
+- **A.** It fails the Pod immediately, since DirectoryOrCreate still requires the directory to pre-exist despite its name
+- **B.** It creates an empty directory at that path, with permission 0755 and the kubelet's own group and ownership
+- **C.** It silently mounts an empty tmpfs at that path instead of touching the host's filesystem
+- **D.** It creates an empty file rather than a directory, since Create modes always default to file creation
+
+<details><summary>Answer</summary>
+
+**B.** — DirectoryOrCreate is defined specifically to create an empty directory — permission 0755, owned by the same group and user as the kubelet — when nothing already exists at the given path; that's different from Directory, which requires the directory to already be there, and from FileOrCreate, which creates a file rather than a directory.
+
+</details>
+
+### storage-008
+
+Which PersistentVolumeClaim access mode should be requested to guarantee that only one Pod in the entire cluster — not merely one Pod per node — can mount the volume read-write at a time?
+
+- **A.** ReadWriteOnce, since that mode already restricts a volume to being used by a single Pod anywhere in the cluster
+- **B.** ReadOnlyMany, combined with a NetworkPolicy that blocks write traffic from every Pod but one
+- **C.** ReadWriteOncePod, which is specifically documented as constraining the volume to a single Pod across the whole cluster
+- **D.** ReadWriteMany, as long as the StorageClass's allowVolumeExpansion field is also set to true
+
+<details><summary>Answer</summary>
+
+**C.** — ReadWriteOncePod exists precisely because ReadWriteOnce, despite its name, still lets multiple Pods on the same node read from or write to the volume — only ReadWriteOncePod is documented as limiting a volume to a single Pod cluster-wide. ReadOnlyMany and ReadWriteMany describe entirely different, more permissive sharing patterns and have nothing to do with allowVolumeExpansion.
+
+</details>
+
+### storage-009
+
+An administrator wants every PersistentVolume dynamically provisioned from a particular StorageClass to be assigned the Recycle reclaim policy. Can the StorageClass's reclaimPolicy field be set to achieve this?
+
+- **A.** Yes, and Recycle is in fact what a StorageClass reclaimPolicy defaults to when the field is left unset
+- **B.** Yes, but only for StorageClasses whose provisioner is one of the internal, "kubernetes.io"-prefixed provisioners
+- **C.** No, because StorageClass objects cannot set a reclaim policy at all — it must be edited on each PV individually after creation
+- **D.** No — a StorageClass's reclaimPolicy field only accepts Delete or Retain; Recycle itself is deprecated in favor of dynamic provisioning
+
+<details><summary>Answer</summary>
+
+**D.** — The reclaimPolicy field on a StorageClass can only be Delete or Retain; Recycle isn't a valid value there at all, and the documentation separately marks Recycle itself as deprecated in favor of using dynamic provisioning. A StorageClass absolutely can set a reclaim policy — it just can't be Recycle — and this isn't limited to internal provisioners.
+
+</details>
+
+### storage-010
+
+Which of the following statements about emptyDir, hostPath, and local volumes are accurate, according to the documentation? (Select all that apply.) *(choose three)*
+
+- **A.** hostPath volume usage counts as node ephemeral-storage usage, so it is automatically tracked against a Pod's ephemeral-storage limits.
+- **B.** A container crashing inside a Pod does not remove the Pod from its node, so an emptyDir volume's contents survive that crash.
+- **C.** Setting emptyDir.medium to "Memory" backs the volume with tmpfs, and anything written there counts against the writing container's memory limit.
+- **D.** A local volume can be provisioned dynamically in much the same way a CSI-backed StorageClass provisions volumes on demand.
+- **E.** Using a local volume requires setting node affinity on the PersistentVolume so the scheduler places consuming Pods on the correct node.
+
+<details><summary>Answer</summary>
+
+**B.** **C.** **E.** — A crashed container doesn't remove its Pod from the node, so emptyDir data outlives the crash; memory-medium emptyDir volumes are backed by tmpfs and do count against the writing container's memory limit; and local volumes require the PV to declare node affinity so the scheduler can place Pods correctly. hostPath usage is explicitly documented as not counted as ephemeral-storage usage, and local volumes explicitly do not support dynamic provisioning — only static PVs.
+
+</details>
+
+### storage-011
+
+A user deletes a PersistentVolumeClaim while a running Pod is still actively using it. What actually happens to that PVC, given the Storage Object in Use Protection feature?
+
+- **A.** The PVC's removal is postponed — its status becomes Terminating with a kubernetes.io/pvc-protection finalizer — until no Pod is using it any longer.
+- **B.** The PVC is removed from the API immediately, without any postponement, and the Pod's mount simply stops working the next time the container happens to restart.
+- **C.** The Pod that is using the PVC is forcibly terminated right away so that the PVC deletion can complete.
+- **D.** The delete request is rejected outright by the API server, and the PVC object is left completely untouched.
+
+<details><summary>Answer</summary>
+
+**A.** — Storage Object in Use Protection postpones — rather than blocks or immediately completes — deletion of a PVC that's actively used by a Pod: the PVC moves to Terminating and picks up a kubernetes.io/pvc-protection finalizer, and removal only finishes once no Pod is using it. The API server doesn't reject the request outright, and no Pod gets force-terminated as a side effect.
+
+</details>
+
+### storage-012
+
+An administrator sets a PVC's volumeName field to point at a specific pre-existing PersistentVolume, intending to reserve that exact PV for this claim. Per the documentation, why might a different PVC bind to that PV first anyway?
+
+- **A.** It can't happen — setting volumeName on a PVC always reserves that PV exclusively, with no further action needed
+- **B.** Setting volumeName alone doesn't reserve the PV — the PV's own claimRef must also name this PVC, or another claim can still bind first
+- **C.** PVs ignore a PVC's volumeName field entirely; binding is always decided purely by matching storage class and size
+- **D.** volumeName only ever takes effect after the PVC in question has already been bound to some entirely different PV, so it can never pre-empt another pending claim
+
+<details><summary>Answer</summary>
+
+**B.** — Declaring volumeName on a PVC expresses a binding preference, but by itself it grants no binding privilege over that PV — another PVC can still bind to it first. To truly reserve the PV, the administrator also needs to set the PV's own claimRef to name that specific PVC, which prevents other claims from binding to it.
+
+</details>
+
+### storage-013
+
+An administrator directly edits a bound PersistentVolume's capacity to a larger value, then edits the matching PVC's spec.resources so its requested size equals that same larger value. What happens to the actual, underlying storage?
+
+- **A.** The underlying storage is automatically and immediately resized to match the new larger value, since editing a PV's declared capacity always triggers the same resize workflow a PVC edit would
+- **B.** The PVC transitions to a Failed state, because manually editing a bound PersistentVolume's capacity is not permitted
+- **C.** Nothing is resized — the control plane sees the PVC and PV already agree on size and concludes no resize is necessary
+- **D.** The resize happens, but only once a new Pod is created to replace whichever Pod is currently using that PVC
+
+<details><summary>Answer</summary>
+
+**C.** — Because the control plane just compares the PVC's requested size against the PV's recorded capacity, manually editing both to already match each other tricks it into concluding the desired state is already satisfied, so no actual storage resize is triggered — the recommended path is editing only the PVC and letting expansion resize the real backing volume.
+
+</details>
+
+### storage-014
+
+A PersistentVolume's claim has just been deleted, but the volume's data hasn't been cleaned up or reclaimed by the cluster yet. Which PV phase reflects this?
+
+- **A.** Available — meaning the volume is a free resource not yet bound to any claim
+- **B.** Bound — meaning the volume is currently bound to a claim
+- **C.** Failed — meaning the volume's automated reclamation process has failed
+- **D.** Released — the claim was deleted, but the storage resource hasn't yet been reclaimed
+
+<details><summary>Answer</summary>
+
+**D.** — Released specifically describes a PV whose bound claim was deleted while the backing storage resource itself hasn't yet been reclaimed — distinct from Available (never bound), Bound (still tied to a live claim), or Failed (automated reclamation itself broke down).
+
+</details>
+
+### storage-015
+
+Which of the following statements about how PersistentVolumeClaims bind to PersistentVolumes are accurate, according to the documentation? (Select all that apply.) *(choose three)*
+
+- **A.** A PVC with storageClassName set to the empty string "" is asking specifically for a classless PV, and can only bind to PVs that are likewise classless.
+- **B.** A PVC that specifies a non-empty label selector can still have a matching PersistentVolume dynamically provisioned for it, as long as the StorageClass supports dynamic provisioning.
+- **C.** When a PVC specifies both a StorageClass and a selector, a PV must satisfy both the requested class and the selector's label requirements to bind.
+- **D.** Whenever the control plane's binding loop is working with a PersistentVolume that was dynamically provisioned specifically for a given PVC, it always binds that PV to that PVC.
+- **E.** PersistentVolumeClaims mounted with a "Many" access mode such as ReadWriteMany can be shared across more than one namespace at once.
+
+<details><summary>Answer</summary>
+
+**A.** **C.** **D.** — An empty storageClassName on a PVC means 'no class,' matched only against classless PVs; a StorageClass request and a selector on the same PVC are ANDed together, so a bound PV must satisfy both; and the binding loop always binds a dynamically-provisioned PV to the PVC it was provisioned for. A non-empty selector, however, explicitly rules out dynamic provisioning for that PVC, and PVCs are namespaced objects, so even "Many" access modes only let a claim be mounted within a single namespace.
+
+</details>
+
+## Troubleshooting
+
+40 questions
+
+### troubleshooting-001
+
+A node loses network connectivity and its kubelet never comes back. Per the documented example of a down node, what happens to that node's own reported conditions?
+
+- **A.** Only the Ready condition changes; MemoryPressure, DiskPressure, and PIDPressure keep whatever value they last reported before the kubelet stopped checking in.
+- **B.** The API server drops the node's conditions block entirely from its status until the kubelet resumes reporting, leaving nothing to inspect.
+- **C.** MemoryPressure, DiskPressure, PIDPressure, and Ready all flip to Unknown, each carrying a NodeStatusUnknown reason noting that the kubelet stopped posting status.
+- **D.** Kubernetes marks the node NotReady in its status but applies no taint at all until an administrator manually taints it.
+
+<details><summary>Answer</summary>
+
+**C.** — The documented example of a down node (kube-worker-1) shows MemoryPressure, DiskPressure, PIDPressure, and Ready all reporting status Unknown with reason NodeStatusUnknown and the message "Kubelet stopped posting node status," not just Ready alone, and the conditions remain visible rather than disappearing. Kubernetes also automatically applies the node.kubernetes.io/unreachable taint (both NoExecute and NoSchedule) — an administrator doesn't have to taint it by hand.
+
+</details>
+
+### troubleshooting-002
+
+Once a node goes NotReady and stays that way, roughly how long do its Pods keep showing as Running before they're evicted?
+
+- **A.** About 5 minutes (300 seconds) — the default tolerationSeconds ordinary Pods carry for the node.kubernetes.io/not-ready and node.kubernetes.io/unreachable NoExecute taints.
+- **B.** Immediately — Pods stop showing as Running the instant the node's Ready condition flips to Unknown.
+- **C.** Exactly 30 seconds, matching the default terminationGracePeriodSeconds most Pods are created with.
+- **D.** There is no automatic eviction at all; an administrator has to delete the affected Pods by hand.
+
+<details><summary>Answer</summary>
+
+**A.** — The cluster-troubleshooting walkthrough's own down-node example notes Pods get evicted roughly five minutes after a node goes NotReady, which lines up with the 300-second tolerationSeconds a Pod ordinarily carries for the node.kubernetes.io/not-ready and node.kubernetes.io/unreachable NoExecute taints — that toleration window is what keeps the Pod running that long, not any termination-grace-period setting.
+
+</details>
+
+### troubleshooting-003
+
+A Pod has been stuck in the Pending state, and kubectl describe pod shows scheduler messages about it. Which of the following is a documented cause specifically of a Pod getting stuck Pending?
+
+- **A.** Its container image can't be pulled from the registry.
+- **B.** A finalizer is attached to it and a webhook is blocking that finalizer from being removed.
+- **C.** The container inside it keeps crashing and re-entering CrashLoopBackOff.
+- **D.** None of the cluster's nodes currently have enough free CPU or memory to satisfy the Pod's resource requests.
+
+<details><summary>Answer</summary>
+
+**D.** — The Pod-debugging guide lists insufficient CPU/memory on any node (and, separately, hostPort demands that only a limited number of nodes can satisfy) as the documented reasons a Pod stays Pending. Image-pull failure is instead the documented cause of a Waiting Pod, and a stuck finalizer is the documented cause of a Terminating Pod — different states with different causes.
+
+</details>
+
+### troubleshooting-004
+
+A Pod has already been scheduled onto a node but its status shows Waiting. Per the documentation, what is the most common cause, and what should be checked first?
+
+- **A.** A failure to pull its container image — worth checking the image name for typos, whether it was actually pushed to the registry, and whether a manual pull from that node succeeds.
+- **B.** None of the nodes in the cluster currently have enough allocatable CPU or memory left to satisfy the resource requests the Pod's containers declared when it was created.
+- **C.** A validating or mutating admission webhook that targets Pod UPDATE operations is blocking the control plane from removing one of the finalizers still attached to the Pod object.
+- **D.** Its configured readiness probe keeps failing against the container's health-check endpoint, so the endpoint controller declines to mark the Pod ready for traffic even though it's already running.
+
+<details><summary>Answer</summary>
+
+**A.** — The Pod-debugging guide identifies a failed image pull as by far the most frequent reason a Pod sits Waiting, and walks through the same three checks used here — a mistyped image name, whether the image was actually pushed, and a manual pull test from the node. Insufficient node resources is instead the documented cause of a Pod stuck Pending, and a blocked finalizer is the documented cause of Terminating — different states with different root causes.
+
+</details>
+
+### troubleshooting-005
+
+kubectl get pods shows a Pod stuck in the Terminating state well after it was deleted. What does the documentation identify as the typical cause?
+
+- **A.** The node it was originally scheduled onto has already been deleted from the cluster entirely, along with every other Pod that happened to be running on it at the time.
+- **B.** Its terminationGracePeriodSeconds field was configured to an unusually high value on creation, so the Pod simply hasn't finished counting down through its graceful shutdown period yet.
+- **C.** It has a finalizer attached, and a validating or mutating admission webhook targeting Pod UPDATE operations is preventing the control plane from clearing that finalizer.
+- **D.** Its owning ReplicaSet keeps recreating a replacement Pod under the very same generated name faster than the original deletion request is able to fully complete.
+
+<details><summary>Answer</summary>
+
+**C.** — The Pod-debugging guide traces a stuck-Terminating Pod back to a finalizer that an admission webhook is preventing the control plane from clearing, and points at checking for a ValidatingWebhookConfiguration or MutatingWebhookConfiguration aimed at Pod UPDATE operations as the way to confirm it — not an oversized grace period or a controller racing the deletion, neither of which the guide identifies as a cause.
+
+</details>
+
+### troubleshooting-006
+
+A container's image is deliberately minimal (distroless) and has already crashed, so there's no shell left to exec into. Which documented tool is designed exactly for this situation?
+
+- **A.** kubectl debug -it <pod> --image=<debug-image> --target=<container>, which attaches a throwaway ephemeral container and, when the container runtime supports it, shares the target container's process namespace.
+- **B.** kubectl exec -it <pod> -- sh, since exec works against any container regardless of what its image actually contains.
+- **C.** kubectl cp a shell binary into the crashed container's filesystem, then kubectl exec into it once the binary is in place.
+- **D.** kubectl logs --previous, opened in an interactive mode that drops into a shell inside the previous container instance.
+
+<details><summary>Answer</summary>
+
+**A.** — Ephemeral debug containers exist for exactly this scenario — the documentation introduces them as the fix for cases where kubectl exec cannot help because a container has already crashed or its image is deliberately minimal, distroless images being the example given — and kubectl debug's --target flag is what lets the new container share the crashed one's process namespace so ps can see its processes, on runtimes that support it. kubectl exec instead needs an already-running container with a shell already inside it, and kubectl logs never opens any kind of interactive session.
+
+</details>
+
+### troubleshooting-007
+
+Which statement about kubectl debug node/<name> is accurate, per the documentation?
+
+- **A.** It requires the target node to already have SSH access properly configured and reachable ahead of time, since the whole mechanism works by tunneling its interactive shell session over an existing SSH connection.
+- **B.** The resulting debugging Pod is deleted automatically by the control plane the moment its interactive shell session ends or the terminal disconnects, so no manual cleanup step is ever required afterward.
+- **C.** It works even against a node that's completely unreachable, since the debugging Pod is scheduled independently of that node's own kubelet.
+- **D.** The debugging Pod runs in the node's IPC, network, and PID namespaces but isn't privileged by default, so operations like chroot /host can fail until a privileged profile such as --profile=sysadmin is used.
+
+<details><summary>Answer</summary>
+
+**D.** — The kubectl-debug-node documentation is explicit that the resulting Pod is not privileged by default even though it shares the node's IPC, network, and PID namespaces, which is why an operation like a chroot into the mounted host filesystem can fail unless a privileged Pod is built by hand or the sysadmin profile is applied. It is meant for exactly the case where SSH access to a node is not an option, rather than requiring it, has to be cleaned up manually afterward, and, per its own documented limitation, simply cannot be used against a node that is already unreachable, since there is no kubelet left on it to run the debugging Pod at all.
+
+</details>
+
+### troubleshooting-008
+
+To capture network traffic from one specific Pod's own network namespace, rather than everything passing through the whole node, which documented command form is used?
+
+- **A.** kubectl exec <pod> -- tcpdump -i any -n, run straight against the existing container with no separate debugging session at all.
+- **B.** kubectl debug --profile=sysadmin pod/<name> -n <namespace> -it --image=ubuntu:latest, then installing and running tcpdump inside the resulting privileged debug container.
+- **C.** kubectl debug node/<node> -it --image=ubuntu, which is documented as scoped to exactly one Pod's network namespace and never anything else on the node.
+- **D.** kubectl cp a prebuilt tcpdump binary into the Pod's container filesystem, then kubectl exec to invoke it directly.
+
+<details><summary>Answer</summary>
+
+**B.** — The documentation's own example for capturing traffic from a single workload targets a specific Pod, naming its namespace, rather than a node, applying the sysadmin profile and an interactive Ubuntu-based image, and then runs tcpdump inside the resulting privileged container — a distinct invocation from the node-scoped form, which instead captures everything crossing the node's own interfaces rather than one Pod's namespace.
+
+</details>
+
+### troubleshooting-009
+
+In the documented example of a down node (kube-worker-1), which of that node's status conditions had flipped to Unknown because the kubelet had stopped posting status? (Select all that apply.) *(choose four)*
+
+- **A.** MemoryPressure
+- **B.** DiskPressure
+- **C.** NetworkUnavailable
+- **D.** PIDPressure
+- **E.** Ready
+
+<details><summary>Answer</summary>
+
+**A.** **B.** **D.** **E.** — The example's condition table shows MemoryPressure, DiskPressure, PIDPressure, and Ready all reporting Unknown with reason NodeStatusUnknown. NetworkUnavailable is the one that didn't flip — it's shown as False with reason WeaveIsUp, a value set by the CNI plugin's own Pod rather than something the kubelet itself was still actively reporting.
+
+</details>
+
+### troubleshooting-010
+
+Which of the following statements about cluster component failure modes and their documented mitigations are accurate? (Select all that apply.) *(choose three)*
+
+- **A.** If the API server's own backing storage is lost, kubelets immediately stop running their already-assigned Pods, since they can no longer confirm status with the API server.
+- **B.** If the API server crashes, Pods and Services that were already running keep working unless they specifically need to call the Kubernetes API themselves.
+- **C.** A highly-available control-plane configuration is documented as able to tolerate the loss of one or more simultaneous nodes or components at once.
+- **D.** When an individual node shuts down, the only documented consequence is that no new Pods can be created anywhere in the cluster.
+- **E.** Taking periodic snapshots of the apiserver's backing storage is a documented mitigation for the case where that backing storage is lost.
+
+<details><summary>Answer</summary>
+
+**B.** **C.** **E.** — The cluster-troubleshooting documentation frames a crashed API server as leaving already-running Pods and Services fine on their own unless they specifically need to call the API, describes a highly-available setup as tolerating the loss of one or more nodes or components at once, and lists periodic backing-storage snapshots as a mitigation for lost apiserver storage. It also describes kubelets as carrying on running their already-scheduled Pods and proxying traffic even when apiserver storage is lost rather than stopping outright, and describes an individual node shutting down as simply taking its own Pods down with it — not halting Pod creation cluster-wide, which is instead what follows from the API server itself being down.
+
+</details>
+
+### troubleshooting-011
+
+On a kubeadm-provisioned control-plane node, why won't journalctl show the kube-apiserver's own log output directly?
+
+- **A.** Because those three components write their logs only to /var/log/kube-apiserver.log and similar files on every node, systemd or not, bypassing journald entirely by design.
+- **B.** Because journalctl, as a matter of documented design, is simply incapable of reading systemd journal entries produced on a control-plane node at all, and only ever works against worker nodes.
+- **C.** Because the API server, scheduler, and controller-manager are each deployed as ordinary Pods, most often static ones, so what they produce is just another container log, read back through the Pod-log mechanism instead of the systemd journal.
+- **D.** Because those three particular components disable their own logging output entirely by default, unless an administrator explicitly passes a verbosity flag when first starting each one of them up.
+
+<details><summary>Answer</summary>
+
+**C.** — The logging-architecture documentation separates the kubelet and container runtime, which run directly on the host and are the only components that genuinely write straight to the systemd journal or flat files, from the trio of components deployed as Pods (typically static ones) instead — meaning their output amounts to nothing more than ordinary container logs, reachable through the Pod-log mechanism rather than journalctl.
+
+</details>
+
+### troubleshooting-012
+
+Running kubectl version returns a connection-timeout error in place of a Server Version line. What does the documentation say this specifically points to?
+
+- **A.** A reachability problem between kubectl and the API server — worth ruling out before assuming anything is actually broken on the cluster side.
+- **B.** A crashed control plane — the documentation treats a timeout in place of a server version as evidence that the control-plane components themselves are down and need restarting.
+- **C.** A clear sign that the local kubectl binary itself has become corrupted somehow and needs to be completely reinstalled from scratch before trying again.
+- **D.** A sign that RBAC is actively denying the currently authenticated user any access at all to the resources they are requesting from the cluster.
+
+<details><summary>Answer</summary>
+
+**A.** — The kubectl-troubleshooting documentation frames an i/o-timeout response in place of a server version as a connectivity problem worth chasing down, distinct from a verdict that the cluster itself is unhealthy, from an RBAC denial (which surfaces as its own distinct authorization error rather than a timeout), or from a broken local kubectl install.
+
+</details>
+
+### troubleshooting-013
+
+To check whether a kubeconfig's client certificate has actually expired, which documented command sequence reveals its notBefore/notAfter dates?
+
+- **A.** Running kubectl config view --minify and piping its output directly into openssl s_client -connect against the API server's own hostname and port.
+- **B.** Running kubectl get csr, a command documented as listing out the expiry date of every outstanding client certificate request currently pending in the cluster.
+- **C.** Running kubectl auth can-i --list, a command documented as reporting certificate validity information right alongside a user's own RBAC permissions in one combined report.
+- **D.** Decoding the kubeconfig's base64-encoded client-certificate-data (or certificate-authority-data) field with base64 -d, then piping the result into openssl x509 -noout -dates.
+
+<details><summary>Answer</summary>
+
+**D.** — The kubectl-troubleshooting documentation's TLS section decodes the relevant base64-encoded kubeconfig certificate field and feeds the result into openssl's certificate-inspection command to print the notBefore/notAfter window, since kubeconfig certificate fields are stored base64-encoded and that particular openssl flag is what surfaces expiry dates directly rather than the rest of the certificate's contents.
+
+</details>
+
+### troubleshooting-014
+
+kubeadm init hangs indefinitely right after printing that it's waiting for the control plane to become ready. Which of the following is NOT one of the documented usual causes of this specific hang?
+
+- **A.** No network connectivity between the machines involved.
+- **B.** CoreDNS Pods sitting in CrashLoopBackOff.
+- **C.** A mismatch between the container runtime's configured cgroup driver and the kubelet's own.
+- **D.** The control-plane containers themselves crash-looping or hanging.
+
+<details><summary>Answer</summary>
+
+**B.** — The kubeadm-troubleshooting documentation lists exactly three usual causes for this hang: network connectivity problems, a cgroup-driver mismatch between the container runtime and the kubelet, and crash-looping or hanging control-plane containers. CoreDNS is a separate, later concern in the same document — it is documented as expected to sit Pending until a network add-on is applied, not as a cause of the control-plane-readiness hang.
+
+</details>
+
+### troubleshooting-015
+
+Why can a kubeadm v1.18-or-later kubeadm join fail against a cluster that was originally bootstrapped with kubeadm v1.17?
+
+- **A.** Clusters bootstrapped with kubeadm v1.17 simply don't support the kubeadm join command at all afterward, regardless of which kubeadm version the node attempting to join happens to be running.
+- **B.** The two kubeadm versions default to mutually incompatible container runtimes out of the box, so any join attempt between them always fails immediately on an otherwise fresh installation.
+- **C.** kubeadm v1.18 added a check requiring the bootstrap-token user to have RBAC permission to GET Node objects, meant to stop name collisions, and the v1.17 cluster's bootstrap-token group was never granted it.
+- **D.** kubeadm refuses outright to let any node join an existing cluster at all unless that node's own kubeadm version is an exact match for the cluster's currently installed version, with no tolerance whatsoever for any skew.
+
+<details><summary>Answer</summary>
+
+**C.** — kubeadm's v1.18 release is documented as having added a safeguard against a node joining under a name some existing Node object already holds, which meant the bootstrap-token user needed a new RBAC permission to read Node objects — a permission a cluster whose control plane was bootstrapped by the older v1.17 kubeadm never granted that user, which is exactly why the newer kubeadm's join request gets turned away by that older cluster.
+
+</details>
+
+### troubleshooting-016
+
+Which of the following statements about diagnosing kubectl and API-server connectivity problems are accurate, per the documentation? (Select all that apply.) *(choose three)*
+
+- **A.** kubectl config get-contexts followed by kubectl config use-context <name> is the documented way to confirm which cluster/context is actually active when a kubeconfig defines more than one.
+- **B.** TLS certificate expiry errors and RBAC authorization errors are documented as having the exact same root cause and the same fix.
+- **C.** A stale $KUBECONFIG environment variable, or the wrong file passed via --kubeconfig, can point kubectl at an unintended kubeconfig file.
+- **D.** Reconnecting an active VPN session is a documented troubleshooting step when a cluster is normally accessed through one.
+- **E.** The kubeconfig file's default location is always /etc/kubernetes/admin.conf; ~/.kube/config is described as a Windows-only path.
+
+<details><summary>Answer</summary>
+
+**A.** **C.** **D.** — The kubectl-troubleshooting documentation separately covers verifying the active context with kubectl config get-contexts / use-context, checking whether $KUBECONFIG or --kubeconfig is pointing at the wrong file, and reconnecting a dropped VPN session — three distinct, accurate checks. It treats TLS certificate problems and authorization failures as separate categories with separate causes and fixes rather than "the exact same" issue, and it describes ~/.kube/config as the usual kubeconfig location (with /etc/kubernetes/admin.conf as the control plane's own copy), not a Windows-specific path.
+
+</details>
+
+### troubleshooting-017
+
+A node's kubelet client-certificate rotation has broken, and kube-apiserver logs show x509 certificate-expiry errors. What is the documented first recovery step on the failed node?
+
+- **A.** Back up and remove the broken /etc/kubernetes/kubelet.conf and /var/lib/kubelet/pki/kubelet-client* files, then regenerate a kubeconfig from a control-plane node holding the cluster's CA key.
+- **B.** Restart the kubelet service immediately without touching any of its configuration or certificate files first — a bare restart alone is documented as being enough to force a fresh certificate to be issued.
+- **C.** Delete the entire /var/lib/kubelet directory outright on the failed node, so that kubeadm is forced to re-provision the whole node completely from scratch on its next join.
+- **D.** Run kubeadm reset on the failed node outright, then run kubeadm join to bring it back into the cluster again as though it had never been part of it before.
+
+<details><summary>Answer</summary>
+
+**A.** — The kubeadm-troubleshooting documentation's recovery steps for this exact symptom start by backing up and clearing out the failed node's own kubelet configuration file and its client-certificate files, then generating it a fresh kubeconfig from a control-plane node that still holds the cluster's signing key — not a bare kubelet restart, a full wipe of the kubelet's data directory, or resetting and rejoining the node from scratch.
+
+</details>
+
+### troubleshooting-018
+
+Immediately after a bare kubeadm init, before any Pod network add-on has been applied, which observation does the kubeadm troubleshooting documentation treat as a genuine problem worth reporting, rather than an expected phase of bootstrap?
+
+- **A.** CoreDNS Pods sitting in the Pending state, since every workload kubeadm deploys is expected to reach Running as soon as init itself completes.
+- **B.** Any Pod turning up in RunContainerError, CrashLoopBackOff, or Error — before a network add-on is even in the picture, nothing should be failing outright yet.
+- **C.** Control-plane static Pods showing any restart count above zero, which the documentation treats as grounds for immediately re-running kubeadm init from scratch.
+- **D.** The Node object reporting a NotReady condition, which the documentation says can only ever be caused by a failed control plane rather than by anything network-related.
+
+<details><summary>Answer</summary>
+
+**B.** — The kubeadm-troubleshooting documentation treats CoreDNS sitting Pending — like the node itself reporting NotReady — as the expected state of a freshly-initialized cluster whose network add-on has not been applied yet, so neither observation is alarming on its own. What it does single out as something that should not be happening at that early stage, and is worth filing as a real problem, is any Pod landing in RunContainerError, CrashLoopBackOff, or Error before an add-on even enters the picture; nowhere does it prescribe re-running init over a nonzero restart count.
+
+</details>
+
+### troubleshooting-019
+
+Which statement correctly describes the flow of data through the resource metrics pipeline?
+
+- **A.** metrics-server is documented as reading resource figures directly out of each container's own cgroup on every node, entirely bypassing the kubelet and cAdvisor, with the kube-apiserver polling metrics-server rather than the reverse direction ever being true.
+- **B.** cAdvisor and metrics-server are the same component under two different names, so the kubelet plays no role in the pipeline at all.
+- **C.** cAdvisor, bundled in the kubelet, collects per-container metrics from the runtime; the kubelet exposes a per-node summary through its /metrics/resource endpoint; metrics-server polls every kubelet and aggregates cluster-wide, serving the Metrics API that the API server, HPA, VPA, and kubectl top all read from.
+- **D.** HPA and VPA each poll cAdvisor directly for their own metrics and never touch the Metrics API at all.
+
+<details><summary>Answer</summary>
+
+**C.** — The resource-metrics-pipeline documentation walks through exactly this chain: cAdvisor ships as part of the kubelet, the kubelet surfaces per-node stats through its own resource-metrics endpoint, and metrics-server is the component that pulls from every kubelet in turn and rolls the results up cluster-wide before the API server exposes them as the Metrics API for HPA, VPA, and kubectl top to consume — never the reverse arrangement of metrics-server bypassing the kubelet, or HPA/VPA reading cAdvisor directly.
+
+</details>
+
+### troubleshooting-020
+
+Which best describes what metrics-server actually is, per the documentation?
+
+- **A.** A cluster addon component, not a built-in part of Kubernetes itself, that pulls and aggregates resource metrics from each kubelet and stands as the reference example of how a Metrics API provider should behave.
+- **B.** A core kube-apiserver subsystem that is documented as being compiled directly into the API server binary itself, present and running in every cluster whether or not anyone separately deploys it.
+- **C.** A client-side plugin that ships bundled inside kubectl itself and reads resource metrics straight out of cAdvisor's own data, with no separate server-side component sitting in between the two at all.
+- **D.** A required, hard dependency of the kubelet itself, such that the kubelet is documented as being completely unable to start up until metrics-server is already up and running somewhere in the cluster.
+
+<details><summary>Answer</summary>
+
+**A.** — The documentation calls metrics-server a cluster addon and notes the Metrics API needs it, or some alternative adapter, deployed before it can be reached at all, and separately holds it up as the model implementation other Metrics API providers would be measured against — the opposite of being compiled into the API server, a kubectl plugin, or a kubelet dependency.
+
+</details>
+
+### troubleshooting-021
+
+kubectl top pods shows a container using very little CPU, but kubectl describe node's Allocated resources section shows that node as heavily committed. What explains the difference?
+
+- **A.** They are documented as reporting the exact same underlying number in absolutely every case, so any apparent difference an administrator happens to notice between the two has to be a caching bug.
+- **B.** Allocated resources in kubectl describe node reflects what's been requested and limited by the Pods scheduled there, while kubectl top reflects actual measured usage pulled through the Metrics API — two different questions entirely.
+- **C.** kubectl top is documented as only functioning correctly against Windows-based nodes, while the Allocated resources section of kubectl describe node only ever appears for Linux-based nodes.
+- **D.** Allocated resources is documented as always converging to exactly equal actual measured usage automatically, once any given Pod has simply been running continuously for more than roughly five minutes or so.
+
+<details><summary>Answer</summary>
+
+**B.** — kubectl describe node's "Allocated resources" table (shown in the cluster-troubleshooting node example) reports Requests and Limits committed by scheduled Pods, while the Metrics API that kubectl top reads from reports actual measured usage — a documented distinction between "how much capacity is already committed" and "how much is actually being used," not an OS-specific split or something that converges over time.
+
+</details>
+
+### troubleshooting-022
+
+kubectl top pods returns an error rather than a table of usage figures. Per the documentation, what is the most basic explanation to check first?
+
+- **A.** The queried Pods don't have resource requests or limits configured in their spec.
+- **B.** No HorizontalPodAutoscaler has been created yet, so metric collection never starts.
+- **C.** kubectl top has been deprecated since Kubernetes v1.8 and no longer functions on any supported cluster.
+- **D.** The Metrics API server — metrics-server, or an equivalent adapter — simply has not been deployed into the cluster yet.
+
+<details><summary>Answer</summary>
+
+**D.** — The resource-metrics-pipeline documentation is direct that the Metrics API cannot be reached at all until metrics-server, or an equivalent adapter, has actually been deployed into the cluster — a prerequisite kubectl top depends on regardless of whether the queried Pods declare requests or limits, whether any HorizontalPodAutoscaler exists, or the Metrics API's own beta status, which the documentation frames as marking when the API was introduced rather than any sort of deprecation.
+
+</details>
+
+### troubleshooting-023
+
+In metrics-server v0.6.0 and later, which kubelet endpoint does metrics-server call to collect metrics from each node?
+
+- **A.** /metrics/resource, in metrics-server v0.6.0 and later.
+- **B.** /stats/summary, in every metrics-server version, old or new.
+- **C.** /metrics/cadvisor, regardless of metrics-server version.
+- **D.** /apis/metrics.k8s.io/v1beta1/nodes — the Metrics API path itself, rather than anything metrics-server calls on the kubelet.
+
+<details><summary>Answer</summary>
+
+**A.** — The documentation ties the kubelet endpoint metrics-server calls to its own version: newer releases use the kubelet's dedicated resource-metrics endpoint, while older metrics-server releases instead relied on an older, more general summary-stats endpoint — making that older endpoint the legacy path rather than a universal one, and the metrics.k8s.io API path is what metrics-server itself exposes outward, not something it calls on a kubelet.
+
+</details>
+
+### troubleshooting-024
+
+What must a cluster administrator set up, per the documentation, to make the Metrics API actually available for querying?
+
+- **A.** Nothing at all — the Metrics API is documented as shipping enabled by default in every Kubernetes control plane, with no separate deployment or configuration step needed from an administrator.
+- **B.** Turn on the API aggregation layer and add a matching APIService registration pointing at the metrics.k8s.io group, wiring an external Metrics API implementation into the API server.
+- **C.** Install a CustomResourceDefinition named Metrics in the default namespace, then wait for the aggregation layer to notice it and start serving CPU and memory figures through it automatically.
+- **D.** Set the flag --enable-metrics-api=true on the kube-scheduler, since the documentation treats that component as the one responsible for exposing the Metrics API to the rest of the cluster.
+
+<details><summary>Answer</summary>
+
+**B.** — The documentation frames the Metrics API as something a cluster has to be explicitly set up to serve rather than something present by default, requiring the API aggregation layer to be turned on and an APIService registered for the relevant API group — not a CustomResourceDefinition, and not a flag on the scheduler.
+
+</details>
+
+### troubleshooting-025
+
+Which of the following statements about the Metrics API and metrics-server are accurate, per the documentation? (Select all that apply.) *(choose three)*
+
+- **A.** The Metrics API is reachable directly, e.g. via kubectl get --raw against a path like /apis/metrics.k8s.io/v1beta1/nodes/<name>, independent of kubectl top.
+- **B.** A container runtime that isolates workloads through something other than ordinary Linux cgroups must separately implement the CRI Container Metrics interface for the kubelet to have anything to expose.
+- **C.** The Metrics API is a stable (GA) part of the kube-apiserver binary, enabled in every cluster by default with no separate deployment step required.
+- **D.** Anything beyond the Metrics API's basic CPU-and-memory autoscaling signals requires a second, separate metrics pipeline built on the Custom Metrics API.
+- **E.** metrics-server always calls the kubelet's /stats/summary endpoint, regardless of which metrics-server version is deployed.
+
+<details><summary>Answer</summary>
+
+**A.** **B.** **D.** — The documentation shows the Metrics API being queried directly through a raw API call independent of kubectl top, requires a runtime that isolates workloads through something other than ordinary cgroups to separately implement a dedicated container-metrics interface before the kubelet has anything to expose, and describes going beyond CPU and memory as needing an entirely second pipeline built on the Custom Metrics API rather than extending the Metrics API itself. It also marks the Metrics API's own feature state as beta rather than stable, requiring a separate deployment step, and ties the older, more general kubelet stats endpoint to older metrics-server releases specifically rather than every release.
+
+</details>
+
+### troubleshooting-026
+
+Which of the following statements about how CPU and memory usage are measured in the Metrics API are accurate, per the documentation? (Select all that apply.) *(choose three)*
+
+- **A.** Memory usage is reported as an average rate of allocation over the metrics window, calculated the same way CPU usage is.
+- **B.** CPU usage is reported as an average, worked out from how quickly an ever-climbing CPU counter the kernel keeps track of has been increasing — not as a one-off instantaneous snapshot.
+- **C.** One "cpu" unit equals 1 vCPU/core on a cloud provider, or 1 hyperthread on a bare-metal Intel processor.
+- **D.** The time window used to calculate the CPU rate is fixed at exactly 60 seconds across every metrics-server deployment.
+- **E.** Kubernetes' own working-set memory model expects the container runtime to tally up a container's anonymous memory, and that figure typically folds in some of its reclaimable, file-backed cache as well.
+
+<details><summary>Answer</summary>
+
+**B.** **C.** **E.** — The documentation explains CPU usage as a rate calculated from a continuously climbing CPU counter the kernel maintains, with one cpu unit corresponding to a full vCPU or core on a cloud instance and to a single hyperthread on bare-metal Intel hardware, and it describes the working-set memory model as counting a container's own anonymous memory while typically folding in some of its reclaimable, file-backed cached memory too. Memory, unlike CPU, is captured as a point-in-time snapshot rather than any kind of rate, and the CPU measurement window is whatever the API response's own window field reports in a given sample rather than a fixed interval.
+
+</details>
+
+### troubleshooting-027
+
+What does kubectl logs <pod> --previous specifically retrieve, and why is that useful?
+
+- **A.** The logs of the previous container in a multi-container Pod, ordered by how containers are listed in the spec.
+- **B.** Only the last 100 lines of whatever the current container's own log file happens to contain at the exact moment the command itself is actually run, nothing further back than that at all.
+- **C.** The logs from an older ReplicaSet that used to control this Pod, rather than the Pod's own current logs.
+- **D.** The logs of the container's previous (pre-restart) instance — useful for seeing why it crashed right before restarting, since the current instance's own logs start empty.
+
+<details><summary>Answer</summary>
+
+**D.** — Both the logging-architecture and Pod-debugging documentation describe --previous as pulling output from a container's prior run rather than its current one — the standard way to see why a container crashed right before the restart currently showing. Selecting a specific container inside a multi-container Pod is instead the job of a different flag entirely, not --previous.
+
+</details>
+
+### troubleshooting-028
+
+Which kubelet setting caps how large a single container log file can grow before the kubelet rotates it, and what default does the documentation give it?
+
+- **A.** containerLogMaxFiles, which the documentation gives a default of 5 for.
+- **B.** containerLogMaxSize, which the documentation gives a default of 10Mi for.
+- **C.** containerLogMaxWorkers, which controls how many rotations can run concurrently rather than any size threshold.
+- **D.** containerLogMonitorInterval, which controls how often the kubelet checks whether a rotation is needed rather than any size threshold.
+
+<details><summary>Answer</summary>
+
+**B.** — The logging-architecture documentation gives "containerLogMaxSize (default 10Mi)" as the setting for "the maximum size for each log file." containerLogMaxFiles (default 5) instead caps the number of rotated files kept, and containerLogMaxWorkers / containerLogMonitorInterval tune rotation concurrency and check frequency rather than any size limit.
+
+</details>
+
+### troubleshooting-029
+
+A container has written well past the containerLogMaxSize threshold and has already been rotated several times. What happens when kubectl logs is run against it?
+
+- **A.** kubectl logs only returns content from the current, unrotated log file — older, already-rotated content is not retrievable that way, even though it recently existed on the node's disk.
+- **B.** kubectl logs is documented as returning the full accumulated history across every single one of the rotated log files for that container, all concatenated together in their original chronological order.
+- **C.** kubectl logs is documented as failing outright with a hard, unrecoverable error the very first time any log rotation has ever occurred at all for that particular container, from then on.
+- **D.** kubectl logs is documented as automatically redirecting any such request to whatever cluster-level logging backend happens to already be configured, bypassing the node's own local files entirely in the process.
+
+<details><summary>Answer</summary>
+
+**A.** — The logging-architecture documentation is direct that kubectl logs can only ever surface whatever sits in the current, unrotated log file, illustrating this with a container that has written far more than its rotation threshold and still returns no more than that threshold's worth of data through kubectl logs — the earlier, already-rotated slices simply are not reachable that way, rather than being concatenated together, triggering an error, or getting redirected elsewhere.
+
+</details>
+
+### troubleshooting-030
+
+On a Linux node, where do the kubelet and container runtime write their own operational logs by default?
+
+- **A.** Always to /var/log/pods, the same directory used for container logs.
+- **B.** To a dedicated ConfigMap object that the kubelet is documented as continuously updating in place with its own operational log output over time.
+- **C.** To journald if the node runs systemd, or to plain .log files under /var/log if it does not.
+- **D.** Directly to the API server over an internal gRPC logging stream.
+
+<details><summary>Answer</summary>
+
+**C.** — The logging-architecture documentation splits this by init system: a systemd-managed Linux node has the kubelet and container runtime writing to the journal by default, while a node without systemd instead has them writing plain log files under a standard directory — a different location is where the kubelet directs container logs specifically, a separate concern, and neither a ConfigMap nor a direct streaming connection to the API server is documented anywhere as a log destination.
+
+</details>
+
+### troubleshooting-031
+
+Which cluster-level logging pattern is documented as making its logs invisible to kubectl logs entirely, because they never pass through the kubelet's own log path?
+
+- **A.** A node-level logging agent running as a DaemonSet.
+- **B.** A streaming sidecar container that tails a file and re-emits it to its own stdout.
+- **C.** An application container writing its log output as structured JSON lines to its own stdout stream.
+- **D.** A sidecar container running a separate logging agent configured specifically for the application.
+
+<details><summary>Answer</summary>
+
+**D.** — The logging-architecture documentation calls out a sidecar running its own separate logging agent as the one pattern whose logs kubectl logs genuinely cannot reach, precisely because that agent's output never passes through anything the kubelet controls. A streaming sidecar is described as the opposite case — because it writes to its own stdout, kubectl logs keeps working per stream — a DaemonSet-based node agent simply reads logs the kubelet has already made visible in the ordinary way, and anything a container writes to its own stdout, structured JSON included, lands squarely in the kubelet's ordinary log path and stays visible.
+
+</details>
+
+### troubleshooting-032
+
+Different container runtimes generate a container's stdout/stderr output differently internally. What does the documentation say makes kubectl logs and the kubelet's log-rotation behavior work the same regardless of which CRI-compliant runtime a node uses?
+
+- **A.** Kubernetes is documented as quietly forcing every single container runtime to use containerd internally just for logging purposes, even in cases where an entirely different runtime handles everything else on that node.
+- **B.** How a container runtime hands its log output over to the kubelet follows one shared, standardized format defined by the CRI, even though runtimes differ among themselves in how that output actually gets produced internally.
+- **C.** kubectl logs is documented as bypassing the configured container runtime entirely, reading a container's own logs straight out of its underlying cgroup accounting data instead of going through the runtime at all.
+- **D.** Each container runtime is documented as shipping its own entirely separate log-rotation daemon, and the kubelet's containerLogMaxSize/containerLogMaxFiles settings are documented as only ever applying when the runtime happens to be containerd specifically.
+
+<details><summary>Answer</summary>
+
+**B.** — The logging-architecture documentation acknowledges that runtimes differ in how they internally produce a container's output, but points out that the handoff to the kubelet follows one standardized logging interface regardless of which runtime is running — the kubelet, not each runtime individually, is what owns rotation through its own size and file-count settings, and nothing in the documentation describes a forced runtime substitution or a cgroup-bypassing read path for kubectl logs.
+
+</details>
+
+### troubleshooting-033
+
+Which of the following statements about container logs and their handling on a node are accurate, per the documentation? (Select all that apply.) *(choose three)*
+
+- **A.** Out of the box, when a container restarts, the kubelet hangs onto one prior terminated instance of it plus the logs that instance produced.
+- **B.** The PodLogsQuerySplitStreams feature gate, which lets a client fetch just the Stdout or Stderr stream through the Pod log API, is enabled by default in current Kubernetes releases.
+- **C.** Kubernetes performs no log rotation at all for logs written outside the normal container-log mechanism — for example, a static Pod's logs shared onto a node-level directory through a volume.
+- **D.** If a Pod is evicted from its node, all of its containers' logs are evicted right along with it.
+- **E.** Repointing the kubelet's pod-logs directory with podLogsDir is fully supported with no caveats, and the new location can live on any filesystem regardless of what disk /var itself is on.
+
+<details><summary>Answer</summary>
+
+**A.** **C.** **D.** — The logging-architecture documentation describes the kubelet as keeping one prior, terminated instance of a container alongside its logs whenever that container restarts, as declining to rotate anything written outside the ordinary container-log mechanism — a static Pod's logs shared onto a node directory through a volume, for instance — and as having a Pod's logs disappear right along with it once that Pod is evicted. The split-stream feature is explicitly called out as an alpha capability that ships off by default, and repointing the kubelet's own pod-log directory comes with an explicit caution that the new location still has to sit on the very same disk the default location is on, not just any filesystem.
+
+</details>
+
+### troubleshooting-034
+
+A Service seems not to be working. What does the documented Service-debugging walkthrough say is the single most common reason, and the first thing to check?
+
+- **A.** Whether the cluster's own DNS Service itself is healthy overall — worth starting there first, well ahead of checking anything at all about this one particular Service in question.
+- **B.** Whether the Pod running behind the Service is crashing or otherwise unhealthy in some way, which is documented as being the very first place the whole walkthrough actually starts from.
+- **C.** Whether the Service object actually exists at all, e.g. via kubectl get svc <name> — the single most common reason a Service "doesn't work" is that it was never created.
+- **D.** Whether a cloud provider's own external load balancer has already been fully provisioned and is actively forwarding traffic in front of the Service being investigated.
+
+<details><summary>Answer</summary>
+
+**C.** — The Service-debugging walkthrough opens by naming a Service that was simply never created as the single most frequent explanation for one that appears not to be working, and treats confirming the Service object's existence as the very first move. DNS health, a crashing backing Pod, and any external load balancer are all checked at later points in that same walkthrough, not before this.
+
+</details>
+
+### troubleshooting-035
+
+From a Pod, nslookup myservice fails, but nslookup myservice.otherns succeeds. Per the documented DNS-troubleshooting walkthrough, what does that specific combination indicate?
+
+- **A.** DNS is broken cluster-wide, so the cluster's own kubernetes Service should be checked next.
+- **B.** The Pod and the Service live in different namespaces, so the app needs the namespace-qualified name, or the app needs to move into the Service's namespace.
+- **C.** The Service does not exist yet and needs to be created.
+- **D.** The cluster's own ndots resolver option has been configured too low for any DNS lookup at all to ever succeed, qualified or not.
+
+<details><summary>Answer</summary>
+
+**B.** — The documentation walks through exactly this progression: "if this fails but the namespace-qualified name... works, the caller and the Service live in different namespaces, and the app needs that qualified name, or needs moving into the same namespace as the Service." A cluster-wide DNS problem is instead signaled by even the fully-qualified name failing, and a working namespace-qualified lookup already rules out both "Service doesn't exist" and "ndots too low to try anything."
+
+</details>
+
+### troubleshooting-036
+
+A Pod's /etc/resolv.conf shows "options ndots:5". Per the documented explanation, what does that setting actually control?
+
+- **A.** The maximum number of separate DNS servers a Pod's own resolver is documented as being allowed to query in sequence before it simply gives up entirely on the lookup.
+- **B.** The number of retries a single UDP-based DNS query is documented as being given before the resolver eventually falls back to using a TCP-based query instead for that same name.
+- **C.** The maximum number of suffixes the resolver's own search list is documented as being allowed to contain in total, regardless of how the rest of resolv.conf is configured.
+- **D.** How many dots a name must already contain before the resolver treats it as fully-qualified rather than trying it against the search list of suffixes first.
+
+<details><summary>Answer</summary>
+
+**D.** — The Service-debugging documentation frames ndots as needing to be set high enough that a client's resolver actually bothers trying the search-suffix list at all, with Kubernetes' own default chosen so that short, mostly-unqualified Service names get expanded against those suffixes rather than being assumed already complete — it is about when suffix expansion kicks in, not query-retry counts, how many servers get queried, or the search list's own length.
+
+</details>
+
+### troubleshooting-037
+
+Reading a Service back with kubectl get service <name> -o json, which mismatch does the documentation explicitly call out as something to check regarding how the Service maps to its Pods?
+
+- **A.** Whether targetPort correctly names or numbers the port the Pods actually listen on, and whether a numeric port got accidentally quoted as a string.
+- **B.** Whether the Service's own metadata.creationTimestamp field happens to predate the creation timestamp recorded on any one of the Pods it's currently supposed to be fronting traffic for.
+- **C.** Whether spec.clusterIP falls inside the same CIDR range configured for the Pod network.
+- **D.** Whether the Service's own resourceVersion matches the resourceVersion of the Pods behind it.
+
+<details><summary>Answer</summary>
+
+**A.** — The documented Service-definition checklist zeroes in on whether targetPort actually names or numbers the port the Pods listen on, right down to whether a number got mistakenly written as a quoted string — creationTimestamp ordering between a Service and its Pods, clusterIP overlap with the Pod network's own address range, and matching resourceVersions are simply not among the checks the walkthrough calls out.
+
+</details>
+
+### troubleshooting-038
+
+An EndpointSlice for a Service shows no addresses at all (ENDPOINTS: <none>). What does the documented walkthrough say is almost always the cause?
+
+- **A.** The Service's ClusterIP has already been reassigned to a different Service.
+- **B.** kube-proxy has crashed and stopped programming EndpointSlices for that Service.
+- **C.** The Service's spec.selector labels don't actually match the labels on any currently-running Pod.
+- **D.** The backing Pods are still Pending and have not been assigned Pod IPs yet.
+
+<details><summary>Answer</summary>
+
+**C.** — The Service-debugging walkthrough attributes an EndpointSlice with no addresses at all to the Service's own selector not actually matching any running Pod's labels, illustrating it with the classic mismatch between a Service selecting one label key and a workload's Pods carrying a differently named one instead. EndpointSlices come from a dedicated control loop rather than from kube-proxy, and the walkthrough treats that selector mismatch, not Pods sitting Pending, as the near-universal explanation.
+
+</details>
+
+### troubleshooting-039
+
+In kube-proxy's iptables mode, per the documented rule structure, how does traffic for a Service actually reach one of its backing Pods?
+
+- **A.** A single flat iptables rule maps the Service's own ClusterIP address straight to just one single Pod IP, with an identical rule then duplicated separately for every additional backing Pod behind it.
+- **B.** One rule in KUBE-SERVICES routes to a per-Service KUBE-SVC-<hash> chain, which fans out — one weighted choice per backing Pod — into per-Pod KUBE-SEP-<hash> chains that perform the actual DNAT.
+- **C.** iptables mode is documented as not using DNAT for this purpose at all; instead it is described as relying purely on ARP spoofing tricks to redirect traffic toward whichever Pod gets selected.
+- **D.** Every single Service is documented as getting exactly one shared KUBE-SEP chain used in common across all of its backing Pods together, no matter how many replicas it actually happens to have.
+
+<details><summary>Answer</summary>
+
+**B.** — The documented iptables-save output shows exactly this structure: a KUBE-SERVICES rule pointing at a KUBE-SVC-<hash> chain, which uses weighted --probability jumps to fan out across one KUBE-SEP-<hash> chain per Pod endpoint, and each KUBE-SEP chain performs the actual "-j DNAT --to-destination" — not a single flattened rule, ARP spoofing, or one shared chain across every Pod.
+
+</details>
+
+### troubleshooting-040
+
+Which of the following statements about the "a Pod can't reach itself through its own Service" (hairpin) edge case are accurate, per the documentation? (Select all that apply.) *(choose three)*
+
+- **A.** This symptom shows up specifically with kube-proxy running in iptables mode alongside bridge-based Pod networking.
+- **B.** The kubelet's hairpin-mode flag must be set to one of two specific values — hairpin-veth or promiscuous-bridge — for hairpin traffic to work at all.
+- **C.** The flag's configured value and its actual effective value in the kubelet's own logs can never differ, since the kubelet always applies the flag exactly as configured.
+- **D.** When the effective hairpin mode is promiscuous-bridge, confirming it is active involves checking whether the relevant bridge interface reports PROMISC when inspected.
+- **E.** This hairpin check is documented as the very first thing to try whenever a Service seems to be failing, ahead of confirming DNS or the Service's own spec.
+
+<details><summary>Answer</summary>
+
+**A.** **B.** **D.** — The Service-debugging documentation ties this specific failure to kube-proxy running in iptables mode over bridge-based Pod networking, requires the kubelet's own hairpin setting to be one of exactly two accepted values, and confirms the bridge-based case by checking whether the relevant bridge interface reports promiscuous mode. It also warns that a kubelet's effective hairpin behavior can end up different from what its own flag was actually set to, due to compatibility fallbacks, and treats this whole scenario as a narrow check to make only once DNS, the Service's own spec, its EndpointSlices, and kube-proxy's general operation have already been ruled out — not as a first move.
+
+</details>

@@ -1,0 +1,1521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Exam Shortcut — AWS SAA-C03 Prep</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    /* Shortcut-page styles. Reuses css/style.css's variables and classes
+       (site-header, site-footer, skip-link) so this standalone page still
+       looks native to the site. The page is plain static HTML with no
+       script, like cheatsheet.html; it is hand-maintained and cross-checked
+       against js/data/services.js, js/data/studyContent.js, and the
+       flashcard deck. Its section headings are the same domain buckets as
+       FLASHCARD_DOMAINS, so a shortcut, a card, and a service entry all file
+       under the same heading. */
+
+    /* Page palette. Light values are the site's own; the dark block below
+       re-maps them (and, page-locally, the site palette from css/style.css,
+       which is light-only) so the tables, cards, and search chrome stay
+       legible on a dark background. */
+    :root {
+      --shortcut-surface: #fff;
+      --shortcut-surface-soft: #f9fafb;
+      --shortcut-surface-muted: #f3f4f6;
+      --shortcut-accent-text: var(--color-primary-dark);
+      --shortcut-callout-bg: #eff6ff;
+      --shortcut-callout-border: #bfdbfe;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        color-scheme: dark;
+        /* Page-local override of the site palette (css/style.css defines
+           light values only), matching vpc-explorer.html's treatment. */
+        --color-bg: #0f172a;
+        --color-text: #e2e8f0;
+        --color-muted: #94a3b8;
+        --color-border: #334155;
+        --color-primary: #3b82f6;
+        --color-primary-dark: #2563eb; /* stays deep: it's the button hover *background* under white text */
+        --shortcut-surface: #1e293b;
+        --shortcut-surface-soft: #172033;
+        --shortcut-surface-muted: #334155;
+        --shortcut-accent-text: #93c5fd;
+        --shortcut-callout-bg: #172554;
+        --shortcut-callout-border: #1e40af;
+      }
+    }
+
+    #shortcut-content {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    .shortcut-intro {
+      color: var(--color-muted);
+      max-width: 70ch;
+    }
+
+    .shortcut-callout {
+      background: var(--shortcut-callout-bg);
+      border: 1px solid var(--shortcut-callout-border);
+      border-radius: 10px;
+      padding: 0.85rem 1.1rem;
+      margin: 1.25rem 0 1.75rem;
+      max-width: 70ch;
+    }
+
+    .shortcut-callout p { margin: 0; }
+
+    /* --- Jump nav --- */
+
+    .shortcut-jump {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-bottom: 2rem;
+    }
+
+    .shortcut-jump a {
+      border: 1px solid var(--color-border);
+      border-radius: 999px;
+      padding: 0.2rem 0.75rem;
+      font-size: 0.85rem;
+      color: var(--color-muted);
+      text-decoration: none;
+    }
+
+    .shortcut-jump a:hover {
+      color: var(--shortcut-accent-text);
+      border-color: var(--color-primary);
+    }
+
+    /* --- Sections and tables --- */
+
+    .shortcut-section { margin-bottom: 2.5rem; }
+
+    .shortcut-section h2 {
+      font-size: 1.15rem;
+      margin-bottom: 0.25rem;
+      padding-bottom: 0.35rem;
+      border-bottom: 2px solid var(--color-border);
+      scroll-margin-top: 0.75rem; /* breathing room when a jump link lands here */
+    }
+
+    .section-intro {
+      color: var(--color-muted);
+      max-width: 74ch;
+      margin-top: 0.5rem;
+    }
+
+    .shortcut-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    .shortcut-table th {
+      text-align: left;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-muted);
+      font-weight: 700;
+      padding: 0.4rem 0.75rem 0.4rem 0;
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .shortcut-table th:first-child { width: 38%; }
+
+    .shortcut-table td {
+      vertical-align: top;
+      padding: 0.6rem 0.75rem 0.6rem 0;
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .shortcut-table tr:nth-child(even) td { background: var(--shortcut-surface-soft); }
+
+    .cell-trigger { font-weight: 600; }
+
+    .answer-service {
+      display: block;
+      font-weight: 700;
+      color: var(--shortcut-accent-text);
+    }
+
+    .answer-parent {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--color-muted);
+    }
+
+    .answer-parent::before { content: "part of "; }
+
+    .answer-why {
+      display: block;
+      margin-top: 0.2rem;
+      color: var(--color-muted);
+      font-size: 0.92rem;
+    }
+
+    .answer-why-lead { margin-top: 0; }
+
+    /* --- Look-alikes --- */
+
+    .confusable-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .confusable {
+      border: 1px solid var(--color-border);
+      border-radius: 10px;
+      padding: 0.9rem 1.1rem;
+      background: var(--shortcut-surface);
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    .confusable h3 {
+      margin: 0 0 0.5rem;
+      font-size: 0.95rem;
+    }
+
+    .confusable dl { margin: 0; }
+
+    .confusable dt {
+      font-weight: 700;
+      color: var(--shortcut-accent-text);
+      font-size: 0.92rem;
+    }
+
+    .confusable dd {
+      margin: 0.1rem 0 0.6rem;
+      color: var(--color-muted);
+      font-size: 0.92rem;
+    }
+
+    .confusable dd:last-child { margin-bottom: 0; }
+
+    /* --- Narrow screens --- */
+
+    /* Below this width the two columns stack into one card per shortcut.
+       display:block strips the implicit ARIA table roles, which is why the
+       markup writes role="table"/"row"/"cell" out explicitly. */
+    @media (max-width: 700px) {
+      #shortcut-content { padding: 1.25rem 1rem; }
+
+      .shortcut-table,
+      .shortcut-table thead,
+      .shortcut-table tbody,
+      .shortcut-table tr,
+      .shortcut-table th,
+      .shortcut-table td { display: block; }
+
+      .shortcut-table thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+
+      .shortcut-table tr {
+        border: 1px solid var(--color-border);
+        border-radius: 10px;
+        padding: 0.7rem 0.9rem;
+        margin-bottom: 0.6rem;
+      }
+
+      .shortcut-table td,
+      .shortcut-table tr:nth-child(even) td {
+        border-bottom: 0;
+        padding: 0;
+        background: none;
+      }
+
+      .cell-answer { margin-top: 0.35rem; }
+
+      .cell-answer .answer-service::before {
+        content: "\2192\00a0";
+        color: var(--color-muted);
+      }
+    }
+
+    /* --- Print --- */
+
+    @media print {
+      .shortcut-jump { display: none !important; }
+      #shortcut-content { max-width: none; padding: 0; }
+      .shortcut-section { break-inside: auto; }
+      .shortcut-table tr { break-inside: avoid; page-break-inside: avoid; }
+      .answer-service { color: #000; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#shortcut-content">Skip to content</a>
+  <header class="site-header">
+    <h1>The Exam Shortcut</h1>
+    <nav id="nav">
+      <a href="index.html#/">&larr; AWS prep home</a>
+    </nav>
+  </header>
+
+  <main id="shortcut-content" tabindex="-1">
+    <p class="shortcut-intro">
+      SAA-C03 stems are long, but they are built out of a small vocabulary. A handful of
+      phrases — &ldquo;consolidated billing&rdquo;, &ldquo;must not traverse the public
+      internet&rdquo;, &ldquo;least operational overhead&rdquo; — point at one service almost
+      every time they appear. This page is that vocabulary: the trigger on the left, what to
+      think on the right.
+    </p>
+
+    <div class="shortcut-callout">
+      <p><strong>Use these as tiebreakers, not as answers.</strong> A trigger phrase narrows
+      four options to two; the rest of the stem — the constraint on cost, latency, downtime,
+      or operational effort — picks between them. Skipping the stem is how a shortcut becomes
+      a wrong answer.</p>
+    </div>
+
+    <nav class="shortcut-jump" aria-label="Jump to section">
+      <a href="#g-security-identity-and-compliance">Security, Identity, and Compliance</a>
+      <a href="#g-networking-and-content-delivery">Networking and Content Delivery</a>
+      <a href="#g-compute-containers-and-serverless">Compute, Containers, and Serverless</a>
+      <a href="#g-storage">Storage</a>
+      <a href="#g-database">Database</a>
+      <a href="#g-analytics">Analytics</a>
+      <a href="#g-management-governance-and-cost">Management, Governance, and Cost</a>
+      <a href="#g-confusables">Look-alikes</a>
+      <a href="#g-qualifiers">Qualifiers</a>
+    </nav>
+
+    <section class="shortcut-section" aria-labelledby="g-security-identity-and-compliance">
+      <h2 id="g-security-identity-and-compliance">Security, Identity, and Compliance</h2>
+      <p class="section-intro">Roughly a third of the exam. Most of these stems name a governance boundary — an account, an OU, a directory, an audit trail — and the boundary is the giveaway.</p>
+      <table class="shortcut-table" role="table">
+        <thead role="rowgroup">
+          <tr role="row">
+            <th role="columnheader" scope="col">When you see&hellip;</th>
+            <th role="columnheader" scope="col">Think&hellip;</th>
+          </tr>
+        </thead>
+        <tbody role="rowgroup">
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Manage many AWS accounts centrally</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS Organizations</span>
+              <span class="answer-why">One organization is the only place accounts are created, grouped, and governed together.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Consolidated billing / one invoice across accounts</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS Organizations</span>
+              <span class="answer-why">Consolidated billing is an Organizations feature; usage also pools for volume tiering.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Organize accounts into organizational units (OUs)</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS Organizations</span>
+              <span class="answer-why">OUs are the grouping unit policies attach to.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Organization-wide guardrail nobody can exceed, not even an account admin</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Service control policies (SCPs)</span>
+              <span class="answer-parent">AWS Organizations</span>
+              <span class="answer-why">An SCP caps the maximum permissions in an account; it never grants anything, and it does not apply to the management account.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Stand up a governed multi-account landing zone and vend new accounts</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS Control Tower</span>
+              <span class="answer-why">Sits on top of Organizations and automates the baseline: OUs, guardrails, log archive, account factory.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Employees log in once and reach many AWS accounts</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS IAM Identity Center</span>
+              <span class="answer-why">Workforce SSO across every account in the organization, from one portal.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Users already live in Active Directory or an external SAML/OIDC identity provider</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS IAM Identity Center</span>
+              <span class="answer-why">Point it at the corporate directory as the identity source instead of re-creating users as IAM users.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Sign-up and sign-in for your own application&#39;s users</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Amazon Cognito user pools</span>
+              <span class="answer-why">A user pool is the app-user directory that authenticates and issues tokens. Workforce access is IAM Identity Center; app users are Cognito.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">App users need to call AWS APIs directly (upload to their own S3 prefix)</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Amazon Cognito identity pools</span>
+              <span class="answer-why">An identity pool trades a verified login for temporary AWS credentials from STS.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Short-lived credentials, role assumption, cross-account access</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS STS</span>
+              <span class="answer-why">STS is the machinery behind every role assumption; credentials expire in minutes to hours.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">EC2 instance or Lambda function needs AWS permissions without stored keys</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">IAM roles</span>
+              <span class="answer-why">Attach a role; the credentials are temporary and rotated for you. Long-lived access keys on an instance are always the wrong answer.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Grant another account access to one bucket or key without creating a role</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Resource-based policies</span>
+              <span class="answer-parent">AWS IAM</span>
+              <span class="answer-why">A bucket or key policy can name an external principal directly — the second cross-account path alongside AssumeRole.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Record who called which API, when, and from where</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS CloudTrail</span>
+              <span class="answer-why">The account-wide API audit trail. &quot;Who did this?&quot; is always CloudTrail.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Show a resource&#39;s configuration history, or detect drift from a rule</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS Config</span>
+              <span class="answer-why">Config records configuration state over time and evaluates it continuously. &quot;What did this look like last Tuesday?&quot; is Config.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Automatically remediate a non-compliant resource</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS Config</span>
+              <span class="answer-why">Config rules can attach remediation actions that fix the resource when it drifts.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Detect compromised credentials, crypto-mining, or unusual API and DNS activity</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Amazon GuardDuty</span>
+              <span class="answer-why">Continuous threat detection over CloudTrail, VPC Flow Logs, and DNS logs — no agents to deploy.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Find and classify PII or other sensitive data sitting in S3</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Amazon Macie</span>
+              <span class="answer-why">Macie is the S3-specific sensitive-data discovery service.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Block SQL injection, XSS, bad bots, or rate-limit one source IP</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS WAF</span>
+              <span class="answer-why">Layer-7 request filtering in front of CloudFront, an ALB, or API Gateway.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Large sustained DDoS attack, 24/7 response team, protection from scaling charges</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS Shield Advanced</span>
+              <span class="answer-why">Standard is free and always on; the response team and cost protection are what Advanced buys.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Encryption keys you create, control, audit, and rotate</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS KMS</span>
+              <span class="answer-why">One key policy per key, default-deny even for the account root, and automatic rotation for symmetric keys.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Database password or API key that must rotate automatically</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS Secrets Manager</span>
+              <span class="answer-why">Built-in scheduled rotation is the discriminator — plain parameter storage has none.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Free public TLS certificate that renews itself</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS Certificate Manager</span>
+              <span class="answer-why">DNS-validated ACM certificates renew unattended while they stay attached; imported and private-CA certificates do not.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Certificate for a CloudFront distribution</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS Certificate Manager</span>
+              <span class="answer-why">It must be requested in us-east-1 no matter where the origin lives.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Stateful firewall on the instance, allow rules only</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Amazon VPC Security Groups</span>
+              <span class="answer-why">Return traffic is permitted automatically, so you only open one direction.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Explicitly deny one IP range at the subnet edge</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Amazon VPC Network ACLs</span>
+              <span class="answer-why">NACLs are the only VPC control with deny rules; they are stateless, so both directions need opening.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">One backup policy spanning EBS, RDS, DynamoDB, EFS, and more</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS Backup</span>
+              <span class="answer-why">Central backup plans and vaults instead of per-service snapshot schedules.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Records that must not be deleted or altered for a retention period (WORM)</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">S3 Object Lock</span>
+              <span class="answer-why">Write-once-read-many retention and legal holds for compliance regimes.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Least privilege, MFA on root, stop using root day to day</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS IAM</span>
+              <span class="answer-why">The generic account-hygiene answer whenever a stem describes permissions rather than a specific tool.</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="shortcut-section" aria-labelledby="g-networking-and-content-delivery">
+      <h2 id="g-networking-and-content-delivery">Networking and Content Delivery</h2>
+      <p class="section-intro">Two questions decide most of these: does the traffic have to stay off the public internet, and is it HTTP or not?</p>
+      <table class="shortcut-table" role="table">
+        <thead role="rowgroup">
+          <tr role="row">
+            <th role="columnheader" scope="col">When you see&hellip;</th>
+            <th role="columnheader" scope="col">Think&hellip;</th>
+          </tr>
+        </thead>
+        <tbody role="rowgroup">
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Private subnet needs outbound internet for patching, no inbound</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">NAT Gateway</span>
+              <span class="answer-why">Managed egress. Instances reach out; nothing reaches in.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Reach S3 or DynamoDB privately, at no extra charge</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">VPC Gateway Endpoints</span>
+              <span class="answer-why">A free route-table entry — and only those two services get one.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Reach another AWS or partner service over private IPs, no internet path</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS PrivateLink</span>
+              <span class="answer-why">Interface endpoints put an ENI in your subnet; billed hourly plus per GB.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Connect exactly two VPCs privately</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">VPC Peering</span>
+              <span class="answer-why">One-to-one and non-transitive: three VPCs need three peerings, ten need forty-five.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Connect many VPCs and on-premises links without a peering mesh</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS Transit Gateway</span>
+              <span class="answer-why">Hub-and-spoke with transitive routing; the fix whenever a stem counts VPCs.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">See which flows the VPC accepted and rejected</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">VPC Flow Logs</span>
+              <span class="answer-why">Traffic metadata at the VPC, subnet, or ENI level — the answer to &quot;why is this connection failing?&quot;</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Encrypted link to on-premises, working within hours, low cost</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS Site-to-Site VPN</span>
+              <span class="answer-why">IPsec over the public internet: fast to stand up, internet-variable performance.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Consistent bandwidth and latency to on-premises, off the public internet</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS Direct Connect</span>
+              <span class="answer-why">A dedicated circuit — and weeks of lead time, which is how stems hint at it.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Private on-premises link that must survive the circuit failing</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS Site-to-Site VPN</span>
+              <span class="answer-why">The standard pattern is Direct Connect as primary with a VPN as the backup path.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Cache HTTP(S) content near users worldwide</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Amazon CloudFront</span>
+              <span class="answer-why">A CDN: edge caching, TLS, signed URLs, origin shielding.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Static entry IP addresses and near-instant regional failover for TCP or UDP</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS Global Accelerator</span>
+              <span class="answer-why">Two anycast IPs onto the AWS backbone. Non-HTTP traffic or fixed IPs rules CloudFront out.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Send each user to the lowest-latency Region</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Route 53 latency-based routing</span>
+              <span class="answer-why">DNS-level Region selection based on measured latency, not geography.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Shift a percentage of traffic for a canary or blue/green rollout</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Route 53 weighted routing</span>
+              <span class="answer-why">Weights split resolution across records; the classic gradual-cutover answer.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Fail over to a standby Region when health checks trip</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Route 53 failover routing</span>
+              <span class="answer-why">Health-checked primary/secondary records — the DNS half of most DR designs.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Serve or block content based on the viewer&#39;s country</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">CloudFront geo restriction</span>
+              <span class="answer-why">Enforced at the edge, before the request reaches the origin.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Route HTTP requests by URL path or hostname</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Application Load Balancer</span>
+              <span class="answer-why">Layer 7 routing to target groups — including Lambda targets.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Millions of connections per second, TCP/UDP, or a static IP per AZ</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Network Load Balancer</span>
+              <span class="answer-why">Layer 4, ultra-low latency. Any non-HTTP protocol in the stem means NLB.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Backend must see the client&#39;s real source IP without parsing headers</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Network Load Balancer</span>
+              <span class="answer-why">NLB preserves the source IP; an ALB terminates the connection and passes it in X-Forwarded-For.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Slot third-party firewall or IDS/IPS appliances into the traffic path transparently</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Gateway Load Balancer</span>
+              <span class="answer-why">The only load balancer whose job is appliance insertion.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Managed front door for REST, HTTP, or WebSocket APIs with throttling and auth</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Amazon API Gateway</span>
+              <span class="answer-why">Also the answer whenever a stem wants per-client rate limiting on an API.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Data tier must have no path to the internet at all</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Amazon VPC</span>
+              <span class="answer-why">A private subnet whose route table has neither an internet gateway nor a NAT route.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Choosing between one shared NAT gateway and one per Availability Zone</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">NAT Gateway</span>
+              <span class="answer-why">One per AZ costs more per hour but removes both the cross-AZ data charges and the single-AZ failure mode.</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="shortcut-section" aria-labelledby="g-compute-containers-and-serverless">
+      <h2 id="g-compute-containers-and-serverless">Compute, Containers, and Serverless</h2>
+      <p class="section-intro">Read the operational-overhead clause first: it usually decides between EC2, containers, and functions before any technical requirement does.</p>
+      <table class="shortcut-table" role="table">
+        <thead role="rowgroup">
+          <tr role="row">
+            <th role="columnheader" scope="col">When you see&hellip;</th>
+            <th role="columnheader" scope="col">Think&hellip;</th>
+          </tr>
+        </thead>
+        <tbody role="rowgroup">
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Run code with no servers to manage, triggered by an event</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS Lambda</span>
+              <span class="answer-why">Billed per millisecond, scales itself, capped at 15 minutes per invocation.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Job runs longer than 15 minutes</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS Fargate</span>
+              <span class="answer-why">The Lambda ceiling is the trap; run it as a container task (or an AWS Batch job) instead.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Containers with no instances to provision or patch</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS Fargate</span>
+              <span class="answer-why">&quot;Least operational overhead&quot; plus containers is Fargate almost every time.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Docker orchestration with the least AWS-specific complexity</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Amazon ECS</span>
+              <span class="answer-why">AWS-native scheduling; no Kubernetes control plane to reason about.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Team is standardized on Kubernetes APIs and tooling</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Amazon EKS</span>
+              <span class="answer-why">The stem naming Kubernetes, kubectl, or existing manifests is the whole signal.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Keep a fleet at the right size and replace unhealthy instances</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Amazon EC2 Auto Scaling</span>
+              <span class="answer-why">Health checks plus min/max/desired capacity — the self-healing half of most resilient designs.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Keep average CPU (or request count) at a target</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Amazon EC2 Auto Scaling</span>
+              <span class="answer-why">A target-tracking policy; step scaling is for staged thresholds.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Traffic follows a known daily or weekly pattern</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Amazon EC2 Auto Scaling</span>
+              <span class="answer-why">Scheduled scaling warms capacity before the spike rather than chasing it.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Absorb a spike so a slow consumer never drops work</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Amazon SQS</span>
+              <span class="answer-why">A buffer between producer and consumer: the queue grows instead of the consumer failing.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Messages must be processed in order, exactly once</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">SQS FIFO queues</span>
+              <span class="answer-why">Standard queues are at-least-once and best-effort ordered; FIFO is the discriminator.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Park messages a consumer keeps failing to process</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">SQS dead-letter queues</span>
+              <span class="answer-why">A poison message stops blocking the queue and becomes debuggable.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">One event must reach several independent subscribers at once</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Amazon SNS</span>
+              <span class="answer-why">Pub/sub fan-out. &quot;Notify multiple systems simultaneously&quot; is SNS, not SQS.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Coordinate a multi-step workflow with branching, retries, and error handling</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS Step Functions</span>
+              <span class="answer-why">State machines replace the chained-Lambda answer whenever the stem describes steps or approvals.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Find which service in a request chain is slow</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS X-Ray</span>
+              <span class="answer-why">Distributed tracing across services; CloudWatch shows the symptom, X-Ray shows the hop.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Thousands of queued compute jobs with capacity provisioned automatically</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS Batch</span>
+              <span class="answer-why">Managed job queues on top of EC2 or Fargate — often paired with Spot for cost.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">AWS services running inside your own data center for latency or data residency</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS Outposts</span>
+              <span class="answer-why">&quot;Must stay on premises&quot; plus &quot;native AWS APIs&quot; is Outposts.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Full control over the OS, kernel, or a licensed appliance</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Amazon EC2</span>
+              <span class="answer-why">When the stem needs the machine itself, managed compute is ruled out.</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="shortcut-section" aria-labelledby="g-storage">
+      <h2 id="g-storage">Storage</h2>
+      <p class="section-intro">Object, file, or block first — then how fast it must come back, then how cheap it must be.</p>
+      <table class="shortcut-table" role="table">
+        <thead role="rowgroup">
+          <tr role="row">
+            <th role="columnheader" scope="col">When you see&hellip;</th>
+            <th role="columnheader" scope="col">Think&hellip;</th>
+          </tr>
+        </thead>
+        <tbody role="rowgroup">
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Durable storage for any amount of unstructured data</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Amazon S3</span>
+              <span class="answer-why">Eleven nines of durability; the default answer for objects, backups, and data lakes.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Static website or single-page app served cheaply</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Amazon S3</span>
+              <span class="answer-why">Front it with CloudFront when the stem also wants TLS, a custom domain, or edge caching.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Access pattern is unknown or changes over time</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">S3 Intelligent-Tiering</span>
+              <span class="answer-why">Shifts objects between tiers automatically with no retrieval fee — the &quot;we do not know&quot; answer.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Data is hot for 30 days, then rarely touched</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">S3 Lifecycle rules</span>
+              <span class="answer-why">A known, age-based pattern is a lifecycle transition, not Intelligent-Tiering.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Archive read less than once a year, hours to restore is acceptable</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">S3 Glacier Deep Archive</span>
+              <span class="answer-why">The cheapest tier. If the stem tolerates hours, anything faster is over-spending.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Archive that must come back in milliseconds but is rarely read</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">S3 Glacier Instant Retrieval</span>
+              <span class="answer-why">Archive pricing without the wait; Flexible Retrieval takes minutes to hours.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Recover an object someone overwrote or deleted</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">S3 Versioning</span>
+              <span class="answer-why">Previous versions survive overwrites and deletes; add MFA delete to protect the versions themselves.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Same objects must exist in a second Region</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">S3 Cross-Region Replication</span>
+              <span class="answer-why">Asynchronous replication for latency, compliance, or regional DR. Versioning must be on.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Boot volume, or block storage for one instance</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Amazon EBS</span>
+              <span class="answer-why">Single-instance, single-AZ; snapshots back it up incrementally to S3.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Guaranteed sustained IOPS for a latency-sensitive database</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Amazon EBS</span>
+              <span class="answer-why">Provisioned IOPS (io1/io2). gp3 sets IOPS independently of size but does not promise the same sustained floor.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Cheapest block storage for large sequential logs or streaming data</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Amazon EBS</span>
+              <span class="answer-why">Throughput-optimized HDD (st1) — and neither HDD type can be a boot volume.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Many Linux instances mount the same file system at once</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Amazon EFS</span>
+              <span class="answer-why">Elastic NFS across AZs. &quot;Shared&quot; plus &quot;POSIX&quot; is always EFS.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Windows application needs a native SMB share joined to Active Directory</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Amazon FSx for Windows File Server</span>
+              <span class="answer-why">SMB rules EFS out; lift-and-shift Windows workloads land here.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">HPC scratch storage with extreme throughput, linked to S3</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Amazon FSx for Lustre</span>
+              <span class="answer-why">The high-performance-computing file system, with an S3 data repository association.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">On-premises app needs an NFS/SMB share, iSCSI volume, or virtual tape backed by AWS</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS Storage Gateway</span>
+              <span class="answer-why">A hybrid appliance presenting cloud storage in the protocol the legacy app already speaks.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">One-off or scheduled bulk copy of an on-premises dataset into AWS</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS DataSync</span>
+              <span class="answer-why">A transfer job, not a permanent presentation layer — that distinction separates it from Storage Gateway.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Partners upload files over SFTP, FTPS, or FTP straight into S3</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS Transfer Family</span>
+              <span class="answer-why">Managed protocol endpoints so the partner never changes their client.</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="shortcut-section" aria-labelledby="g-database">
+      <h2 id="g-database">Database</h2>
+      <p class="section-intro">Relational or not; then read scaling versus failover, which is the single most reliably tested distinction in this domain.</p>
+      <table class="shortcut-table" role="table">
+        <thead role="rowgroup">
+          <tr role="row">
+            <th role="columnheader" scope="col">When you see&hellip;</th>
+            <th role="columnheader" scope="col">Think&hellip;</th>
+          </tr>
+        </thead>
+        <tbody role="rowgroup">
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Relational engine with automatic failover to another AZ</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Amazon RDS Multi-AZ</span>
+              <span class="answer-why">A synchronous standby you cannot read from. It buys availability, never throughput.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Read traffic is swamping the primary</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Amazon RDS read replicas</span>
+              <span class="answer-why">Asynchronous replicas serve reads and can be promoted; that is scaling, not HA.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">MySQL or PostgreSQL compatibility with cloud-native speed and durability</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Amazon Aurora</span>
+              <span class="answer-why">Six storage copies across three AZs and up to fifteen low-lag read replicas.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Relational workload that is intermittent, spiky, or hard to predict</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Amazon Aurora Serverless v2</span>
+              <span class="answer-why">Capacity scales in place instead of provisioning for the peak.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Relational reads in a second Region, promotable fast for DR</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Amazon Aurora Global Database</span>
+              <span class="answer-why">Cross-Region replication with typically sub-second lag and a secondary Region promotable in about a minute.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Key-value or document access at any scale with no servers</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Amazon DynamoDB</span>
+              <span class="answer-why">Single-digit-millisecond reads; no joins, no fixed schema, no capacity planning on demand.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">NoSQL table written to from multiple Regions at once</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">DynamoDB global tables</span>
+              <span class="answer-why">Multi-Region, multi-active replication built into the table.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">DynamoDB reads must drop from milliseconds to microseconds</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">DynamoDB Accelerator (DAX)</span>
+              <span class="answer-why">A DynamoDB-only cache with automatic invalidation — no application-side cache logic.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Restore a table to any second within the last 35 days</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">DynamoDB point-in-time recovery</span>
+              <span class="answer-why">A rolling 35-day window; on-demand backups cover anything older.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Cache in front of a database, session store, or leaderboard</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Amazon ElastiCache</span>
+              <span class="answer-why">Managed Redis or Memcached at microsecond latency — a cache, never the system of record.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Lambda or a bursty app is exhausting database connections</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Amazon RDS Proxy</span>
+              <span class="answer-why">Pools and reuses connections, and holds them open through a failover.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Complex analytical SQL over terabytes, BI dashboards, OLAP</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Amazon Redshift</span>
+              <span class="answer-why">Columnar warehouse. &quot;Analytics&quot; over a relational schema means Redshift, not RDS.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Move a database into AWS with almost no downtime</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS DMS</span>
+              <span class="answer-why">Continuous replication keeps the source live until cutover.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Move from Oracle or SQL Server to Aurora or PostgreSQL</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS DMS Schema Conversion Tool</span>
+              <span class="answer-why">Heterogeneous migrations need schema conversion first, then DMS moves the data.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">High-volume time-series or IoT telemetry</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Amazon Timestream</span>
+              <span class="answer-why">Purpose-built for timestamped metrics; a relational table is the wrong shape.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Automated relational backups retained for weeks</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Amazon RDS</span>
+              <span class="answer-why">Automated backup retention tops out at 35 days; manual snapshots persist until you delete them.</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="shortcut-section" aria-labelledby="g-analytics">
+      <h2 id="g-analytics">Analytics</h2>
+      <p class="section-intro">The recurring tell is whether anything has to be running when nobody is querying.</p>
+      <table class="shortcut-table" role="table">
+        <thead role="rowgroup">
+          <tr role="row">
+            <th role="columnheader" scope="col">When you see&hellip;</th>
+            <th role="columnheader" scope="col">Think&hellip;</th>
+          </tr>
+        </thead>
+        <tbody role="rowgroup">
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Ad-hoc SQL over files already in S3, nothing to provision</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Amazon Athena</span>
+              <span class="answer-why">Serverless and billed per byte scanned — partitioning and columnar formats are how stems ask you to cut that bill.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Discover schemas in S3 and make them queryable</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS Glue</span>
+              <span class="answer-why">Crawlers populate the Data Catalog that Athena, EMR, and Redshift all read.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Serverless ETL to reshape or convert data formats</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS Glue</span>
+              <span class="answer-why">Managed ETL jobs with no cluster to size.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Real-time ingest that several consumers can replay</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Amazon Kinesis Data Streams</span>
+              <span class="answer-why">Shard-based ordering with a retention window — replay is what rules a queue out.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Spark, Hadoop, or Hive clusters</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Amazon EMR</span>
+              <span class="answer-why">When the stem names the framework, it wants the managed cluster, not a serverless query engine.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Central, fine-grained table and column permissions across a data lake</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS Lake Formation</span>
+              <span class="answer-why">Layers governed permissions over Glue instead of hand-writing bucket policies.</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="shortcut-section" aria-labelledby="g-management-governance-and-cost">
+      <h2 id="g-management-governance-and-cost">Management, Governance, and Cost</h2>
+      <p class="section-intro">Cost questions are answered by commitment shape: how long, how flexible, and how interruptible the workload is.</p>
+      <table class="shortcut-table" role="table">
+        <thead role="rowgroup">
+          <tr role="row">
+            <th role="columnheader" scope="col">When you see&hellip;</th>
+            <th role="columnheader" scope="col">Think&hellip;</th>
+          </tr>
+        </thead>
+        <tbody role="rowgroup">
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Metrics, logs, alarms, and dashboards</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">Amazon CloudWatch</span>
+              <span class="answer-why">Operational telemetry. CloudTrail answers &quot;who&quot;; CloudWatch answers &quot;how is it behaving&quot;.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Trigger scaling or a notification when a metric crosses a threshold</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">CloudWatch alarms</span>
+              <span class="answer-why">The trigger behind nearly every auto scaling and notification design.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Break the bill down by service, account, or tag; forecast next month</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS Cost Explorer</span>
+              <span class="answer-why">Retrospective analysis and forecasting — reporting, not enforcement.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Alert when spend crosses, or is forecast to cross, a threshold</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS Budgets</span>
+              <span class="answer-why">Thresholds and actions. &quot;Notify me before we overspend&quot; is Budgets, not Cost Explorer.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Steady compute spend, deepest discount, keep instance flexibility</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS Savings Plans</span>
+              <span class="answer-why">Commit to a dollar-per-hour and stay flexible across family, size, Region, Fargate, and Lambda.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Unchanging instance family and Region for one or three years</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">EC2 Reserved Instances</span>
+              <span class="answer-why">The locked-configuration commitment; Savings Plans win whenever the stem wants flexibility.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Interruptible, fault-tolerant work at the lowest possible price</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">EC2 Spot Instances</span>
+              <span class="answer-why">Up to about 90% off with a two-minute interruption notice. Never for a stateful, must-finish workload.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Unpredictable, short-lived, or brand-new workload</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">EC2 On-Demand Instances</span>
+              <span class="answer-why">No commitment while the usage pattern is still being measured.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Automated checks for idle resources, open security groups, and quota headroom</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS Trusted Advisor</span>
+              <span class="answer-why">Best-practice checks across cost, performance, security, fault tolerance, and limits.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Hitting a service limit and needing a higher one</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS Service Quotas</span>
+              <span class="answer-why">One console to view limits, request increases, and alarm before you hit them.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Take S3 traffic off the NAT gateway to cut data-processing charges</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">VPC Gateway Endpoints</span>
+              <span class="answer-why">Free, and it removes both the NAT processing fee and the internet path.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Downloaders should pay the data transfer for your bucket</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">S3 Requester Pays</span>
+              <span class="answer-why">Shifts request and transfer cost to the requesting account.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Attribute spend back to a team, project, or environment</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-service">AWS Cost Explorer</span>
+              <span class="answer-why">Cost allocation tags plus grouping — the reason tagging shows up in cost stems.</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="shortcut-section" aria-labelledby="g-confusables">
+      <h2 id="g-confusables">The look-alikes</h2>
+      <p class="section-intro">Each of these pairs shows up as two technically-plausible
+        options in the same question. Memorize the split, not the services.</p>
+      <div class="confusable-grid">
+        <div class="confusable">
+          <h3>CloudTrail vs. CloudWatch vs. Config</h3>
+          <dl>
+            <dt>AWS CloudTrail</dt>
+            <dd>Who made the API call, and when.</dd>
+            <dt>Amazon CloudWatch</dt>
+            <dd>How the resource is performing right now, and alarms on it.</dd>
+            <dt>AWS Config</dt>
+            <dd>What the resource was configured like over time, and whether that breaks a rule.</dd>
+          </dl>
+        </div>
+        <div class="confusable">
+          <h3>SQS vs. SNS</h3>
+          <dl>
+            <dt>Amazon SQS</dt>
+            <dd>One consumer group pulls work at its own pace; the queue absorbs the spike.</dd>
+            <dt>Amazon SNS</dt>
+            <dd>One message must be pushed to several independent subscribers at once.</dd>
+          </dl>
+        </div>
+        <div class="confusable">
+          <h3>Cognito vs. IAM Identity Center</h3>
+          <dl>
+            <dt>Amazon Cognito</dt>
+            <dd>Your application&#39;s end users — customers signing in to your app.</dd>
+            <dt>AWS IAM Identity Center</dt>
+            <dd>Your workforce — employees signing in to AWS accounts.</dd>
+          </dl>
+        </div>
+        <div class="confusable">
+          <h3>Gateway endpoint vs. Interface endpoint</h3>
+          <dl>
+            <dt>VPC Gateway Endpoints</dt>
+            <dd>S3 or DynamoDB, free, added as a route-table entry.</dd>
+            <dt>AWS PrivateLink</dt>
+            <dd>Any other AWS or partner service, via an ENI, billed hourly plus per GB.</dd>
+          </dl>
+        </div>
+        <div class="confusable">
+          <h3>VPC peering vs. Transit Gateway</h3>
+          <dl>
+            <dt>VPC Peering</dt>
+            <dd>A handful of VPCs; non-transitive, and no hourly charge.</dd>
+            <dt>AWS Transit Gateway</dt>
+            <dd>Many VPCs and on-premises links; transitive routing beats a growing mesh.</dd>
+          </dl>
+        </div>
+        <div class="confusable">
+          <h3>CloudFront vs. Global Accelerator</h3>
+          <dl>
+            <dt>Amazon CloudFront</dt>
+            <dd>Cacheable HTTP(S) content served from the edge.</dd>
+            <dt>AWS Global Accelerator</dt>
+            <dd>Non-HTTP protocols, static IPs, or failover measured in seconds.</dd>
+          </dl>
+        </div>
+        <div class="confusable">
+          <h3>ALB vs. NLB vs. GWLB</h3>
+          <dl>
+            <dt>Application Load Balancer</dt>
+            <dd>HTTP(S) routed by path, host, or header.</dd>
+            <dt>Network Load Balancer</dt>
+            <dd>TCP/UDP, extreme throughput, static IP, or source-IP preservation.</dd>
+            <dt>Gateway Load Balancer</dt>
+            <dd>Third-party inspection appliances inserted transparently.</dd>
+          </dl>
+        </div>
+        <div class="confusable">
+          <h3>S3 vs. EFS vs. EBS vs. FSx</h3>
+          <dl>
+            <dt>Amazon S3</dt>
+            <dd>Objects reached over an API; no file system semantics needed.</dd>
+            <dt>Amazon EFS</dt>
+            <dd>A POSIX file system many Linux instances mount at once.</dd>
+            <dt>Amazon EBS</dt>
+            <dd>A block device for one instance, in one AZ.</dd>
+            <dt>Amazon FSx</dt>
+            <dd>Windows SMB, or Lustre for HPC.</dd>
+          </dl>
+        </div>
+        <div class="confusable">
+          <h3>Glacier Instant vs. Flexible vs. Deep Archive</h3>
+          <dl>
+            <dt>S3 Glacier Instant Retrieval</dt>
+            <dd>Rarely read, but must come back in milliseconds.</dd>
+            <dt>S3 Glacier Flexible Retrieval</dt>
+            <dd>Minutes to hours is fine, and bulk restores are free.</dd>
+            <dt>S3 Glacier Deep Archive</dt>
+            <dd>Read less than once a year; hours to restore, cheapest per GB.</dd>
+          </dl>
+        </div>
+        <div class="confusable">
+          <h3>Multi-AZ vs. read replica</h3>
+          <dl>
+            <dt>Amazon RDS Multi-AZ</dt>
+            <dd>Availability: a synchronous standby that takes over, and serves no reads.</dd>
+            <dt>Amazon RDS read replicas</dt>
+            <dd>Throughput: asynchronous copies that serve reads and can be promoted.</dd>
+          </dl>
+        </div>
+        <div class="confusable">
+          <h3>ElastiCache vs. DAX</h3>
+          <dl>
+            <dt>Amazon ElastiCache</dt>
+            <dd>A general cache in front of any database, or a session store.</dd>
+            <dt>DynamoDB Accelerator (DAX)</dt>
+            <dd>DynamoDB specifically, with invalidation handled for you.</dd>
+          </dl>
+        </div>
+        <div class="confusable">
+          <h3>Redshift vs. Athena vs. EMR</h3>
+          <dl>
+            <dt>Amazon Redshift</dt>
+            <dd>Sustained, complex warehouse queries against loaded data.</dd>
+            <dt>Amazon Athena</dt>
+            <dd>Occasional SQL straight against S3, with nothing running in between.</dd>
+            <dt>Amazon EMR</dt>
+            <dd>The stem names Spark, Hadoop, or Hive.</dd>
+          </dl>
+        </div>
+        <div class="confusable">
+          <h3>Direct Connect vs. Site-to-Site VPN</h3>
+          <dl>
+            <dt>AWS Direct Connect</dt>
+            <dd>Consistent bandwidth and latency matter, and weeks of lead time are acceptable.</dd>
+            <dt>AWS Site-to-Site VPN</dt>
+            <dd>It has to work today, cheaply, or serve as the backup path.</dd>
+          </dl>
+        </div>
+        <div class="confusable">
+          <h3>Security group vs. network ACL</h3>
+          <dl>
+            <dt>Amazon VPC Security Groups</dt>
+            <dd>Per-instance, stateful, allow rules only.</dd>
+            <dt>Amazon VPC Network ACLs</dt>
+            <dd>Per-subnet, stateless, and the only place you can write a deny.</dd>
+          </dl>
+        </div>
+        <div class="confusable">
+          <h3>Savings Plans vs. Reserved Instances vs. Spot</h3>
+          <dl>
+            <dt>AWS Savings Plans</dt>
+            <dd>Steady spend, but the instance mix will change.</dd>
+            <dt>EC2 Reserved Instances</dt>
+            <dd>The configuration is fixed for the whole term.</dd>
+            <dt>EC2 Spot Instances</dt>
+            <dd>The work can be interrupted and restarted.</dd>
+          </dl>
+        </div>
+        <div class="confusable">
+          <h3>GuardDuty vs. Macie</h3>
+          <dl>
+            <dt>Amazon GuardDuty</dt>
+            <dd>Threat activity: compromised credentials, mining, suspicious DNS.</dd>
+            <dt>Amazon Macie</dt>
+            <dd>Sensitive data at rest in S3: PII discovery and classification.</dd>
+          </dl>
+        </div>
+        <div class="confusable">
+          <h3>Storage Gateway vs. DataSync</h3>
+          <dl>
+            <dt>AWS Storage Gateway</dt>
+            <dd>On-premises apps keep using NFS, SMB, iSCSI, or tape, permanently.</dd>
+            <dt>AWS DataSync</dt>
+            <dd>A transfer job that moves a dataset and then finishes.</dd>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+    <section class="shortcut-section" aria-labelledby="g-qualifiers">
+      <h2 id="g-qualifiers">Qualifiers that break the tie</h2>
+      <p class="section-intro">When two answers are both technically correct, this clause &mdash;
+        usually the last sentence of the stem &mdash; is what decides between them.</p>
+      <table class="shortcut-table" role="table">
+        <thead role="rowgroup">
+          <tr role="row">
+            <th role="columnheader" scope="col">Qualifier in the stem</th>
+            <th role="columnheader" scope="col">What it rules in or out</th>
+          </tr>
+        </thead>
+        <tbody role="rowgroup">
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Least operational overhead / fully managed</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-why answer-why-lead">Prefer the serverless or managed option: Fargate over EC2, Aurora Serverless over self-tuned instances, DynamoDB over a database you patch.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Most cost-effective</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-why answer-why-lead">The cheapest option that still meets every stated requirement — not the cheapest option outright.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">No application changes / lift and shift</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-why answer-why-lead">Rule out anything that means a rewrite: keep the protocol (SMB, NFS, SFTP) and the engine the app already speaks.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Cannot lose any data / RPO of zero</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-why answer-why-lead">Synchronous replication only — a Multi-AZ standby, not an asynchronous replica or a nightly backup.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Recover within minutes / RTO in minutes</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-why answer-why-lead">Something must already be running: warm standby or active-active, never backup-and-restore.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Must not traverse the public internet</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-why answer-why-lead">VPC endpoints, PrivateLink, or Direct Connect — and a NAT gateway does not qualify.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Highly available</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-why answer-why-lead">At least two Availability Zones. An answer pinned to one AZ is wrong regardless of its other merits.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Automatically / without manual intervention</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-why answer-why-lead">Rule out any answer whose first step is a human: no manual snapshots, no manual failover, no ticket.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Decouple</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-why answer-why-lead">A queue or a topic belongs in the answer — SQS to buffer, SNS to fan out.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Unpredictable or spiky traffic</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-why answer-why-lead">On-demand and elastic: Auto Scaling, Lambda, DynamoDB on-demand capacity, Aurora Serverless.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Existing corporate directory</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-why answer-why-lead">Federation, not new IAM users: IAM Identity Center with an external identity source.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Encrypted with keys we control and audit</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-why answer-why-lead">KMS with a customer managed key, not the default AWS managed key.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Global users complaining about latency</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-why answer-why-lead">CloudFront for HTTP content, Global Accelerator for everything else, latency-based routing for Region choice.</span>
+            </td>
+          </tr>
+          <tr role="row">
+            <td role="cell" class="cell-trigger">Retain for N years for compliance</td>
+            <td role="cell" class="cell-answer">
+              <span class="answer-why answer-why-lead">Lifecycle into Glacier, and add Object Lock if the stem says the records cannot be altered.</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>Unofficial study aid. Not affiliated with or endorsed by AWS.</p>
+  </footer>
+
+</body>
+</html>

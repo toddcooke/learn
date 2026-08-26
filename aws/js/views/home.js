@@ -23,6 +23,9 @@ export function render(mount) {
         <li>Track improvement on the <a href="#/progress">progress dashboard</a>.</li>
       </ol>
       <p><a href="vpc-explorer.html">Interactive: VPC &amp; Subnet Explorer</a> — click through subnet tiers, route tables, and CIDR math.</p>
+      <p><a href="exam-shortcut.html">The exam shortcut</a> &mdash; a one-page
+        &ldquo;when you see this phrase, think this service&rdquo; reference, plus the look-alike
+        pairs and the qualifier words that break a tie between two plausible answers.</p>
       <p><a href="cheatsheet.html">Printable cheatsheet</a> — a one-page, print-friendly summary of storage, database, networking, IAM, and cost facts for last-minute review.</p>
     </section>
   `;

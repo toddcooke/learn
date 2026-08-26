@@ -668,8 +668,12 @@ async function verifyServices() {
     .split('\n')
     .filter((l) => l.startsWith('| ') && !l.startsWith('| ---') && !l.startsWith('| Service '))
     .map((l) => {
-      const [, name, blurb] = l.split(' | ');
-      return { name: name.trim(), blurb: blurb.replace(/\s*\|$/, '').trim() };
+      // A clean two-column row `| NAME | BLURB |` contains exactly one ' | '
+      // occurrence, so l.split(' | ') yields 2 elements, not 3 — destructuring
+      // by index leaves blurb undefined and throws. Anchor on the row shape.
+      const m = l.match(/^\|\s*(.*?)\s*\|\s*(.*?)\s*\|$/);
+      if (!m) throw new Error(`unparseable services row: ${l}`);
+      return { name: m[1], blurb: m[2] };
     });
   const expected = SERVICES.map((s) => ({ name: s.name, blurb: s.blurb }));
   assert.deepEqual(rows, expected, 'aws services round-trip mismatch');

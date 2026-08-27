@@ -1,6 +1,6 @@
 # Schema Design & Constraints
 
-15% of the exam · 24 topics
+15% weight · 24 topics
 
 ## Relational Modeling Foundations
 

@@ -1,6 +1,6 @@
 # Replication & High Availability
 
-8% of the exam · 21 topics
+8% weight · 21 topics
 
 ## Physical (Streaming) Replication Fundamentals
 

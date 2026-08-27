@@ -79,6 +79,25 @@ directly (and rejects the file outright if a card's shape doesn't match:
 missing front, missing back, duplicate ID, content outside the expected
 structure), so the tag set is whatever the markdown headings say.
 
+To hand-add a card, follow the shape the parser expects:
+
+```markdown
+## Storage
+
+### `s3` · Amazon S3
+
+**What is it for?**
+
+<details><summary>Answer</summary>
+
+Object storage.
+
+</details>
+```
+
+The `<!-- domains: ... -->` line near the top of `flashcards.md` must list
+every `##` bucket used in the file, including this one.
+
 ### One-time Anki setup
 
 To import these decks, set up a custom note type once:
@@ -103,7 +122,7 @@ Each file only needs to be imported once per deck in Anki's own Import dialog (y
 
 ## No server, no publishing
 
-There is nothing to run and nothing deployed anywhere. Clone the repo
+There is nothing to run here. Clone the repo
 and read the markdown directly, or browse it on whatever git host has
 your fork. The seven standalone HTML pages across the five modules
 (five `cheatsheet.html` plus `aws/exam-shortcut.html` and

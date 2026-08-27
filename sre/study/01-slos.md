@@ -1,6 +1,6 @@
 # SLIs, SLOs & Error Budgets
 
-20% of the exam · 20 topics
+20% weight · 20 topics
 
 ## Defining Reliability: SLI, SLO, and SLA
 

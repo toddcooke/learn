@@ -1,6 +1,6 @@
 # Transactions & Concurrency (MVCC)
 
-13% of the exam · 22 topics
+13% weight · 22 topics
 
 ## MVCC Fundamentals & Snapshots
 

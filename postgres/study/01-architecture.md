@@ -1,6 +1,6 @@
 # Architecture & Data Types
 
-13% of the exam · 23 topics
+13% weight · 23 topics
 
 ## Server Architecture & Process Model
 

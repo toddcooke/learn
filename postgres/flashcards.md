@@ -1,6 +1,7 @@
 # PostgreSQL — flashcards
 
 133 cards. Exported to Anki by scripts/export-anki.mjs.
+<!-- domains: Architecture | Schema Design | Querying | Indexing | Transactions | Administration | Replication -->
 
 ## Architecture
 

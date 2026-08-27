@@ -1,6 +1,6 @@
 # Incident Response, On-Call & Postmortems
 
-20% of the exam · 23 topics
+20% weight · 23 topics
 
 ## On-Call Health, Escalation & Readiness
 

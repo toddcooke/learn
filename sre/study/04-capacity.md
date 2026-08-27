@@ -1,6 +1,6 @@
 # Capacity Planning & Managing Load
 
-15% of the exam · 21 topics
+15% weight · 21 topics
 
 ## Load Balancing Across the Stack
 

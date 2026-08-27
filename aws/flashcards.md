@@ -1,6 +1,7 @@
 # AWS SAA-C03 — flashcards
 
 89 cards. Exported to Anki by scripts/export-anki.mjs.
+<!-- domains: Security, Identity, and Compliance | Networking and Content Delivery | Compute, Containers, and Serverless | Storage | Database | Analytics | Management, Governance, and Cost | Best-Fit Scenarios -->
 
 ## Security, Identity, and Compliance
 

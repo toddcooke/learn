@@ -1,6 +1,6 @@
 # Indexing & Performance
 
-17% of the exam · 22 topics
+17% weight · 22 topics
 
 ## Index Types & When to Use Each
 

@@ -1,6 +1,6 @@
 # Administration & Maintenance
 
-17% of the exam · 21 topics
+17% weight · 21 topics
 
 ## Access Control: Roles, Privileges & Predefined Roles
 

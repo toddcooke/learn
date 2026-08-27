@@ -6,6 +6,7 @@ const CARD = [
   '# Example — flashcards',
   '',
   '2 cards.',
+  '<!-- domains: Storage -->',
   '',
   '## Storage',
   '',
@@ -156,11 +157,62 @@ test('throws on a duplicate front line before the answer', () => {
   );
 });
 
+test('throws on content before a card\'s front', () => {
+  const text = CARD.replace(
+    '### `s3` · Amazon S3\n\n**What is it for?**',
+    '### `s3` · Amazon S3\n\nAn important caveat I hand-wrote.\n\n**What is it for?**'
+  );
+  assert.throws(
+    () => parseFlashcardMarkdown(text, 'example'),
+    /card "s3" has content before its front/
+  );
+});
+
+test('throws on an empty service name', () => {
+  const text = CARD.replace('### `s3` · Amazon S3', '### `s3` ·' + '  ');
+  assert.throws(() => parseFlashcardMarkdown(text, 'example'), /card "s3" is missing a service name/);
+});
+
+test('throws when the "N cards." declaration line is missing', () => {
+  const text = CARD.replace('2 cards.\n', '');
+  assert.throws(() => parseFlashcardMarkdown(text, 'example'), /missing the "N cards\." declaration line/);
+});
+
+test('throws when the parsed card count disagrees with the declared count', () => {
+  const text = CARD.replace('2 cards.', '3 cards.');
+  assert.throws(() => parseFlashcardMarkdown(text, 'example'), /declares 3 cards but parsed 2/);
+});
+
+test('throws when the domains declaration line is missing', () => {
+  const text = CARD.replace('<!-- domains: Storage -->\n', '');
+  assert.throws(
+    () => parseFlashcardMarkdown(text, 'example'),
+    /missing the "<!-- domains: \.\.\. -->" declaration line/
+  );
+});
+
+test('throws on a domain heading not in the declared list', () => {
+  const text = CARD.replace('## Storage', '## Storaage');
+  assert.throws(
+    () => parseFlashcardMarkdown(text, 'example'),
+    /domain heading "Storaage" is not one of the declared domains/
+  );
+});
+
+test('throws when a declared domain never appears as a heading', () => {
+  const text = CARD.replace('<!-- domains: Storage -->', '<!-- domains: Storage | Compute -->');
+  assert.throws(
+    () => parseFlashcardMarkdown(text, 'example'),
+    /declared domain "Compute" never appears/
+  );
+});
+
 test('carries the correct domain across a second domain heading', () => {
   const text = [
     '# Example — flashcards',
     '',
     '4 cards.',
+    '<!-- domains: Storage | Compute -->',
     '',
     '## Storage',
     '',

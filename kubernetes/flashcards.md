@@ -1,6 +1,7 @@
 # CKA — flashcards
 
 109 cards. Exported to Anki by scripts/export-anki.mjs.
+<!-- domains: Workloads & Scheduling | Cluster Architecture | Services & Networking | Storage | Troubleshooting -->
 
 ## Workloads & Scheduling
 

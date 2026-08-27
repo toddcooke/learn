@@ -21,7 +21,7 @@
 
 ## Deviation from the spec, deliberately
 
-The spec states CI drops to a single step (`node scripts/export-anki.mjs`). This plan uses **two** steps, adding `node --test scripts/lib/*.test.mjs`. Reason: the migration deletes 22 test files and introduces new parsing logic that is the sole thing protecting the Anki sync. Shipping that parser untested would be a net regression in a change whose stated goal includes keeping the decks working. The spec's intent — "CI's remaining job is protecting the Anki sync" — is preserved and strengthened.
+The spec states CI drops to a single step (`node scripts/export-anki.mjs`). This plan uses **three** steps, adding `node --test scripts/lib/*.test.mjs` and restoring a slimmed `scripts/check-drift.mjs`. Reason: the migration deletes 22 test files and introduces new parsing logic that is the sole thing protecting the Anki sync, so shipping that parser untested would be a net regression in a change whose stated goal includes keeping the decks working. Separately, `check-drift.mjs` also guards `scripts/fetch-doc.mjs` and each cheatsheet's shared-scaffold block staying byte-identical across modules — both of which survive this migration, so dropping the drift guard would leave them unguarded. The spec's intent — "CI's remaining job is protecting the Anki sync" — is preserved and strengthened.
 
 ---
 
@@ -1450,7 +1450,7 @@ Expected: `404`.
 
 **Known deviations from the spec**, both deliberate and both flagged in place:
 
-1. CI has two steps, not one (a parser test step is added). Rationale is in the "Deviation from the spec" section above.
+1. CI has three steps, not one (a parser test step and a restored `check-drift.mjs` step are added). Rationale is in the "Deviation from the spec" section above.
 2. Study file H1 is `# <domain name>` with a `<weight>% of the exam · <n> topics` subtitle, rather than the spec's illustrative `# Domain 1: <name>`. Only aws numbers its task statements (`Task 1.1:`); inventing "Domain N" for the other four modules would collide with nothing but would read as false structure. The filename ordinal (`01-secure.md`) already carries the ordering.
 3. Task 8 additionally deletes `.claude/launch.json`, which the spec does not mention. It configures dev servers for an app that no longer exists.
 4. Prose is not emitted byte-verbatim: tag-like placeholders are backtick-wrapped (see Global Constraints). This is a deliberate, human-approved narrowing of the "carried verbatim" constraint, made after a review found the tokens vanish in every markdown renderer. The round trip is still exact — `unmdText` reverses it — so the verifier still compares against the untouched source.

@@ -1,6 +1,6 @@
 # Monitoring, Observability & Alerting
 
-20% of the exam · 22 topics
+20% weight · 22 topics
 
 ## Monitoring Fundamentals: What and How to Measure
 

@@ -1,6 +1,7 @@
 # Site Reliability Engineering — flashcards
 
 93 cards. Exported to Anki by scripts/export-anki.mjs.
+<!-- domains: SLIs, SLOs & Error Budgets | Monitoring, Observability & Alerting | Incident Response, On-Call & Postmortems | Capacity Planning & Managing Load | Release Engineering & Change Management | Reliability Patterns & Toil Reduction -->
 
 ## SLIs, SLOs & Error Budgets
 

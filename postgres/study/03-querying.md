@@ -1,6 +1,6 @@
 # Querying & SQL
 
-17% of the exam · 23 topics
+17% weight · 23 topics
 
 ## Combining & Filtering Rows
 

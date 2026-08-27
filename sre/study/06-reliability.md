@@ -1,6 +1,6 @@
 # Reliability Patterns & Toil Reduction
 
-10% of the exam · 20 topics
+10% weight · 20 topics
 
 ## Toil: Definition, Detection, and Elimination
 

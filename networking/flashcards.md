@@ -1,6 +1,7 @@
 # CompTIA Network+ — flashcards
 
 155 cards. Exported to Anki by scripts/export-anki.mjs.
+<!-- domains: Networking Concepts | Network Implementation | Network Operations | Network Security | Network Troubleshooting -->
 
 ## Networking Concepts
 

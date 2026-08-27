@@ -1,6 +1,6 @@
 # Release Engineering & Change Management
 
-15% of the exam · 21 topics
+15% weight · 21 topics
 
 ## Release Engineering Foundations
 

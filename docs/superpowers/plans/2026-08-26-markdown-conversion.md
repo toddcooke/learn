@@ -1134,6 +1134,13 @@ place rather than duplicating."
 
 **Context the implementer needs:**
 
+The other six standalone pages need their scripts left alone, but all seven pages have two dependencies on directories this migration deletes, found during Task 6:
+
+- `aws/vpc-explorer.html:7` and `aws/exam-shortcut.html` both `<link>` to `css/style.css`, which Task 7 deletes. Both would render unstyled. The five `cheatsheet.html` files are self-styled with inline `<style>` and are unaffected. `css/style.css` is 257 lines and byte-identical across all five modules.
+- All seven pages carry a `<a href="index.html#/">← … prep home</a>` back-link, and Task 7 deletes every `index.html`. All seven links would dangle.
+
+Both are fixed as part of this task, because the spec's promise is that these pages keep working standalone — a page that renders unstyled with a dead link has not survived the migration in any meaningful sense.
+
 `aws/vpc-explorer.html` ends with `<script type="module" src="js/vpc-explorer.js"></script>`. Browsers refuse to load ES modules over `file://`, and `js/` is deleted in Task 7, so the script and its imports must be inlined. The other six standalone pages (five `cheatsheet.html` plus `aws/exam-shortcut.html`) contain zero `<script>` tags and need no work at all.
 
 Three source files are involved: `aws/js/vpc-explorer.js` (406 lines, imports `escapeHtml` from `./lib/html.js` and a set of named functions from `./lib/vpcMath.js`), `aws/js/lib/vpcMath.js` (253 lines), and `aws/js/lib/html.js`.

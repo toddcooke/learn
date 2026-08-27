@@ -4,31 +4,61 @@
     {
       "name": "aws-site",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "8000", "--directory", "aws"],
-      "port": 8000
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8010",
+        "--directory",
+        "aws"
+      ],
+      "port": 8010
     },
     {
       "name": "cka-site",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "8001", "--directory", "kubernetes"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8001",
+        "--directory",
+        "kubernetes"
+      ],
       "port": 8001
     },
     {
       "name": "postgres-site",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "8002", "--directory", "postgres"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8002",
+        "--directory",
+        "postgres"
+      ],
       "port": 8002
     },
     {
       "name": "sre-site",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "8003", "--directory", "sre"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8003",
+        "--directory",
+        "sre"
+      ],
       "port": 8003
     },
     {
       "name": "networking-site",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "8004", "--directory", "networking"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8004",
+        "--directory",
+        "networking"
+      ],
       "port": 8004
     }
   ]

@@ -14,35 +14,20 @@ jobs:
         with:
           node-version: 22
 
-      # Modules are discovered the same way the repo scripts do: any
-      # top-level directory containing js/app.js. New modules are picked
-      # up automatically — no workflow edits needed.
-      - name: Syntax check (all module JS)
-        run: |
-          for app in */js/app.js; do
-            m="${app%%/*}"
-            echo "--- $m ---"
-            find "$m/js" -name '*.js' -print0 | xargs -0 -n1 node --check
-          done
+      # The flashcard-markdown parser is the main logic left in this repo,
+      # and it is what protects the Anki decks from silently shrinking.
+      - name: Unit tests
+        run: node --test scripts/lib/*.test.mjs
 
-      - name: Unit tests (all modules)
-        run: |
-          for app in */js/app.js; do
-            m="${app%%/*}"
-            echo "--- $m ---"
-            (cd "$m" && node --test "js/lib/"*.test.mjs)
-          done
-
-      - name: Content validation (all modules)
-        run: |
-          for app in */js/app.js; do
-            m="${app%%/*}"
-            echo "--- $m ---"
-            (cd "$m" && node scripts/validate-content.mjs)
-          done
-
-      - name: Shared app-layer drift check
+      # scripts/fetch-doc.mjs and each cheatsheet's shared-scaffold block are
+      # the last things every module still shares byte-for-byte. Modules are
+      # auto-discovered (same flashcards.md convention as the Anki export
+      # below), so adding one needs no workflow edit.
+      - name: Check drift (fetch-doc.mjs + cheatsheet scaffold)
         run: node scripts/check-drift.mjs
 
-      - name: Anki export (format + cross-deck ID assertions)
+      # Parses every module's flashcards.md and asserts card shape and
+      # cross-deck ID uniqueness. Modules are auto-discovered, so adding
+      # one needs no workflow edit.
+      - name: Anki export (parse + cross-deck ID assertions)
         run: node scripts/export-anki.mjs

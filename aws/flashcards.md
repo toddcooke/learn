@@ -1,0 +1,910 @@
+# AWS SAA-C03 — flashcards
+
+89 cards. Exported to Anki by scripts/export-anki.mjs.
+<!-- domains: Security, Identity, and Compliance | Networking and Content Delivery | Compute, Containers, and Serverless | Storage | Database | Analytics | Management, Governance, and Cost | Best-Fit Scenarios -->
+
+## Security, Identity, and Compliance
+
+### `iam` · AWS IAM
+
+**What does IAM control within an AWS account?**
+
+<details><summary>Answer</summary>
+
+IAM is the account-wide gatekeeper for who can sign in and what they're allowed to touch once inside. Every request is checked against attached policies and denied by default unless something explicitly allows it, which is why the standard design pattern is to start a role with almost no access and add only what its job actually requires.
+
+</details>
+
+### `iam-policies` · AWS IAM
+
+**Identity-based vs. resource-based policies: what is the exam-relevant difference?**
+
+<details><summary>Answer</summary>
+
+An identity-based policy lives on a user, group, or role and lists what that principal can do. A resource-based policy is attached straight to the resource being protected instead (think a bucket policy on S3, or a policy on a KMS key), and it lets you name a principal in a completely different AWS account right in the policy — a second way to grant cross-account access alongside the more familiar pattern of having that account assume a role of yours.
+
+</details>
+
+### `iam-identity-center` · AWS IAM Identity Center
+
+**How does IAM Identity Center manage access for an entire workforce across many AWS accounts?**
+
+<details><summary>Answer</summary>
+
+It gives an entire workforce single sign-on into many AWS accounts and business applications from one console, instead of creating a separate IAM user for every person in every account. It can sync in users from an existing corporate directory or manage them natively, and it assigns access to accounts based on job function across the whole organization at once.
+
+</details>
+
+### `sts` · AWS STS
+
+**Why use temporary credentials instead of long-term access keys?**
+
+<details><summary>Answer</summary>
+
+STS mints credentials that self-destruct after minutes to hours, handed out on the spot rather than kept in storage anywhere. Every flavor of IAM role runs on top of this — a compute instance's attached profile, a serverless function's execution role, or someone switching into another account with AssumeRole — so a leaked credential naturally stops working instead of staying valid until someone notices and revokes it.
+
+</details>
+
+### `organizations` · AWS Organizations
+
+**What does it manage, and how do SCPs fit in?**
+
+<details><summary>Answer</summary>
+
+Organizations groups many AWS accounts under one umbrella for consolidated billing and central policy management. Service control policies (SCPs), applied at the organization or OU level, cap the maximum permissions any identity in a member account can ever have — they never grant anything themselves, they only narrow what the identity and resource policies inside that account are allowed to permit.
+
+</details>
+
+### `control-tower` · AWS Control Tower
+
+**What does Control Tower automate when standing up a governed multi-account AWS environment, and what does it keep checking for afterward?**
+
+<details><summary>Answer</summary>
+
+Control Tower automates the setup of a governed multi-account environment on top of Organizations, wiring up baseline guardrails, centralized logging, and account provisioning that you would otherwise have to script by hand. It also monitors accounts for drifting away from those established guardrails over time.
+
+</details>
+
+### `kms` · AWS KMS
+
+**What does KMS create and manage?**
+
+<details><summary>Answer</summary>
+
+KMS creates and controls the encryption keys used to protect data across AWS services, keeping key material inside hardware security modules so it never leaves in plaintext. Each key is governed by a single required policy document that decides who can use it.
+
+</details>
+
+### `kms-key-rotation` · AWS KMS
+
+**How often can a KMS key rotate its cryptographic material automatically?**
+
+<details><summary>Answer</summary>
+
+A key can optionally rotate its cryptographic material automatically — yearly by default, or on a custom schedule anywhere from 90 to 2,560 days — and can also be rotated on demand, all with no application changes required.
+
+</details>
+
+### `acm` · AWS Certificate Manager
+
+**Which kinds of AWS resources consume ACM certificates, and what expiration-related chore does it take off your plate?**
+
+<details><summary>Answer</summary>
+
+ACM issues, stores, and manages public and private TLS certificates for services like a load balancer or a CloudFront distribution, saving you from tracking expiration dates yourself.
+
+</details>
+
+### `acm-auto-renewal` · AWS Certificate Manager
+
+**Under what conditions does ACM automatically renew a certificate?**
+
+<details><summary>Answer</summary>
+
+It automatically renews a certificate that used DNS validation and is still attached to an integrated AWS service or has been exported since issuance; otherwise it just emails you as the expiration date approaches.
+
+</details>
+
+### `secrets-manager` · AWS Secrets Manager
+
+**What does Secrets Manager store for an application, and what can it do automatically?**
+
+<details><summary>Answer</summary>
+
+Secrets Manager stores database credentials, API keys, and tokens so an application looks them up at runtime with a simple call, rather than embedding them directly in source code. It can rotate many secret types on an automatic schedule, so even a leaked credential only stays valid for a short window and no application redeploy is needed when the value changes.
+
+</details>
+
+### `cognito` · Amazon Cognito
+
+**What does Cognito provide for consumer-facing web and mobile apps?**
+
+<details><summary>Answer</summary>
+
+Cognito is a ready-made identity layer for consumer-facing web and mobile apps: a user directory, sign-up and sign-in flow, and token issuance for OAuth 2.0 and AWS credentials all in one service. It can authenticate users from its own built-in pool or federate in through an external provider such as Google or a corporate SAML/OIDC identity provider.
+
+</details>
+
+### `guardduty` · Amazon GuardDuty
+
+**What kind of activity does GuardDuty detect in an AWS account?**
+
+<details><summary>Answer</summary>
+
+GuardDuty continuously watches the data sources and logs already flowing through your account, running threat-intelligence feeds and machine-learning models against them to surface likely malicious activity — compromised credentials, cryptomining, or unusual database login patterns are typical examples of what it flags.
+
+</details>
+
+### `macie` · Amazon Macie
+
+**What does Macie scan S3 buckets for?**
+
+<details><summary>Answer</summary>
+
+Macie uses machine learning and pattern matching to scan S3 buckets, discovering sensitive data such as PII or financial records and flagging any bucket that's misconfigured to allow public access. It's built to answer a data-exposure question — what sensitive information do we have and can the internet see it — which is a different job from an intrusion-hunting tool like GuardDuty.
+
+</details>
+
+### `shield` · AWS Shield
+
+**What does AWS Shield protect against?**
+
+<details><summary>Answer</summary>
+
+Shield defends internet-facing applications against DDoS traffic floods aimed at knocking them offline.
+
+</details>
+
+### `shield-tiers` · AWS Shield
+
+**What are AWS Shield's two protection tiers, and how do they differ?**
+
+<details><summary>Answer</summary>
+
+Standard protection is switched on for free on every account automatically; the paid Advanced tier layers on sharper detection, active mitigation, and hands-on incident support for attacks that reach up through the transport layer into the application layer itself.
+
+</details>
+
+### `waf` · AWS WAF
+
+**What does WAF let you do with incoming HTTP and HTTPS requests?**
+
+<details><summary>Answer</summary>
+
+WAF is a web application firewall: it inspects the HTTP and HTTPS requests reaching your application and lets you write rules that allow, block, or rate-limit traffic based on IP address, header values, or payload patterns, catching things like SQL injection attempts before they reach your code. It's commonly attached in front of CloudFront, an ALB, or API Gateway.
+
+</details>
+
+### `cloudtrail` · AWS CloudTrail
+
+**What does CloudTrail log about activity in an AWS account?**
+
+<details><summary>Answer</summary>
+
+CloudTrail logs every API call made against your account — who made it, from where, and what it did — regardless of whether the call came from the console, the CLI, an SDK, or another AWS service acting on your behalf. That log is the raw material governance and incident investigation both depend on, and it also happens to be a primary input GuardDuty analyzes automatically.
+
+</details>
+
+### `config` · AWS Config
+
+**What is it for, and how does it differ from CloudTrail?**
+
+<details><summary>Answer</summary>
+
+Config continuously records the configuration state of your resources and how they relate to one another, so you can see exactly what a resource's settings looked like at any past point in time. CloudTrail answers 'who did what and when'; Config answers 'what did this resource's configuration look like,' and it can also evaluate resources against rules to flag drift from a desired baseline.
+
+</details>
+
+### `security-groups` · Amazon VPC Security Groups
+
+**How do they control traffic?**
+
+<details><summary>Answer</summary>
+
+A security group works like a stateful firewall wrapped around one specific resource, such as a single EC2 instance, rather than an entire subnet. It only ever holds allow rules, with no way to write an explicit deny, and because it tracks connection state, the reply to traffic it let out comes back in automatically without needing a matching inbound rule.
+
+</details>
+
+### `network-acls` · Amazon VPC Network ACLs
+
+**How are they different from security groups?**
+
+<details><summary>Answer</summary>
+
+A network ACL filters traffic at the subnet boundary rather than per-resource, and it's stateless, so you must write explicit allow and deny rules for both inbound and outbound directions — a permitted request doesn't automatically get its reply traffic allowed back through the way it would with a security group. Rules are evaluated in numeric order and the first match wins.
+
+</details>
+
+### `backup` · AWS Backup
+
+**Which AWS services can AWS Backup manage from one console, and which backups does it NOT track?**
+
+<details><summary>Answer</summary>
+
+AWS Backup centralizes backup policies and schedules across many AWS services — EBS, RDS, DynamoDB, EFS, and more — plus supported on-premises resources, all from one console, replacing the older pattern of scripting a separate backup process for every service. It only tracks backups taken through AWS Backup itself, not snapshots created some other way outside it.
+
+</details>
+
+## Networking and Content Delivery
+
+### `vpc` · Amazon VPC
+
+**What does a VPC let you build inside AWS's network?**
+
+<details><summary>Answer</summary>
+
+A VPC is a logically isolated slice of network that you carve into subnets, route tables, and gateways, closely mirroring how you'd lay out a traditional data-center network, except it runs on AWS's shared, scalable infrastructure instead of hardware you own and rack yourself.
+
+</details>
+
+### `vpc-flow-logs` · VPC Flow Logs
+
+**What information does VPC Flow Logs capture about network traffic?**
+
+<details><summary>Answer</summary>
+
+Flow Logs capture metadata about the IP traffic crossing the network interfaces in your VPC — source, destination, port, and whether it was accepted or rejected — without capturing the packet contents themselves. It answers connectivity and security questions like "why is this instance unreachable" or "what is this instance talking to," which is a different job from CloudTrail, which logs API calls rather than network traffic.
+
+</details>
+
+### `vpc-peering` · VPC Peering
+
+**What is it for, and what's the catch?**
+
+<details><summary>Answer</summary>
+
+A peering connection privately routes traffic between two VPCs — your own or across accounts, even across Regions — over private IP addresses, so instances on either side can talk as if they shared one network. The catch is that peering is non-transitive: if VPC A peers with B, and B peers with C, A still cannot reach C without its own direct peering connection to C.
+
+</details>
+
+### `privatelink` · AWS PrivateLink
+
+**How does PrivateLink connect resources across separate VPCs or AWS accounts?**
+
+<details><summary>Answer</summary>
+
+PrivateLink lets a consumer in one VPC reach a service or resource hosted in a completely different VPC or account over private IP addresses, without that traffic ever touching the public internet. A provider publishes an endpoint service behind a load balancer, and a consumer connects to it by creating an interface endpoint inside their own subnet.
+
+</details>
+
+### `gateway-endpoints` · VPC Gateway Endpoints
+
+**How are gateway endpoints different from PrivateLink interface endpoints?**
+
+<details><summary>Answer</summary>
+
+Gateway endpoints exist only for S3 and DynamoDB, work by adding an entry to a route table rather than an elastic network interface, and don't rely on PrivateLink at all. They cost nothing extra to use, whereas interface endpoints bill hourly and per gigabyte, which is why the gateway option is usually the better fit for reaching just those two services.
+
+</details>
+
+### `transit-gateway` · AWS Transit Gateway
+
+**What problem does Transit Gateway solve for connecting many VPCs together?**
+
+<details><summary>Answer</summary>
+
+Transit Gateway is a central hub that connects many VPCs and on-premises networks through a single attachment point each, replacing the mesh of individual point-to-point peering connections you'd otherwise need to wire between every pair of VPCs. Transit gateways in different Regions can also be connected to each other over AWS's global backbone.
+
+</details>
+
+### `nat-gateway` · NAT Gateway
+
+**What does it do, and why not just use an internet gateway?**
+
+<details><summary>Answer</summary>
+
+It gives resources with no public IP a way to reach out to the internet — pulling patches, calling a third-party API — while refusing any connection someone outside tries to initiate toward them. An internet gateway can't do this job because it requires the resource to hold a public IP and be directly reachable, which is precisely what a private subnet is designed to avoid.
+
+</details>
+
+### `direct-connect` · AWS Direct Connect
+
+**What kind of connection does Direct Connect provide between your premises and AWS?**
+
+<details><summary>Answer</summary>
+
+Direct Connect is a dedicated physical fiber link from your data center or office into an AWS-associated facility, keeping traffic to your VPC or other AWS services off the public internet entirely. It's the choice when a workload needs steadier bandwidth and lower latency than an internet-based VPN connection can promise.
+
+</details>
+
+### `site-to-site-vpn` · AWS Site-to-Site VPN
+
+**How does it compare to Direct Connect?**
+
+<details><summary>Answer</summary>
+
+Site-to-Site VPN builds an encrypted IPsec tunnel that rides over the public internet to link your on-premises gear to a VPC, and it can usually be turned up within minutes since no physical wiring is involved. Direct Connect instead needs a real cross-connect and a provisioning lead time measured in days or weeks, but in exchange delivers steadier bandwidth and lower latency.
+
+</details>
+
+### `route53` · Amazon Route 53
+
+**What DNS-related functions does Route 53 provide?**
+
+<details><summary>Answer</summary>
+
+Route 53 is AWS's DNS service, covering domain registration, resolving names to IP addresses or AWS resources, and health-checking endpoints so it can steer traffic away from anything unhealthy. Its routing policies — weighted, latency-based, geolocation, failover — are what let an architect send users to whichever of several regional deployments is closest or healthiest.
+
+</details>
+
+### `cloudfront` · Amazon CloudFront
+
+**How does CloudFront reduce latency for content delivered to end users?**
+
+<details><summary>Answer</summary>
+
+CloudFront is AWS's content delivery network: it caches your content at edge locations spread across the globe, so a user's request is served from whichever edge location gives the lowest latency instead of hitting your origin — an S3 bucket or a web server — on every single request.
+
+</details>
+
+### `global-accelerator` · AWS Global Accelerator
+
+**What class of network traffic is Global Accelerator built to route and fail over?**
+
+<details><summary>Answer</summary>
+
+Global Accelerator improves application performance and availability by routing traffic over AWS's private backbone network to the nearest healthy regional endpoint, using a fixed set of static anycast IP addresses. It works for general TCP/UDP applications and failover, not caching — CloudFront is specifically the caching layer for HTTP(S) content.
+
+</details>
+
+### `alb` · Application Load Balancer
+
+**What can an Application Load Balancer route traffic based on?**
+
+<details><summary>Answer</summary>
+
+An ALB works at the application layer and can send one incoming request to a different target group depending on its URL path, hostname, or headers. Reach for it whenever the routing decision has to look at the content of the request itself — for example, fronting several microservices behind one balancer and splitting traffic between them by path.
+
+</details>
+
+### `nlb` · Network Load Balancer
+
+**What performance characteristics make a Network Load Balancer the right pick?**
+
+<details><summary>Answer</summary>
+
+An NLB works at the transport layer and is built for extremely high throughput with very low, consistent latency, plus it can hand out a static IP address per Availability Zone. It fits non-HTTP protocols or workloads where shaving off microseconds matters more than routing based on request content.
+
+</details>
+
+### `alb-vs-nlb` · Elastic Load Balancing
+
+**Between an ALB and an NLB, which OSI layer does each operate at, and what kind of traffic is each built to handle?**
+
+<details><summary>Answer</summary>
+
+An ALB operates at the application layer (Layer 7) and is built for HTTP(S) traffic, since routing by URL path, hostname, or headers means it has to actually read the request. An NLB operates at the transport layer (Layer 4) and handles any TCP or UDP traffic without inspecting request content, which is exactly what lets it hit the extreme throughput and ultra-low latency an ALB cannot match.
+
+</details>
+
+### `gwlb` · Gateway Load Balancer
+
+**What problem does a Gateway Load Balancer solve for inserting security appliances into a traffic path?**
+
+<details><summary>Answer</summary>
+
+A GWLB sits at layer 3 and quietly slots a fleet of third-party security appliances — firewalls, intrusion detection or prevention systems — into the middle of a traffic path, spreading requests across whichever appliances are healthy. Nothing else in the architecture needs to be aware that inspection is even happening.
+
+</details>
+
+### `api-gateway` · Amazon API Gateway
+
+**What does API Gateway handle before a request reaches your backend?**
+
+<details><summary>Answer</summary>
+
+API Gateway is the managed front door for building and publishing APIs — REST, HTTP, or WebSocket — at scale, handling throttling, authorization, and request or response shaping before a call ever reaches your backend, often a Lambda function. It removes the need to build and scale that front-door layer yourself.
+
+</details>
+
+## Compute, Containers, and Serverless
+
+### `ec2` · Amazon EC2
+
+**What does EC2 let you provision on demand?**
+
+<details><summary>Answer</summary>
+
+EC2 provides virtual servers you launch on demand, picking an instance type that balances compute, memory, network, and storage for the job at hand. You can add capacity for a traffic spike or a heavy batch run and remove it again afterward, instead of buying and racking fixed physical hardware.
+
+</details>
+
+### `ec2-purchasing-options` · Amazon EC2
+
+**On-Demand vs. Reserved Instances vs. Spot vs. Savings Plans: how do you choose?**
+
+<details><summary>Answer</summary>
+
+On-Demand bills by the second with zero commitment, the default for unpredictable workloads. Reserved Instances and Savings Plans both trade a 1- or 3-year usage commitment for a lower rate — Reserved Instances lock in a specific instance configuration, while Savings Plans commit to a dollar-per-hour spend that flexes across instance families and even Fargate or Lambda usage. Spot Instances request spare capacity at steep discounts but can be reclaimed on short notice, so they suit interruption-tolerant work.
+
+</details>
+
+### `ec2-auto-scaling` · Amazon EC2 Auto Scaling
+
+**What three capacity settings does EC2 Auto Scaling use to size a group automatically?**
+
+<details><summary>Answer</summary>
+
+It keeps a group of EC2 instances at the right size automatically. You set a minimum, a maximum, and a desired capacity, and scaling policies add or remove instances as demand rises and falls so the group never drops below its floor or climbs above its ceiling.
+
+</details>
+
+### `lambda` · AWS Lambda
+
+**What does Lambda let you avoid managing when running code in response to an event?**
+
+<details><summary>Answer</summary>
+
+Lambda runs your code in response to an event or an API call without you provisioning or patching any server — AWS manages the underlying infrastructure and scales each invocation independently to match demand. It plugs into triggers from API Gateway, S3, SQS, EventBridge, and hundreds of other AWS services.
+
+</details>
+
+### `fargate` · AWS Fargate
+
+**What problem does Fargate solve for running containers on ECS or EKS?**
+
+<details><summary>Answer</summary>
+
+Fargate is a serverless compute engine for containers: you define a task or pod and Fargate runs it without you provisioning, patching, or capacity-planning any underlying EC2 instances. It's a launch type available to both ECS and EKS, and you pay for the vCPU and memory the container actually uses.
+
+</details>
+
+### `ecs` · Amazon ECS
+
+**What does ECS manage for you when running Docker containers?**
+
+<details><summary>Answer</summary>
+
+ECS takes care of deploying, scaling, and running Docker containers for you as a managed orchestration platform, integrated with tooling like Amazon ECR for images. You can run its tasks on Fargate — no servers to manage — or on the EC2 launch type, where you control the underlying instances yourself.
+
+</details>
+
+### `eks` · Amazon EKS
+
+**What part of running Kubernetes does EKS manage for you?**
+
+<details><summary>Answer</summary>
+
+EKS runs standard, upstream Kubernetes as a managed service, taking over the Kubernetes control plane's operation, availability, and upgrades so teams already invested in Kubernetes manifests and tooling can bring that investment to AWS instead of standing up and operating their own control plane.
+
+</details>
+
+### `step-functions` · AWS Step Functions
+
+**What does Step Functions orchestrate, and how does it handle retries and ordering?**
+
+<details><summary>Answer</summary>
+
+Step Functions orchestrates a sequence of AWS service calls — often Lambda invocations — into a visual state machine, handling step ordering, retries, and error handling declaratively instead of you wiring that coordination logic into application code by hand. It is the standard tool for multi-step workflows and pipelines.
+
+</details>
+
+### `sqs` · Amazon SQS
+
+**What role does SQS play between a producer and a consumer?**
+
+<details><summary>Answer</summary>
+
+SQS is a managed message queue that decouples producers from consumers: a producer drops a message onto the queue and a consumer pulls it off independently, so neither side needs to be online or fast at the same moment. Standard queues favor throughput with at-least-once delivery, while FIFO queues guarantee strict ordering and exactly-once processing.
+
+</details>
+
+### `sns` · Amazon SNS
+
+**How does SNS deliver a single published message to multiple subscribers at once?**
+
+<details><summary>Answer</summary>
+
+SNS is publish/subscribe: a publisher sends one message to a topic and SNS fans it out to every subscriber at once — which can be SQS queues, Lambda functions, email, SMS, or HTTP endpoints. SQS instead holds messages in a single queue for one or more consumers to pull, so SNS handles broadcast delivery where SQS handles point-to-point buffering.
+
+</details>
+
+### `x-ray` · AWS X-Ray
+
+**What does X-Ray trace as a request moves through a distributed application?**
+
+<details><summary>Answer</summary>
+
+X-Ray traces a request as it travels through a distributed application, capturing timing and metadata for each downstream call — to another microservice, a database, or an external API — so you can pinpoint which hop in the chain is slow or failing instead of guessing across an entire fleet of services.
+
+</details>
+
+## Storage
+
+### `s3` · Amazon S3
+
+**What kind of storage does S3 provide, and what is it commonly used for?**
+
+<details><summary>Answer</summary>
+
+S3 is object storage built for effectively unlimited scale and very high durability, used for everything from static website hosting and data lake storage to backups and application assets. Objects live inside buckets, and access is controlled through bucket policies, ACLs, and IAM policies working together.
+
+</details>
+
+### `s3-glacier` · Amazon S3 Glacier
+
+**When would you use Amazon S3 Glacier over S3 Standard?**
+
+<details><summary>Answer</summary>
+
+Glacier's storage classes are built for data you rarely expect to touch again — archives and long-term compliance retention — trading storage price down in exchange for restrictions on how quickly (or cheaply) you get an object back.
+
+</details>
+
+### `s3-glacier-retrieval-times` · Amazon S3 Glacier
+
+**How do retrieval times differ across S3 Glacier's storage tiers?**
+
+<details><summary>Answer</summary>
+
+The tradeoff isn't uniform: Glacier Instant Retrieval still returns objects in milliseconds like S3 Standard, while Glacier Flexible Retrieval takes minutes to hours and Glacier Deep Archive, the cheapest tier, takes hours — so picking the right Glacier tier means matching how rarely the data is read to how tolerant the workload is of that wait.
+
+</details>
+
+### `ebs` · Amazon EBS
+
+**What kind of storage does EBS attach to an EC2 instance?**
+
+<details><summary>Answer</summary>
+
+EBS gives an EC2 instance a block-storage volume it can format and mount just like a local hard drive, the standard pick for boot volumes, databases, and anything needing persistent, low-latency storage. Snapshots freeze a volume's contents at a point in time and can later spin up brand-new volumes that go on living even after the original volume is gone.
+
+</details>
+
+### `efs` · Amazon EFS
+
+**How many compute instances can mount the same EFS file system at the same time?**
+
+<details><summary>Answer</summary>
+
+EFS is a managed NFS file system built to be mounted by a whole fleet of instances or containers at once, resizing itself up or down as data is written or deleted, with no storage size to pre-plan. EBS, by contrast, attaches to only one instance at a time in the general case — reach for EFS the moment several compute resources need shared, simultaneous access to the same files.
+
+</details>
+
+### `fsx` · Amazon FSx
+
+**What type of file systems can FSx provide as a managed service?**
+
+<details><summary>Answer</summary>
+
+FSx provides fully managed third-party file systems, including a native Windows file server built on SMB for lifting and shifting Windows workloads, so applications get the exact file-system behavior and compatibility they already expect without you operating the underlying servers.
+
+</details>
+
+### `storage-gateway` · AWS Storage Gateway
+
+**What problem does Storage Gateway solve for on-premises applications that need cloud storage?**
+
+<details><summary>Answer</summary>
+
+Storage Gateway is a hybrid-storage bridge: a software appliance you run in your own facility that connects your existing on-premises environment to AWS-backed storage. Local applications keep using familiar file, volume, or tape interfaces while the underlying data actually lives durably in the cloud.
+
+</details>
+
+### `datasync` · AWS DataSync
+
+**Between which kinds of storage endpoints can DataSync move data, and what manual approach does it replace?**
+
+<details><summary>Answer</summary>
+
+DataSync automates and speeds up one-time or scheduled bulk transfers of files and objects between on-premises storage systems and AWS storage services, or between two AWS storage services, without you having to write and babysit custom transfer scripts.
+
+</details>
+
+### `transfer-family` · AWS Transfer Family
+
+**What does Transfer Family let partners continue using when sending files into AWS?**
+
+<details><summary>Answer</summary>
+
+Transfer Family stands up a managed endpoint speaking older file-transfer protocols — SFTP, FTPS, plain FTP, or AS2 — and backs it with S3 or EFS, so partners and internal systems that already rely on those protocols keep working exactly as they are while the files land straight in AWS storage.
+
+</details>
+
+## Database
+
+### `rds` · Amazon RDS
+
+**What operational work does RDS take off your plate for a relational database?**
+
+<details><summary>Answer</summary>
+
+RDS takes over the operational load of running a relational database — provisioning, patching, backups, and scaling — for engines like MySQL, PostgreSQL, and SQL Server, so you get a standard relational database without managing the underlying server yourself.
+
+</details>
+
+### `rds-proxy` · Amazon RDS Proxy
+
+**What problem does RDS Proxy solve for applications like Lambda functions connecting to a database?**
+
+<details><summary>Answer</summary>
+
+RDS Proxy sits between your application and the database, pooling and reusing connections instead of letting each application instance open its own — a big deal for Lambda functions, which can otherwise flood a database with connections. It also keeps established connections alive through a failover to a standby, shielding the application from the interruption.
+
+</details>
+
+### `read-replicas` · Amazon RDS / Aurora Read Replicas
+
+**How does an Aurora read replica's storage architecture differ from a standard RDS read replica's, and what does that mean for replication lag?**
+
+<details><summary>Answer</summary>
+
+A read replica mirrors a database in a read-only, continuously updated copy, letting you offload query traffic and scale reads beyond what a single instance could handle for read-heavy workloads. An Aurora replica shares the same underlying storage volume as its primary, so its replication lag is typically much shorter than a standard RDS replica's.
+
+</details>
+
+### `rds-multi-az` · Amazon RDS Multi-AZ
+
+**How is Multi-AZ different from a read replica?**
+
+<details><summary>Answer</summary>
+
+Multi-AZ is about availability, not read scaling: RDS provisions a standby copy of your database in a different Availability Zone and keeps it synchronously up to date, then fails over to it automatically if the primary has a problem. A single-instance Multi-AZ standby doesn't serve read traffic at all (only the newer Multi-AZ DB cluster option does), which is the opposite tradeoff from a read replica, whose whole purpose is serving reads.
+
+</details>
+
+### `aurora` · Amazon Aurora
+
+**What makes it different from standard RDS engines?**
+
+<details><summary>Answer</summary>
+
+Aurora speaks the MySQL and PostgreSQL wire protocols but runs on a distributed storage layer AWS built from scratch for the cloud, which is why AWS advertises multiples of the throughput you'd see running either engine unmodified on similar hardware. Its storage expands on its own as data grows, and it's sold under the RDS umbrella alongside a serverless option that flexes compute capacity to match load.
+
+</details>
+
+### `dynamodb` · Amazon DynamoDB
+
+**What kind of database is DynamoDB, and what response times does it target?**
+
+<details><summary>Answer</summary>
+
+DynamoDB is a fully managed, serverless NoSQL database built for single-digit-millisecond response times at any scale, from a handful of requests to a massive workload, without you managing servers or planning capacity ahead of time. It is the default answer for key-value or document access patterns that need predictable low latency.
+
+</details>
+
+### `elasticache` · Amazon ElastiCache
+
+**Which three engines is ElastiCache compatible with, and roughly how much faster is a cache hit than a database round-trip?**
+
+<details><summary>Answer</summary>
+
+It's a managed cache layer, compatible with Valkey, Redis OSS, or Memcached, that you place in front of a slower backing database so frequently requested data can be served from memory in microseconds instead of the milliseconds a database round-trip would take. You can run it as a serverless cache or as node-based clusters, depending on how much manual capacity control you want.
+
+</details>
+
+### `redshift` · Amazon Redshift
+
+**What kind of workload is Redshift built to handle that a transactional database like RDS is not?**
+
+<details><summary>Answer</summary>
+
+Redshift is a managed data warehouse built to run complex analytical SQL queries across huge datasets at petabyte scale, a job a transactional database like RDS isn't optimized for. A serverless option automatically provisions and scales capacity so you pay only while a query is actually running.
+
+</details>
+
+## Analytics
+
+### `kinesis` · Amazon Kinesis Data Streams
+
+**What does Kinesis Data Streams do with streaming data records as they arrive?**
+
+<details><summary>Answer</summary>
+
+Kinesis Data Streams ingests and holds large volumes of streaming data records in real time so downstream applications can read and process them continuously, feeding dashboards, alerts, or other AWS services as data arrives. It's the building block for real-time pipelines, as opposed to batch jobs that run against data already at rest.
+
+</details>
+
+### `glue` · AWS Glue
+
+**What does Glue provide for building a data lake from many data sources?**
+
+<details><summary>Answer</summary>
+
+Glue is a serverless data-integration service for discovering, cataloging, and running ETL jobs that move and reshape data from many sources into a data lake, with no infrastructure of your own to provision. Its central data catalog is exactly what services like Athena and Redshift Spectrum query against.
+
+</details>
+
+### `athena` · Amazon Athena
+
+**How does Athena let you query data sitting in S3?**
+
+<details><summary>Answer</summary>
+
+Athena runs standard SQL queries directly against data sitting in S3 without loading it into a database first, charging per query rather than requiring an always-on cluster. It suits ad-hoc analysis of data-lake content, often working off table definitions that Glue's data catalog already provides.
+
+</details>
+
+### `lake-formation` · AWS Lake Formation
+
+**What problem does Lake Formation solve for controlling access to a data lake?**
+
+<details><summary>Answer</summary>
+
+Lake Formation adds a fine-grained permissions layer — down to specific columns, rows, and cells — on top of a data lake built on S3 and cataloged in Glue, enforced consistently across the analytics services that query it (Athena, Redshift, EMR), instead of managing access rules separately in each service.
+
+</details>
+
+### `emr` · Amazon EMR
+
+**What kind of workload is EMR designed to run that Athena is not?**
+
+<details><summary>Answer</summary>
+
+EMR runs big-data processing frameworks like Apache Spark and Hadoop on a managed cluster, handling provisioning and cluster management so you can focus on the processing logic itself. It suits large-scale batch transformation and analytics work that Athena's serverless, per-query model isn't built for.
+
+</details>
+
+## Management, Governance, and Cost
+
+### `cloudwatch` · Amazon CloudWatch
+
+**What does CloudWatch collect from AWS resources, and what can an alarm trigger?**
+
+<details><summary>Answer</summary>
+
+CloudWatch collects metrics, logs, and events from your AWS resources and applications, letting you build dashboards, set alarms that fire on a threshold, and react automatically — an alarm can, for instance, drive an Auto Scaling policy. It's the central observability service for answering 'is this healthy right now.'
+
+</details>
+
+### `cost-explorer` · AWS Cost Explorer
+
+**What does Cost Explorer help you analyze about past AWS spending?**
+
+<details><summary>Answer</summary>
+
+Cost Explorer visualizes and breaks down your historical spending and usage, forecasts likely future costs, and can recommend Reserved Instance purchases based on what you've actually been running. It's the tool for answering 'where is our money going and why,' not for setting a hard spending limit.
+
+</details>
+
+### `budgets` · AWS Budgets
+
+**What can AWS Budgets do once actual or forecasted spend crosses a threshold you define?**
+
+<details><summary>Answer</summary>
+
+Budgets lets you set a target cost or usage threshold and get alerted — or even trigger an automated action — when actual or forecasted spend crosses it. Where Cost Explorer is retrospective analysis, Budgets is the proactive guardrail watching spend against a number you defined ahead of time.
+
+</details>
+
+### `savings-plans` · AWS Savings Plans
+
+**What do you commit to with an AWS Savings Plan?**
+
+<details><summary>Answer</summary>
+
+Savings Plans trade a 1- or 3-year commitment to a steady hourly spend, measured in dollars rather than a specific instance type. Compute Savings Plans apply flexibly across EC2 instance family, size, OS, and Region, and even cover Fargate and Lambda usage — more flexible than committing to one fixed Reserved Instance configuration.
+
+</details>
+
+### `savings-plans-discount` · AWS Savings Plans
+
+**What discount off On-Demand rates does an AWS Savings Plan unlock?**
+
+<details><summary>Answer</summary>
+
+A discount of up to roughly 72% off On-Demand rates, in exchange for that 1- or 3-year commitment to a steady hourly spend.
+
+</details>
+
+### `trusted-advisor` · AWS Trusted Advisor
+
+**What areas does Trusted Advisor check your account against best practices for?**
+
+<details><summary>Answer</summary>
+
+Trusted Advisor inspects your account against AWS best practices and surfaces opportunities across cost optimization, performance, security, fault tolerance, and service limits. Every account gets the service-limit checks at no cost, while the fuller set of checks, including most security and cost checks, requires a Business, Enterprise, or equivalent support plan.
+
+</details>
+
+### `service-quotas` · AWS Service Quotas
+
+**What can you do through Service Quotas when a workload needs more resources than an AWS default limit allows?**
+
+<details><summary>Answer</summary>
+
+Service Quotas gives you one place to see the default limits AWS applies to resources in your account — such as the number of VPCs per Region or EC2 instances of a given type — and to request an increase when a workload's real needs exceed the default, rather than hunting through each service's own documentation for its limits.
+
+</details>
+
+## Best-Fit Scenarios
+
+### `scenario-shared-posix-fs` · Best-Fit Scenario
+
+**A fleet of EC2 instances needs a shared POSIX file system that many of them can mount and write to at the same time — which storage service fits?**
+
+<details><summary>Answer</summary>
+
+Amazon EFS: a managed, elastic NFS file system built to be mounted by many instances or containers at once, resizing itself automatically as data is written or deleted. EBS attaches to only one instance at a time in the general case, and FSx for Windows File Server speaks SMB rather than POSIX, so EFS is the one built for concurrent, POSIX-style access across a fleet.
+
+</details>
+
+### `scenario-microsecond-cache` · Best-Fit Scenario
+
+**An application needs to shave its hottest, most frequently requested lookups down from a database's millisecond round-trip to microseconds — which service sits in front of the database to do that?**
+
+<details><summary>Answer</summary>
+
+Amazon ElastiCache: a managed in-memory cache that serves frequently requested data straight from memory in microseconds instead of paying a database round-trip measured in milliseconds. It's the caching layer teams place ahead of a database, not a substitute system of record for it.
+
+</details>
+
+### `scenario-decouple-queue` · Best-Fit Scenario
+
+**A checkout service needs to hand work off to an inventory processor so that neither one goes down if the other is slow or briefly offline — which service decouples them?**
+
+<details><summary>Answer</summary>
+
+Amazon SQS: a producer drops a message on the queue and moves on, and a consumer pulls it off whenever it's ready, so a traffic spike on one side simply queues up rather than overwhelming or stalling the other side.
+
+</details>
+
+### `scenario-fanout-notification` · Best-Fit Scenario
+
+**One order-placed event needs to reach a fulfillment queue, an analytics function, and an email notification all at once, without the publisher tracking who is listening — which service fits?**
+
+<details><summary>Answer</summary>
+
+Amazon SNS: a publisher sends one message to a topic and SNS fans it out to every subscriber at once — SQS queues, Lambda functions, email, or HTTP endpoints — without the publisher tracking or individually contacting each downstream listener.
+
+</details>
+
+### `scenario-dedicated-onprem-link` · Best-Fit Scenario
+
+**A company wants the steadiest possible bandwidth and lowest latency between its datacenter and AWS, entirely off the public internet, and can tolerate a multi-week provisioning lead time to get it — which connectivity option fits?**
+
+<details><summary>Answer</summary>
+
+AWS Direct Connect: a dedicated physical link straight into an AWS-associated facility that bypasses the public internet, trading a longer provisioning lead time for steadier bandwidth and lower latency than an internet-based path like Site-to-Site VPN can promise.
+
+</details>
+
+### `scenario-udp-game-routing` · Best-Fit Scenario
+
+**A multiplayer game server talks over a custom UDP protocol and needs every connection routed to whichever healthy regional deployment is currently closest, through IP addresses that never change — which service fits?**
+
+<details><summary>Answer</summary>
+
+AWS Global Accelerator: it assigns a fixed pair of anycast IP addresses and routes TCP/UDP connections over AWS's private backbone to whichever healthy regional endpoint is currently nearest, failing over within seconds if a health check trips. CloudFront instead solves a different problem — caching HTTP content — so it isn't built to route arbitrary UDP traffic at all.
+
+</details>
+
+### `scenario-cold-archive-lowest-cost` · Best-Fit Scenario
+
+**A compliance team needs to retain audit logs it expects to access less than once a year at the lowest possible storage cost, and can tolerate a many-hour wait on the rare occasion one needs restoring — which storage tier fits?**
+
+<details><summary>Answer</summary>
+
+S3 Glacier Deep Archive: the cheapest S3 storage tier, purpose-built for archives accessed less than once a year, with a retrieval time measured in hours. Glacier Instant Retrieval and Flexible Retrieval cost more precisely because they promise faster access than this workload actually needs.
+
+</details>
+
+### `scenario-lift-shift-smb` · Best-Fit Scenario
+
+**A legacy Windows application expects to talk to a native SMB file server and is being lifted and shifted into AWS unmodified — which managed file system gives it that exact behavior?**
+
+<details><summary>Answer</summary>
+
+Amazon FSx for Windows File Server: a fully managed, native Windows file server built on SMB, so the application gets the exact file-system behavior and compatibility it already expects without anyone operating the underlying servers. EFS solves the equivalent problem for POSIX/NFS workloads, not SMB.
+
+</details>
+
+### `scenario-transparent-appliance-insertion` · Best-Fit Scenario
+
+**Security wants to insert a fleet of third-party intrusion-detection appliances into a traffic path so transparently that no other part of the architecture has to know inspection is even happening — which load balancer type fits?**
+
+<details><summary>Answer</summary>
+
+A Gateway Load Balancer: it works at the network layer to transparently slot third-party security appliances into a traffic path, spreading requests across whichever ones are healthy, while an ALB or NLB has no equivalent transparent-insertion role.
+
+</details>
+
+### `scenario-serverless-nosql-latency` · Best-Fit Scenario
+
+**A mobile app needs its own durable session-store table to hit single-digit-millisecond reads at any scale, without anyone managing servers or planning capacity ahead of time — which database fits?**
+
+<details><summary>Answer</summary>
+
+Amazon DynamoDB: a fully managed, serverless NoSQL database built for single-digit-millisecond response times at any scale. Unlike ElastiCache, which only caches in front of a system of record, DynamoDB is itself the durable, persistent store.
+
+</details>

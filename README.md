@@ -1,37 +1,46 @@
 # learn
 
-Learning modules for Todd Cooke, published as a single submodule under
-`toddcooke.github.io` at `static/learn`. Each module is a sibling
-subdirectory here and publishes at `https://toddcooke.github.io/learn/<module>/`.
+Local study material for Todd Cooke, organized as five independent
+markdown modules — no server, no build step, no published site. Read a
+module's files directly in any markdown viewer (GitHub, VS Code,
+Obsidian, `cat`, whatever), and double-click its standalone HTML pages to
+open them straight from disk.
 
 ## Modules
 
-- [`aws/`](aws) — AWS Certified Solutions Architect – Associate (SAA-C03) exam prep, published at https://toddcooke.github.io/learn/aws/
-- [`kubernetes/`](kubernetes) — Certified Kubernetes Administrator (CKA) exam prep, published at https://toddcooke.github.io/learn/kubernetes/
-- [`postgres/`](postgres) — general PostgreSQL mastery (not tied to a certification), published at https://toddcooke.github.io/learn/postgres/
-- [`sre/`](sre) — general Site Reliability Engineering mastery (not tied to a certification), published at https://toddcooke.github.io/learn/sre/
-- [`networking/`](networking) — CompTIA Network+ (N10-009) exam prep, published at https://toddcooke.github.io/learn/networking/
+- [`aws/`](aws) — AWS Certified Solutions Architect – Associate (SAA-C03) exam prep
+- [`kubernetes/`](kubernetes) — Certified Kubernetes Administrator (CKA) exam prep
+- [`postgres/`](postgres) — general PostgreSQL mastery (not tied to a certification)
+- [`sre/`](sre) — general Site Reliability Engineering mastery (not tied to a certification)
+- [`networking/`](networking) — CompTIA Network+ (N10-009) exam prep
 
-Each module is self-contained: its own `index.html`, `js/`, `css/`,
-`scripts/`, and `docs/superpowers/` spec+plan. None of them use a build
-step — see each module's own README for how to run and develop it.
+Each module is self-contained: `study/` (one markdown file per exam
+domain), `questions.md`, `flashcards.md`, its own `README.md`, a
+printable `cheatsheet.html`, `scripts/fetch-doc.mjs` for content
+research, and a `docs/superpowers/` spec+plan folder kept as a historical
+record. `aws/` additionally has `services.md`, `exam-shortcut.html`, and
+an interactive `vpc-explorer.html`. See each module's own README for
+details.
 
 ## Adding a module
 
-Add a new top-level directory (e.g. `gcp/`) with its own `index.html` entry
-point — everything in each module uses relative paths, so a module works
-unmodified at whatever path it's nested under. Then:
+Add a new top-level directory (e.g. `gcp/`) with `study/NN-<domain>.md`
+files, a `questions.md`, and a `flashcards.md`. Copy `scripts/fetch-doc.mjs`
+and the shared-scaffold portion of `cheatsheet.html` from a sibling
+module verbatim — those two are the only things still required to be
+byte-identical across modules. Then:
 
 - add it to the Modules list in this README;
-- add a `.claude/launch.json` entry on the next free port;
-- run `node scripts/check-drift.mjs` to confirm the copied app layer
-  matches the other modules (`scripts/export-anki.mjs` discovers modules
-  automatically — no registration needed);
-- CI needs no edits either: it auto-discovers modules the same way the
-  scripts do (any top-level directory containing `js/app.js`);
-- link to it from `toddcooke.github.io`'s `content/learn.md` page (that
-  repo owns the `/learn/` landing page; this repo only supplies the module
-  content under it).
+- run `node scripts/check-drift.mjs` to confirm the copied
+  `fetch-doc.mjs` and `cheatsheet.html` scaffold match the other modules
+  (`scripts/export-anki.mjs` discovers modules automatically by the
+  presence of `flashcards.md` — no registration needed);
+- CI needs no edits either: it discovers modules the same way the
+  scripts do.
+
+Nothing else: no `.claude/launch.json` entry (that file doesn't exist
+anymore — there's nothing to serve), and no edit in any other repo —
+this repo doesn't publish anywhere.
 
 ## Anki export
 
@@ -64,7 +73,30 @@ Each `.txt` file contains a 4-column tab-separated format:
 - **Back** (col 3): the answer/explanation
 - **Tags** (col 4): hierarchical tags (`<module>::<domain-slug>`), where the domain is the card's section/topic bucket (5-8 per deck), not the per-card service name
 
-Each module's domain buckets are canonicalized as `FLASHCARD_DOMAINS` in its `js/data/flashcards.js`, and `scripts/validate-content.mjs` rejects any card whose domain isn't on that list — so the tag set stays stable across exports.
+Each card's domain bucket is just the `##` heading text above it in that
+module's `flashcards.md` — `scripts/lib/flashcard-md.mjs` parses it
+directly (and rejects the file outright if a card's shape doesn't match:
+missing front, missing back, duplicate ID, content outside the expected
+structure), so the tag set is whatever the markdown headings say.
+
+To hand-add a card, follow the shape the parser expects:
+
+```markdown
+## Storage
+
+### `s3` · Amazon S3
+
+**What is it for?**
+
+<details><summary>Answer</summary>
+
+Object storage.
+
+</details>
+```
+
+The `<!-- domains: ... -->` line near the top of `flashcards.md` must list
+every `##` bucket used in the file, including this one.
 
 ### One-time Anki setup
 
@@ -88,12 +120,23 @@ If you previously imported these decks using the older 3-column format, you shou
 
 Each file only needs to be imported once per deck in Anki's own Import dialog (you pick or create the target deck name). The decks are one-way by design: the backs are prose explanations that name their own topic, so reversed (back→front) cards would mostly give away their answer.
 
-## Deployment
+## No server, no publishing
 
-This whole repo is referenced as a single git submodule in
-`toddcooke.github.io` at `static/learn`. Hugo's static-passthrough copies
-everything here verbatim into the published site, so
-`kubernetes/index.html` ends up at `/learn/kubernetes/`, `aws/index.html`
-at `/learn/aws/`, etc. `toddcooke.github.io` also runs an hourly workflow
-that advances this submodule to its latest commit and redeploys
-automatically — see that repo's `.github/workflows/sync-learn-submodules.yml`.
+There is nothing to run here. Clone the repo
+and read the markdown directly, or browse it on whatever git host has
+your fork. The seven standalone HTML pages across the five modules
+(five `cheatsheet.html` plus `aws/exam-shortcut.html` and
+`aws/vpc-explorer.html`) are fully self-contained — open them by
+double-click, no server required.
+
+CI (`.github/workflows/ci.yml`) runs on every push and PR to guard
+content, not to build or deploy anything:
+
+```
+node --test scripts/lib/*.test.mjs   # unit tests for the flashcard-markdown parser
+node scripts/check-drift.mjs         # fetch-doc.mjs + cheatsheet scaffold stay identical across modules
+node scripts/export-anki.mjs         # parses every module's flashcards.md, asserts shape + cross-deck ID uniqueness
+```
+
+Each module also has its own `node scripts/fetch-doc.mjs <url>` for
+researching new content — see that module's README.

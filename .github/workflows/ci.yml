@@ -14,10 +14,17 @@ jobs:
         with:
           node-version: 22
 
-      # The flashcard-markdown parser is the only logic left in this repo,
+      # The flashcard-markdown parser is the main logic left in this repo,
       # and it is what protects the Anki decks from silently shrinking.
       - name: Unit tests
         run: node --test scripts/lib/*.test.mjs
+
+      # scripts/fetch-doc.mjs and each cheatsheet's shared-scaffold block are
+      # the last things every module still shares byte-for-byte. Modules are
+      # auto-discovered (same flashcards.md convention as the Anki export
+      # below), so adding one needs no workflow edit.
+      - name: Check drift (fetch-doc.mjs + cheatsheet scaffold)
+        run: node scripts/check-drift.mjs
 
       # Parses every module's flashcards.md and asserts card shape and
       # cross-deck ID uniqueness. Modules are auto-discovered, so adding

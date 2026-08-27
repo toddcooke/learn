@@ -1208,7 +1208,9 @@ Do not start this task until Task 4's verifier printed all four non-zero counts 
 
 `<module>/scripts/fetch-doc.mjs` is **kept** — it caches documentation pages for content research and has no dependency on the app. `docs/superpowers/` in every module is kept.
 
-`.github/workflows/ci.yml` currently runs five steps that all discover modules via `*/js/app.js`. Four of them lose their subject entirely: the JS syntax check, `node --test js/lib/*.test.mjs`, `validate-content.mjs`, and `check-drift.mjs`.
+`.github/workflows/ci.yml` currently runs five steps that all discover modules via `*/js/app.js`. Three of them lose their subject entirely: the JS syntax check, `node --test js/lib/*.test.mjs`, and `validate-content.mjs`.
+
+`check-drift.mjs` is the exception, and this plan was originally wrong about it. Its `SHARED` list also covered `scripts/fetch-doc.mjs`, and it separately asserted the `<!-- shared-scaffold -->` blocks inside every `cheatsheet.html` stay byte-identical — both of which SURVIVE this migration. Delete it with the rest, then restore a slimmed version guarding only those two invariants, discovering modules by `flashcards.md` the way `export-anki.mjs` does. CI therefore ends at three steps, not two.
 
 This deletes 22 test files. Twenty-one cover logic that ceases to exist. The exception is `aws/js/lib/vpcMath.test.mjs`, whose code survives inlined into `vpc-explorer.html` — that page becomes untested, which the spec records as an accepted tradeoff.
 
@@ -1319,23 +1321,27 @@ Keep the existing "Anki export" section and its format documentation intact — 
 
 In each, delete the "Live at …" line and replace the "Running it" section (which documents `python3 -m http.server`) with how to read the module now: open `study/`, `questions.md`, and `flashcards.md` in any markdown viewer; open the standalone HTML pages by double-click. Cross-links to sibling modules become relative directory links (`../kubernetes/`). Update the "What's here" list so it describes the markdown files rather than the app's views — in particular, drop the quiz, mock exam, and progress dashboard entries, which no longer exist. Under Development, list only the two commands from Step 2.
 
-- [ ] **Step 4: Remove the site URL from the five cheatsheet footers**
+- [ ] **Step 4: Reword the seven back-links**
+
+Task 6 repointed every standalone page's back-link from `index.html#/` to `README.md`, but left the label reading "&larr; <module> prep home". A browser opening a `.md` file over `file://` shows raw text rather than a styled page, so "home" promises something the link does not deliver. Change "prep home" to "prep README" in all seven pages, keeping each page's own module name and arrow entity.
+
+- [ ] **Step 5: Remove the site URL from the five cheatsheet footers**
 
 In each `cheatsheet.html`, the footer line reads `toddcooke.github.io/learn/<module> &mdash; hand-maintained, cross-checked against the module's study content`. Drop the URL and the following `&mdash;`, keeping `Hand-maintained, cross-checked against the module's study content`. Change nothing else in these files — their print layout is the reason they survived the migration.
 
-- [ ] **Step 5: Delete the dead launch config**
+- [ ] **Step 6: Delete the dead launch config**
 
 ```bash
 git rm -q .claude/launch.json
 ```
 
-- [ ] **Step 6: Confirm the repo no longer references the site**
+- [ ] **Step 7: Confirm the repo no longer references the site**
 
 Run: `grep -rn 'toddcooke\.github\.io' --include='*.md' --include='*.html' --include='*.json' --include='*.yml' . | grep -v '/docs/superpowers/' | grep -v '^\./\.claude/'`
 
 Expected: no output. Both exclusions are deliberate: `docs/superpowers/` at the repo root *and* inside each module holds specs and plans that are historical records and legitimately still mention the URL, and `.claude/worktrees/` holds an untracked worktree copy that is not part of this change.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
 git add -A README.md "*/README.md" "*/cheatsheet.html" .claude/launch.json

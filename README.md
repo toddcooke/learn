@@ -1,6 +1,6 @@
 # learn
 
-Local study material for Todd Cooke, organized as six independent
+Local study material for Todd Cooke, organized as seven independent
 markdown modules — no server, no build step, no published site. Read a
 module's files directly in any markdown viewer (GitHub, VS Code,
 Obsidian, `cat`, whatever), and double-click its standalone HTML pages to
@@ -14,16 +14,17 @@ open them straight from disk.
 - [`sre/`](sre) — general Site Reliability Engineering mastery (not tied to a certification)
 - [`networking/`](networking) — CompTIA Network+ (N10-009) exam prep
 - [`well-architected/`](well-architected) — AWS Well-Architected Framework (flashcards only; no certification exists for it)
+- [`terraform/`](terraform) — HashiCorp Terraform Associate (004) exam prep (flashcards only)
 
 Each module is self-contained: `study/` (one markdown file per exam
 domain), `questions.md`, `flashcards.md`, its own `README.md`, a
 printable `cheatsheet.html`, `scripts/fetch-doc.mjs` for content
 research, and a `docs/superpowers/` spec+plan folder kept as a historical
 record. `aws/` additionally has `services.md`, `exam-shortcut.html`, and
-an interactive `vpc-explorer.html`. `well-architected/` is the one
-exception: it is a flashcard deck plus a cheatsheet, with no `study/`
-directory and no `questions.md`. See each module's own README for
-details.
+an interactive `vpc-explorer.html`. `well-architected/` and `terraform/`
+are the exceptions: each is a flashcard deck plus a cheatsheet, with no
+`study/` directory and no `questions.md`. See each module's own README
+for details.
 
 ## Adding a module
 
@@ -57,7 +58,7 @@ node scripts/export-anki.mjs [module...]
 With no arguments, exports every module that has a flashcard deck (auto-discovered) to `anki/<module>.txt`
 (gitignored — regenerate anytime with the command above). Pass one or
 more module names (`aws`, `kubernetes`, `postgres`, `sre`,
-`networking`, `well-architected`) to export only those.
+`networking`, `well-architected`, `terraform`) to export only those.
 
 ### Format
 
@@ -155,8 +156,8 @@ Each file only needs to be imported once per deck in Anki's own Import dialog (y
 
 There is nothing to run here. Clone the repo
 and read the markdown directly, or browse it on whatever git host has
-your fork. The eight standalone HTML pages across the six modules
-(six `cheatsheet.html` plus `aws/exam-shortcut.html` and
+your fork. The nine standalone HTML pages across the seven modules
+(seven `cheatsheet.html` plus `aws/exam-shortcut.html` and
 `aws/vpc-explorer.html`) are fully self-contained — open them by
 double-click, no server required.
 

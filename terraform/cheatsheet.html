@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Terraform Associate 004 Cheat Sheet — Printable</title>
+<!-- shared-scaffold:start -->
+<style>
+  /* ============================================================
+     PRINT SCAFFOLDING — the reusable skeleton shared by every
+     module's cheatsheet. Everything between the shared-scaffold
+     markers must stay byte-identical across all modules (enforced
+     by scripts/check-drift.mjs); module-specific rules belong in
+     a separate <style> block after the end marker.
+     Contract: .sheet content box must stay <= 7.4in wide x 10.2in
+     tall so it prints on one page of both US Letter and A4 at
+     0.4in margins. Screen rendering mirrors print (fixed 7.4in
+     width). Chrome (header/back-link/print hint) is on-screen
+     only and is hidden under @media print.
+     ============================================================ */
+  @page {
+    size: letter portrait;
+    margin: 0.4in;
+  }
+
+  :root {
+    --color-text: #1a1a2e;
+    --color-muted: #5a6472;
+    --color-border: #d8dbe0;
+    --color-primary: #2563eb;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #eceff1;
+    font-family: var(--font-sans);
+    color: var(--color-text);
+  }
+
+  .screen-chrome {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 0.6rem 1rem;
+    background: #fff;
+    border-bottom: 1px solid var(--color-border);
+    position: sticky;
+    top: 0;
+    font-size: 0.85rem;
+  }
+
+  .screen-chrome a {
+    color: var(--color-primary);
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  .screen-chrome a:hover { text-decoration: underline; }
+
+  .screen-chrome .hint { color: var(--color-muted); }
+
+  .sheet-wrap {
+    display: flex;
+    justify-content: center;
+    padding: 1rem 0.5rem 2rem;
+  }
+
+  /* The one-page contract lives here: fixed 7.4in width mirrors
+     the print box exactly, so on-screen preview == what prints. */
+  .sheet {
+    box-sizing: border-box;
+    width: 7.4in;
+    max-height: 10.2in;
+    overflow: hidden;
+    background: #fff;
+    padding: 0.08in 0.12in;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.15);
+    font-size: 8.8px;
+    line-height: 1.3;
+  }
+
+  @media print {
+    body { background: #fff; }
+    .screen-chrome { display: none; }
+    /* .sheet keeps its exact screen dimensions (width, padding,
+       max-height) here so print output mirrors the screen preview
+       pixel-for-pixel; only the decorative wrapper chrome is stripped. */
+    .sheet-wrap {
+      display: block;
+      padding: 0;
+      margin: 0;
+      background: none;
+    }
+    .sheet {
+      box-shadow: none;
+      margin: 0;
+    }
+  }
+
+  .mono { font-family: var(--font-mono); }
+
+  /* ============================================================
+     SHEET COMPONENTS — shared building blocks for the content
+     (title bar, columns, sections, tables, lists, notes, footer).
+     ============================================================ */
+
+  .sheet-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1.5px solid var(--color-text);
+    padding-bottom: 3px;
+    margin-bottom: 5px;
+  }
+
+  .sheet-title h1 {
+    font-size: 15px;
+    margin: 0;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+  }
+
+  .sheet-title .examid {
+    font-size: 9.5px;
+    color: var(--color-muted);
+    font-weight: 600;
+  }
+
+  .cols {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0 0.14in;
+  }
+
+  .col {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sec {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin-bottom: 5px;
+  }
+
+  .sec h2 {
+    font-size: 9.3px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 800;
+    margin: 0 0 1.5px;
+    padding-bottom: 1px;
+    border-bottom: 1px solid var(--color-text);
+  }
+
+  table.t {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 8.2px;
+    margin-bottom: 1px;
+  }
+
+  table.t th, table.t td {
+    text-align: left;
+    padding: 0.5px 3px 0.5px 0;
+    vertical-align: top;
+    border-bottom: 0.5px solid var(--color-border);
+  }
+
+  table.t th {
+    font-weight: 700;
+    border-bottom: 1px solid var(--color-text);
+  }
+
+  table.t tr:last-child td { border-bottom: none; }
+
+  ul.ol, ol.ol {
+    margin: 0;
+    padding: 0 0 0 0;
+    list-style: none;
+    font-size: 8.2px;
+  }
+
+  ul.ol li, ol.ol li {
+    margin: 0 0 1.5px;
+    padding-bottom: 1.5px;
+    border-bottom: 0.5px dotted var(--color-border);
+  }
+
+  ul.ol li:last-child, ol.ol li:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+  }
+
+  .ol b { font-weight: 700; }
+
+  p.note {
+    font-size: 7.8px;
+    color: var(--color-muted);
+    margin: 1px 0 0;
+  }
+
+  .sheet-footer {
+    border-top: 1px solid var(--color-border);
+    margin-top: 3px;
+    padding-top: 2px;
+    font-size: 7.2px;
+    color: var(--color-muted);
+    text-align: center;
+  }
+</style>
+<!-- shared-scaffold:end -->
+</head>
+<!-- shared-scaffold:start -->
+<body>
+  <div class="screen-chrome">
+<!-- shared-scaffold:end -->
+    <a href="README.md">&larr; Terraform README</a>
+<!-- shared-scaffold:start -->
+    <span class="hint">Print (Cmd/Ctrl+P) — fits one Letter/A4 page at default margins.</span>
+  </div>
+
+  <div class="sheet-wrap">
+<!-- shared-scaffold:end -->
+    <main class="sheet" aria-label="HashiCorp Terraform Associate 004 printable cheat sheet">
+      <div class="sheet-title">
+        <h1>Terraform Associate (004) — Cheat Sheet</h1>
+        <span class="examid">tests Terraform 1.12</span>
+      </div>
+
+      <div class="cols">
+        <!-- ============ COLUMN A ============ -->
+        <div class="col">
+          <section class="sec">
+            <h2>Exam at a Glance</h2>
+            <table class="t">
+              <tr><td>Format</td><td>multiple choice, online proctored, $70.50</td></tr>
+              <tr><td>Duration</td><td>1 hour &middot; English</td></tr>
+              <tr><td>Credential</td><td>expires after 2 years</td></tr>
+              <tr><td>Version</td><td>Terraform 1.12; includes HCP Terraform</td></tr>
+            </table>
+            <p class="note">New in 004: depends_on and create_before_destroy (4f), custom conditions (4g), ephemeral values and write-only arguments (4h), workspaces and projects (8c).</p>
+          </section>
+
+          <section class="sec">
+            <h2>Objective Domains</h2>
+            <table class="t">
+              <tr><td>1</td><td>IaC with Terraform &mdash; what it is, its advantages, multi-cloud</td></tr>
+              <tr><td>2</td><td>Fundamentals &mdash; providers, versioning, state</td></tr>
+              <tr><td>3</td><td>Core workflow &mdash; init, validate, plan, apply, destroy, fmt</td></tr>
+              <tr><td>4</td><td>Configuration &mdash; resources and data, references, variables and outputs, types, expressions, dependencies, conditions, secrets</td></tr>
+              <tr><td>5</td><td>Modules &mdash; sources, scope, usage, versions</td></tr>
+              <tr><td>6</td><td>State &mdash; local backend, locking, remote backends, drift</td></tr>
+              <tr><td>7</td><td>Maintain &mdash; import, inspect state, verbose logging</td></tr>
+              <tr><td>8</td><td>HCP Terraform &mdash; runs, governance, workspaces and projects, CLI</td></tr>
+            </table>
+          </section>
+
+          <section class="sec">
+            <h2>Core Workflow</h2>
+            <table class="t">
+              <tr><th>Command</th><th>Does</th></tr>
+              <tr><td class="mono">init</td><td>backend + modules + providers + lock file; safe to repeat</td></tr>
+              <tr><td class="mono">validate</td><td>syntax and consistency; needs init, no remote calls</td></tr>
+              <tr><td class="mono">plan</td><td>refresh &rarr; compare &rarr; propose; changes nothing</td></tr>
+              <tr><td class="mono">apply</td><td>plans, prompts for <span class="mono">yes</span>, executes in graph order</td></tr>
+              <tr><td class="mono">destroy</td><td>alias for <span class="mono">apply -destroy</span></td></tr>
+              <tr><td class="mono">fmt</td><td>canonical style; opinionated, no options</td></tr>
+              <tr><td class="mono">show / output</td><td>read a state or plan file / read outputs</td></tr>
+              <tr><td class="mono">console / graph</td><td>evaluate expressions / emit DOT graph</td></tr>
+              <tr><td class="mono">login / workspace</td><td>HCP API token / CLI workspaces</td></tr>
+            </table>
+            <p class="note">Symbols: + create, - destroy, ~ update, -/+ replace, +/- replace first. <span class="mono">-detailed-exitcode</span>: 0 none, 1 error, 2 changes.</p>
+          </section>
+
+          <section class="sec">
+            <h2>Key Flags</h2>
+            <ul class="ol">
+              <li><b>init</b> <span class="mono">-upgrade</span> &middot; <span class="mono">-migrate-state</span> / <span class="mono">-reconfigure</span> &middot; <span class="mono">-backend=false</span> &middot; <span class="mono">-backend-config</span></li>
+              <li><b>modes</b> <span class="mono">-destroy</span> &middot; <span class="mono">-refresh-only</span> &mdash; mutually exclusive with normal</li>
+              <li><b>options</b> <span class="mono">-var</span> &middot; <span class="mono">-var-file</span> &middot; <span class="mono">-refresh=false</span> &middot; <span class="mono">-replace=ADDR</span> &middot; <span class="mono">-target=ADDR</span> (exceptional use only)</li>
+              <li><b>apply</b> <span class="mono">-auto-approve</span> &middot; a saved plan file is itself the approval</li>
+              <li><b>fmt</b> <span class="mono">-check</span> (CI) &middot; <span class="mono">-diff</span> &middot; <span class="mono">-recursive</span> &middot; <b>parallelism</b> 10 by default</li>
+            </ul>
+          </section>
+
+          <section class="sec">
+            <h2>Sensitive Data</h2>
+            <ul class="ol">
+              <li><b>sensitive</b> (0.15+) redacts in CLI and UI and propagates through expressions &mdash; but is still stored in state</li>
+              <li><b>ephemeral</b> (1.10+) variables, child module outputs, and the <span class="mono">ephemeral</span> block &mdash; never stored</li>
+              <li><b>write-only</b> (1.11+) <span class="mono">password_wo</span> arguments, paired with a <span class="mono">_wo_version</span> state does track</li>
+              <li><b>Vault</b> mint short-lived credentials at run time instead of storing them</li>
+            </ul>
+          </section>
+        </div>
+
+        <!-- ============ COLUMN B ============ -->
+        <div class="col">
+          <section class="sec">
+            <h2>Blocks</h2>
+            <table class="t">
+              <tr><td class="mono">terraform</td><td>required_version, required_providers, backend or cloud</td></tr>
+              <tr><td class="mono">provider</td><td>configure a plugin; <span class="mono">alias</span> for extra configs; root module only</td></tr>
+              <tr><td class="mono">resource</td><td>managed object &mdash; created, updated, destroyed, tracked</td></tr>
+              <tr><td class="mono">data</td><td>read-only query; creates nothing</td></tr>
+              <tr><td class="mono">variable</td><td>type, default, validation, sensitive, nullable, ephemeral</td></tr>
+              <tr><td class="mono">output</td><td>value (required), sensitive, ephemeral, depends_on, precondition</td></tr>
+              <tr><td class="mono">locals</td><td>named expressions, module-scoped, referenced as <span class="mono">local.x</span></td></tr>
+              <tr><td class="mono">module</td><td>source (required), version, inputs, count/for_each, providers, depends_on</td></tr>
+              <tr><td class="mono">moved / removed</td><td>rename in state without replacing / drop from state, destroying or not</td></tr>
+              <tr><td class="mono">import</td><td>to + id or identity; supports for_each (1.5+)</td></tr>
+              <tr><td class="mono">check</td><td>assert blocks; runs last; warns, never blocks</td></tr>
+              <tr><td class="mono">ephemeral</td><td>temporary resource, never in state or plan (1.10+)</td></tr>
+            </table>
+          </section>
+
+          <section class="sec">
+            <h2>Meta-Arguments</h2>
+            <ul class="ol">
+              <li><b>count</b> &mdash; N identical instances, <span class="mono">count.index</span>, addressed <span class="mono">[0]</span>; value must be known pre-apply</li>
+              <li><b>for_each</b> &mdash; map or set of strings, <span class="mono">each.key</span> / <span class="mono">each.value</span>, addressed <span class="mono">["k"]</span>; stable keys survive removals</li>
+              <li><b>provider</b> &mdash; pick an aliased configuration, <span class="mono">provider = aws.west</span></li>
+              <li><b>depends_on</b> &mdash; hidden dependencies only; literal references; makes plans conservative</li>
+              <li><b>lifecycle</b> &mdash; <span class="mono">create_before_destroy</span> (propagates to dependencies), <span class="mono">prevent_destroy</span>, <span class="mono">ignore_changes</span> (or <span class="mono">all</span>), <span class="mono">replace_triggered_by</span>, plus precondition / postcondition</li>
+            </ul>
+          </section>
+
+          <section class="sec">
+            <h2>Types &amp; Expressions</h2>
+            <ul class="ol">
+              <li><b>Primitive</b> string, number, bool &mdash; converted between automatically</li>
+              <li><b>Collection</b> list(...), map(...), set(...) &mdash; one element type</li>
+              <li><b>Structural</b> object({k=type}), tuple([types]) &mdash; mixed types; extra object attributes discarded</li>
+              <li><b>for</b> <span class="mono">[for s in l : upper(s) if s != ""]</span> &rarr; tuple; <span class="mono">{for s in l : s =&gt; upper(s)}</span> &rarr; object</li>
+              <li><b>splat</b> <span class="mono">var.list[*].id</span> &mdash; lists/sets/tuples only, not for_each maps</li>
+              <li><b>conditional</b> <span class="mono">cond ? a : b</span> &mdash; both results must share a type</li>
+              <li><b>dynamic</b> generates repeatable nested blocks from a collection; cannot generate lifecycle</li>
+              <li><b>functions</b> ~100 built-ins; none user-defined; provider functions as <span class="mono">provider::name::fn</span>; try in <span class="mono">terraform console</span></li>
+            </ul>
+          </section>
+
+          <section class="sec">
+            <h2>Variable Precedence</h2>
+            <ol class="ol">
+              <li><span class="mono">-var</span> / <span class="mono">-var-file</span> on the CLI, and HCP Terraform variables</li>
+              <li><span class="mono">*.auto.tfvars[.json]</span>, lexical order</li>
+              <li><span class="mono">terraform.tfvars.json</span></li>
+              <li><span class="mono">terraform.tfvars</span></li>
+              <li><span class="mono">TF_VAR_</span> environment variables</li>
+              <li>the variable's <span class="mono">default</span></li>
+            </ol>
+            <p class="note">Undeclared: env var ignored, tfvars file warns, <span class="mono">-var</span> errors. Child modules take values only from their module block.</p>
+          </section>
+        </div>
+
+        <!-- ============ COLUMN C ============ -->
+        <div class="col">
+          <section class="sec">
+            <h2>Providers &amp; Versions</h2>
+            <ul class="ol">
+              <li><b>Source</b> <span class="mono">[HOST/]NAMESPACE/TYPE</span>, default host registry.terraform.io</li>
+              <li><b>Local name</b> unique per module; resource type prefix picks the provider by default</li>
+              <li><b>Constraints</b> <span class="mono">=</span> <span class="mono">!=</span> <span class="mono">&gt;</span> <span class="mono">&gt;=</span> <span class="mono">&lt;</span> <span class="mono">&lt;=</span> <span class="mono">~&gt;</span>; <span class="mono">~&gt; 1.0.4</span> allows 1.0.5 not 1.1.0; <span class="mono">~&gt; 1.1</span> allows 1.2 not 2.0</li>
+              <li><b>Guidance</b> root modules pin with <span class="mono">~&gt;</span>; reusable modules set only a minimum</li>
+              <li><b>Lock file</b> <span class="mono">.terraform.lock.hcl</span> &mdash; providers only, with checksums; commit it; <span class="mono">init -upgrade</span> to move</li>
+              <li><b>Tiers</b> Official &middot; Partner Premier &middot; Partner &middot; Community &middot; Archived</li>
+            </ul>
+          </section>
+
+          <section class="sec">
+            <h2>State &amp; Backends</h2>
+            <ul class="ol">
+              <li><b>Why</b> map config to real objects &middot; keep dependency metadata for destroy &middot; cache attributes for speed &middot; share across a team</li>
+              <li><b>Local</b> default; <span class="mono">terraform.tfstate</span> + <span class="mono">.backup</span>; locks via system APIs; runs locally</li>
+              <li><b>backend block</b> one only, inside <span class="mono">terraform</span>; no variables or expressions; re-init on change; never with a <span class="mono">cloud</span> block</li>
+              <li><b>Locking</b> automatic where supported; <span class="mono">-lock=false</span> and <span class="mono">force-unlock &lt;ID&gt;</span> are last resorts</li>
+              <li><b>Drift</b> found on refresh; accept it with <span class="mono">apply -refresh-only</span>, revert it with a normal apply</li>
+              <li><b>Refactor</b> prefer <span class="mono">moved</span> / <span class="mono">removed</span> blocks over <span class="mono">state mv</span> / <span class="mono">state rm</span></li>
+              <li><b>Secrets</b> state holds them in cleartext &mdash; never commit it; use a remote encrypted backend</li>
+            </ul>
+          </section>
+
+          <section class="sec">
+            <h2>Modules</h2>
+            <ul class="ol">
+              <li><b>Sources</b> local <span class="mono">./path</span> &middot; registry <span class="mono">NS/NAME/PROVIDER</span> &middot; private <span class="mono">HOST/NS/NAME/PROVIDER</span> &middot; Git (<span class="mono">?ref=</span>) &middot; HTTP archive &middot; S3/GCS; <span class="mono">//</span> selects a subdirectory; literal strings only</li>
+              <li><b>Versions</b> <span class="mono">version</span> works for registry modules only; not covered by the lock file, so pin exactly for reproducibility</li>
+              <li><b>Scope</b> values in via inputs, out via outputs, nothing else; providers inherit from the parent</li>
+              <li><b>Shape</b> keep the tree flat and pass dependencies in</li>
+            </ul>
+          </section>
+
+          <section class="sec">
+            <h2>HCP Terraform</h2>
+            <ul class="ol">
+              <li><b>Workspaces</b> mandatory; hold configuration, variables, state, run history, state versions; the unit of RBAC</li>
+              <li><b>Projects</b> group workspaces and scope team permissions; every workspace is in exactly one</li>
+              <li><b>Execution</b> Remote (default) &middot; Local (state only) &middot; Agent (private networks)</li>
+              <li><b>Variables</b> Terraform or environment, optionally sensitive or HCL; variable sets reuse them across workspaces</li>
+              <li><b>Run triggers</b> up to 20 source workspaces; queue on their successful apply</li>
+              <li><b>Governance</b> policy sets (Sentinel, OPA, Terraform policy) checked against the plan &middot; cost estimation &middot; private registry &middot; explorer &middot; change requests &middot; health assessments (drift detection + continuous validation, needs remote or agent mode)</li>
+              <li><b>CLI</b> <span class="mono">cloud</span> block + <span class="mono">terraform login</span>, then <span class="mono">init</span> migrates state; dynamic credentials replace stored ones via OIDC</li>
+            </ul>
+          </section>
+        </div>
+      </div>
+
+      <div class="sheet-footer">
+        toddcooke/learn terraform &mdash; hand-maintained, cross-checked against the Terraform 1.12 documentation and the official 004 exam objectives
+      </div>
+<!-- shared-scaffold:start -->
+    </main>
+  </div>
+</body>
+</html>
+<!-- shared-scaffold:end -->

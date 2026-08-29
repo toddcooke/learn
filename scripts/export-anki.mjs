@@ -4,6 +4,7 @@
 // docs/superpowers/specs/2026-07-10-anki-export-design.md.
 import { mkdirSync, writeFileSync, readdirSync, existsSync, readFileSync } from 'node:fs';
 import { parseFlashcardMarkdown } from './lib/flashcard-md.mjs';
+import { toAnkiField } from './lib/anki-field.mjs';
 
 const ALL_MODULES = readdirSync(new URL('..', import.meta.url), { withFileTypes: true })
   .filter((e) => e.isDirectory() && existsSync(new URL(`../${e.name}/flashcards.md`, import.meta.url)))
@@ -17,21 +18,17 @@ function toTag(label) {
     .replace(/^-+|-+$/g, '');
 }
 
-function sanitizeField(text) {
-  // Collapse TSV-breaking whitespace. A field that BEGINS with a double
-  // quote would be parsed as csv-quoted by Anki's importer (swallowing
-  // separators and corrupting the row), so prefix a space to keep it plain.
-  const flat = text.replace(/[\t\r\n]+/g, ' ');
-  return flat.startsWith('"') ? ` ${flat}` : flat;
-}
-
 async function exportModule(name) {
   const source = readFileSync(new URL(`../${name}/flashcards.md`, import.meta.url), 'utf8');
   const FLASHCARDS = parseFlashcardMarkdown(source, name);
   const date = new Date().toISOString().slice(0, 10);
   const lines = [
     '#separator:tab',
-    '#html:false',
+    // Fields are HTML so that a markdown bullet list in flashcards.md renders
+    // as a real list in Anki. scripts/lib/anki-field.mjs escapes the card text
+    // itself, so the only markup in a field is markup it added — the stored
+    // result for prose cards is identical to the old `#html:false` import.
+    '#html:true',
     '#tags column:4',
     `# exported ${date} from toddcooke/learn ${name}`
   ];
@@ -41,8 +38,8 @@ async function exportModule(name) {
     // only make sense with the service name attached. (Anki matches and
     // updates notes by the ID column — the composite front is for
     // readability, and stays unique in every deck.)
-    const front = sanitizeField(`${card.service} — ${card.front}`);
-    const back = sanitizeField(card.back);
+    const front = toAnkiField(`${card.service} — ${card.front}`);
+    const back = toAnkiField(card.back);
     const id = `${name}-${card.id}`;
     const tag = `${name}::${toTag(card.domain)}`;
     lines.push(`${id}\t${front}\t${back}\t${tag}`);

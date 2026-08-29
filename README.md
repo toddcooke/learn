@@ -1,6 +1,6 @@
 # learn
 
-Local study material for Todd Cooke, organized as five independent
+Local study material for Todd Cooke, organized as six independent
 markdown modules — no server, no build step, no published site. Read a
 module's files directly in any markdown viewer (GitHub, VS Code,
 Obsidian, `cat`, whatever), and double-click its standalone HTML pages to
@@ -13,13 +13,16 @@ open them straight from disk.
 - [`postgres/`](postgres) — general PostgreSQL mastery (not tied to a certification)
 - [`sre/`](sre) — general Site Reliability Engineering mastery (not tied to a certification)
 - [`networking/`](networking) — CompTIA Network+ (N10-009) exam prep
+- [`well-architected/`](well-architected) — AWS Well-Architected Framework (flashcards only; no certification exists for it)
 
 Each module is self-contained: `study/` (one markdown file per exam
 domain), `questions.md`, `flashcards.md`, its own `README.md`, a
 printable `cheatsheet.html`, `scripts/fetch-doc.mjs` for content
 research, and a `docs/superpowers/` spec+plan folder kept as a historical
 record. `aws/` additionally has `services.md`, `exam-shortcut.html`, and
-an interactive `vpc-explorer.html`. See each module's own README for
+an interactive `vpc-explorer.html`. `well-architected/` is the one
+exception: it is a flashcard deck plus a cheatsheet, with no `study/`
+directory and no `questions.md`. See each module's own README for
 details.
 
 ## Adding a module
@@ -53,8 +56,8 @@ node scripts/export-anki.mjs [module...]
 
 With no arguments, exports every module that has a flashcard deck (auto-discovered) to `anki/<module>.txt`
 (gitignored — regenerate anytime with the command above). Pass one or
-more module names (`aws`, `kubernetes`, `postgres`, `sre`, `networking`)
-to export only those.
+more module names (`aws`, `kubernetes`, `postgres`, `sre`,
+`networking`, `well-architected`) to export only those.
 
 ### Format
 
@@ -62,7 +65,7 @@ Each `.txt` file contains a 4-column tab-separated format:
 
 ```
 #separator:tab
-#html:false
+#html:true
 #tags column:4
 # exported <YYYY-MM-DD> from toddcooke/learn <module>
 <ID>\t<Front>\t<Back>\t<Tags>
@@ -72,6 +75,30 @@ Each `.txt` file contains a 4-column tab-separated format:
 - **Front** (col 2): `<service> — <front>` (service name + question)
 - **Back** (col 3): the answer/explanation
 - **Tags** (col 4): hierarchical tags (`<module>::<domain-slug>`), where the domain is the card's section/topic bucket (5-8 per deck), not the per-card service name
+
+#### Lists in answers
+
+Anki fields are HTML, so an answer only renders as a list if the field
+actually contains `<ul>`/`<ol>`. Write the list as ordinary markdown in
+`flashcards.md` and `scripts/lib/anki-field.mjs` converts it on export:
+
+| In `flashcards.md` | In the Anki field |
+| --- | --- |
+| `- item` lines | `<ul><li>item</li>…</ul>` |
+| `1.` / `1)` lines | `<ol><li>item</li>…</ol>` (marker stripped, `<ol>` renumbers) |
+| blank line between two prose runs | `<br>` |
+| everything else | escaped text, unchanged |
+
+That is why the header is `#html:true` rather than `#html:false`: the
+exporter escapes the card text itself, so the only markup in a field is
+markup it added. The *stored* result for a prose card is identical either
+way — under `#html:false` the importer escaped `<pod>` to `&lt;pod&gt;`,
+and now the exporter writes `&lt;pod&gt;` directly — so decks imported
+before this change need no migration. Verified against the live
+collection: all 602 existing notes matched byte-for-byte.
+
+Because markdown emphasis is *not* converted, don't put `**bold**` in an
+answer — it would reach Anki as literal asterisks.
 
 Each card's domain bucket is just the `##` heading text above it in that
 module's `flashcards.md` — `scripts/lib/flashcard-md.mjs` parses it
@@ -90,7 +117,11 @@ To hand-add a card, follow the shape the parser expects:
 
 <details><summary>Answer</summary>
 
-Object storage.
+Object storage. It comes in classes:
+
+- Standard
+- Infrequent Access
+- Glacier
 
 </details>
 ```
@@ -124,8 +155,8 @@ Each file only needs to be imported once per deck in Anki's own Import dialog (y
 
 There is nothing to run here. Clone the repo
 and read the markdown directly, or browse it on whatever git host has
-your fork. The seven standalone HTML pages across the five modules
-(five `cheatsheet.html` plus `aws/exam-shortcut.html` and
+your fork. The eight standalone HTML pages across the six modules
+(six `cheatsheet.html` plus `aws/exam-shortcut.html` and
 `aws/vpc-explorer.html`) are fully self-contained — open them by
 double-click, no server required.
 
@@ -133,7 +164,7 @@ CI (`.github/workflows/ci.yml`) runs on every push and PR to guard
 content, not to build or deploy anything:
 
 ```
-node --test scripts/lib/*.test.mjs   # unit tests for the flashcard-markdown parser
+node --test scripts/lib/*.test.mjs   # unit tests for the flashcard-markdown parser and the Anki field builder
 node scripts/check-drift.mjs         # fetch-doc.mjs + cheatsheet scaffold stay identical across modules
 node scripts/export-anki.mjs         # parses every module's flashcards.md, asserts shape + cross-deck ID uniqueness
 ```

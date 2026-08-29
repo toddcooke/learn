@@ -11,7 +11,15 @@
 
 <details><summary>Answer</summary>
 
-1) Physical. 2) Data Link. 3) Network. 4) Transport. 5) Session. 6) Presentation. 7) Application. Bottom-up mnemonic: 'Please Do Not Throw Sausage Pizza Away.'
+1) Physical
+2) Data Link
+3) Network
+4) Transport
+5) Session
+6) Presentation
+7) Application
+
+Bottom-up mnemonic: 'Please Do Not Throw Sausage Pizza Away.'
 
 </details>
 
@@ -1299,7 +1307,13 @@ Essentially nothing but the EAPOL handshake. Three parties are involved: the sup
 
 <details><summary>Answer</summary>
 
-1) Identify the problem. 2) Establish a theory of probable cause. 3) Test the theory. 4) Establish a plan of action. 5) Implement the solution. 6) Verify full system functionality. 7) Document findings.
+1) Identify the problem
+2) Establish a theory of probable cause
+3) Test the theory
+4) Establish a plan of action
+5) Implement the solution
+6) Verify full system functionality
+7) Document findings
 
 </details>
 

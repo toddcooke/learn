@@ -14,8 +14,10 @@ jobs:
         with:
           node-version: 22
 
-      # The flashcard-markdown parser is the main logic left in this repo,
-      # and it is what protects the Anki decks from silently shrinking.
+      # The flashcard-markdown parser and the Anki field builder are the main
+      # logic left in this repo: the parser protects the decks from silently
+      # shrinking, and the field builder decides what actually lands in an
+      # Anki field (escaping, and markdown lists to <ul>/<ol>).
       - name: Unit tests
         run: node --test scripts/lib/*.test.mjs
 

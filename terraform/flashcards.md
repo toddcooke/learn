@@ -169,7 +169,7 @@ Most providers front an infrastructure platform, cloud or self-hosted, but some 
 
 </details>
 
-### `required-providers` · required_providers
+### `required-providers` · Provider requirements
 
 **How does a module declare which providers it needs?**
 
@@ -243,7 +243,7 @@ Most providers also read credentials from environment variables or the platform'
 
 </details>
 
-### `provider-alias` · Provider aliases
+### `provider-alias` · Multiple provider configurations
 
 **How do you use two configurations of the same provider in one configuration?**
 
@@ -336,7 +336,7 @@ Installing from a mirror has a catch: Terraform can only record checksums for th
 
 </details>
 
-### `dependency-lock-file` · .terraform.lock.hcl
+### `dependency-lock-file` · Dependency lock file
 
 **What is the dependency lock file, and what belongs in it?**
 
@@ -413,7 +413,7 @@ You break the guarantee when you add or remove bindings by other means — impor
 
 </details>
 
-### `state-file-basics` · terraform.tfstate
+### `state-file-basics` · State storage
 
 **Where does state live by default, and what should you not do with it?**
 
@@ -425,7 +425,7 @@ Do not hand-edit it — use the terraform state commands, which keep working acr
 
 </details>
 
-### `state-refresh-before-plan` · Refresh
+### `state-refresh-before-plan` · State before a plan
 
 **What does Terraform do with state before it plans?**
 
@@ -508,7 +508,7 @@ They resolve what happens when you re-init a directory whose backend settings ch
 
 </details>
 
-### `init-partial-backend` · Partial backend configuration
+### `init-partial-backend` · Backend configuration
 
 **How do you keep backend settings out of the configuration file?**
 
@@ -723,7 +723,7 @@ The canonical format can shift slightly between Terraform versions. HashiCorp do
 
 </details>
 
-### `parallelism` · Graph walking
+### `parallelism` · Concurrency
 
 **How much of an apply happens concurrently?**
 
@@ -910,7 +910,7 @@ It depends on how you supplied it. A TF_VAR_ environment variable with no matchi
 
 </details>
 
-### `variable-validation` · Variable validation
+### `variable-validation` · Custom variable rules
 
 **How do you enforce a rule on a variable beyond its type?**
 
@@ -1020,7 +1020,7 @@ You cannot define functions in the configuration language. You can get custom fu
 
 </details>
 
-### `terraform-console` · terraform console
+### `terraform-console` · Expression evaluation
 
 **How do you experiment with an expression without applying anything?**
 
@@ -1120,7 +1120,7 @@ The deeper reason is addressing. Count instances are keyed by position, so remov
 
 </details>
 
-### `implicit-dependencies` · Implicit dependencies
+### `implicit-dependencies` · Dependency ordering
 
 **How does Terraform work out the order to create resources?**
 
@@ -1267,7 +1267,7 @@ The choice comes down to two questions: should a failure stop the operation, and
 
 </details>
 
-### `continuous-validation` · Continuous validation
+### `continuous-validation` · Checks in HCP Terraform
 
 **How can check blocks keep running after the apply is over?**
 
@@ -1291,7 +1291,7 @@ The marking propagates: Terraform treats any expression that references a sensit
 
 </details>
 
-### `secrets-in-state` · Secrets in state
+### `secrets-in-state` · Limits of sensitive
 
 **Why is marking a value sensitive not enough to keep it secret?**
 
@@ -1483,7 +1483,7 @@ So a loose module constraint means a future init can silently pull in a differen
 
 </details>
 
-### `module-input-variables` · Module inputs
+### `module-input-variables` · Passing values into a module
 
 **How does a child module receive values, and what can it not see?**
 
@@ -1495,7 +1495,7 @@ A child module cannot see the caller's variables, locals, or resources. There is
 
 </details>
 
-### `module-outputs` · Module outputs
+### `module-outputs` · Getting data out of a module
 
 **How does a value get out of a child module?**
 
@@ -1619,7 +1619,7 @@ The limits matter. A configuration may declare only one backend block. It cannot
 
 </details>
 
-### `backend-init-required` · Initializing a backend
+### `backend-init-required` · Changing a backend
 
 **What must you do after changing backend configuration?**
 
@@ -1694,7 +1694,7 @@ Two checks guard a push: lineage, the unique ID assigned when a state was create
 
 </details>
 
-### `terraform-remote-state` · terraform_remote_state
+### `terraform-remote-state` · Cross-configuration values
 
 **How does one configuration read values from another's state?**
 
@@ -1987,7 +1987,7 @@ By default it emits a simplified graph of just the resource and data blocks' dep
 
 </details>
 
-### `tf-log` · TF_LOG
+### `tf-log` · Verbose logging
 
 **How do you turn on verbose Terraform logging?**
 
@@ -2111,7 +2111,7 @@ CLI workspaces are optional, tied to a single working directory, and only isolat
 
 </details>
 
-### `configuration-versions` · Configuration versions
+### `configuration-versions` · Workspace configuration
 
 **How does a workspace get its configuration?**
 
@@ -2294,7 +2294,7 @@ The usual flow starts in the explorer: find the affected workspaces with a query
 
 </details>
 
-### `teams-and-permissions` · Teams
+### `teams-and-permissions` · Access control
 
 **How does HCP Terraform structure access control?**
 
@@ -2306,7 +2306,7 @@ Every organization has an owners team whose first member is its creator; it cann
 
 </details>
 
-### `cloud-block` · cloud block
+### `cloud-block` · Connecting to HCP Terraform
 
 **How does a working directory connect to HCP Terraform?**
 

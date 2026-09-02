@@ -13,7 +13,7 @@ open them straight from disk.
 - [`postgres/`](postgres) — general PostgreSQL mastery (not tied to a certification)
 - [`sre/`](sre) — general Site Reliability Engineering mastery (not tied to a certification)
 - [`networking/`](networking) — CompTIA Network+ (N10-009) exam prep
-- [`well-architected/`](well-architected) — AWS Well-Architected Framework (flashcards only; no certification exists for it)
+- [`well-architected/`](well-architected) — AWS Well-Architected Framework (flashcards + diagrams; no certification exists for it)
 - [`terraform/`](terraform) — HashiCorp Terraform Associate (004) exam prep (flashcards only)
 
 Each module is self-contained: `study/` (one markdown file per exam
@@ -23,8 +23,9 @@ research, and a `docs/superpowers/` spec+plan folder kept as a historical
 record. `aws/` additionally has `services.md`, `exam-shortcut.html`, and
 an interactive `vpc-explorer.html`. `well-architected/` and `terraform/`
 are the exceptions: each is a flashcard deck plus a cheatsheet, with no
-`study/` directory and no `questions.md`. See each module's own README
-for details.
+`study/` directory and no `questions.md` — and `well-architected/` adds a
+`diagrams.md` of Mermaid diagrams covering the framework's structure. See
+each module's own README for details.
 
 ## Adding a module
 

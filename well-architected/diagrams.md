@@ -183,13 +183,15 @@ flowchart TB
 
 ## 4. Where the pillars pull against each other
 
-Trade-offs are the part a flat list of six pillars hides. Each row below is one
-real tension, resolved against business context rather than by rule. The last
-row is the pair that mostly **aligns** instead of competing.
+Trade-offs are the part a flat list of six pillars hides. Each panel below is
+one real tension, resolved against business context rather than by rule. Read
+them in any order — they're independent.
 
-Two pillars sit outside the rows on purpose. **Security** is the one the
-framework doesn't ask you to trade away, even when you're trading reliability
-down for cost in a dev environment. **Operational Excellence** is up-front
+Two panels are the exceptions. The one marked *Aligned, not opposed* is the
+pair that mostly reinforces rather than competes. The last one holds the two
+pillars that get no tension panel at all: **Security**, which the framework
+doesn't ask you to trade away even when you're trading reliability down for
+cost in a dev environment, and **Operational Excellence**, which is up-front
 effort that pays back across all five of the others rather than competing with
 any of them.
 
@@ -215,11 +217,15 @@ flowchart TB
         direction LR
         c5["<b>Cost Optimization</b>"] <-->|"right-sizing and eliminating idle<br/>capacity serve both at once"| s5["<b>Sustainability</b>"]
     end
+    subgraph T6["The two pillars with no tension row"]
+        direction LR
+        SEC["<b>Security</b><br/>the one the framework does not<br/>ask you to trade away"]
+        OPS["<b>Operational Excellence</b><br/>up-front effort that pays back<br/>across all five of the others"]
+        SEC ~~~ OPS
+    end
 
-    SEC["<b>Security</b> — no tension row.<br/>The pillar the framework does not ask you to trade away."]
-    OPS["<b>Operational Excellence</b> — no tension row.<br/>Up-front effort that pays back across all five of the others."]
-
-    T1 ~~~ T2 ~~~ T3 ~~~ T4 ~~~ T5 ~~~ SEC ~~~ OPS
+    T1 ~~~ T2 ~~~ T3
+    T4 ~~~ T5 ~~~ T6
 
     classDef ops fill:#d7e3fc,stroke:#3b6bc4,stroke-width:2px,color:#10233f
     classDef sec fill:#fadcdc,stroke:#c04a4a,stroke-width:2px,color:#3f1010
@@ -234,7 +240,7 @@ flowchart TB
     class s4,s5 sus
     class SEC sec
     class OPS ops
-    class T1,T2,T3,T4,T5 sub
+    class T1,T2,T3,T4,T5,T6 sub
 ```
 
 ---
@@ -251,34 +257,23 @@ design principles, where organizing teams around business outcomes is listed
 ahead of every technical principle.
 
 ```mermaid
-flowchart LR
-    OPS["<b>Operational Excellence</b><br/>every question carries<br/>the <b>OPS</b> prefix"]
+flowchart TB
+    OPS["<b>Operational Excellence</b> — every question carries the <b>OPS</b> prefix"]
 
-    subgraph BPA["Best practice areas — 4"]
-        direction TB
-        A1["<b>Organization</b><br/>the one that sustains the other three"]
-        A2["<b>Prepare</b><br/>design the workload to be operable"]
-        A3["<b>Operate</b><br/>run it at scale"]
-        A4["<b>Evolve</b><br/>improve it over time"]
-        A1 --> A2 --> A3 --> A4
+    subgraph BPA["Best practice areas — 4, and they form a loop"]
+        direction LR
+        A1["<b>Organization</b><br/>the one that sustains<br/>the other three"] --> A2["<b>Prepare</b><br/>design the workload<br/>to be operable"] --> A3["<b>Operate</b><br/>run it at scale"] --> A4["<b>Evolve</b><br/>improve it over time"]
         A4 -.->|"feeds back"| A1
     end
 
     subgraph DP["Design principles — 8"]
-        direction TB
-        P1["Organize teams around business outcomes"]
-        P2["Implement observability for actionable insights"]
-        P3["Safely automate where possible"]
-        P4["Make frequent, small, reversible changes"]
-        P5["Refine operations procedures frequently"]
-        P6["Anticipate failure"]
-        P7["Learn from all operational events and metrics"]
-        P8["Use managed services"]
-        P1 ~~~ P2 ~~~ P3 ~~~ P4 ~~~ P5 ~~~ P6 ~~~ P7 ~~~ P8
+        direction LR
+        P1["Organize teams around<br/>business outcomes"] ~~~ P2["Implement observability<br/>for actionable insights"] ~~~ P3["Safely automate<br/>where possible"] ~~~ P4["Make frequent, small,<br/>reversible changes"]
+        P5["Refine operations<br/>procedures frequently"] ~~~ P6["Anticipate failure"] ~~~ P7["Learn from all operational<br/>events and metrics"] ~~~ P8["Use managed services"]
     end
 
     OPS --> BPA
-    OPS --> DP
+    BPA ~~~ DP
 
     classDef ops fill:#d7e3fc,stroke:#3b6bc4,stroke-width:2px,color:#10233f
     classDef opslight fill:#eef3fd,stroke:#3b6bc4,stroke-width:1px,color:#10233f
@@ -301,47 +296,36 @@ incidents, protect systems, keep data confidential and intact, and have a
 **rehearsed** response.
 
 ```mermaid
-flowchart LR
-    SEC["<b>Security</b><br/><b>SEC</b> prefix"]
+flowchart TB
+    SEC["<b>Security</b> — <b>SEC</b> prefix"]
 
     subgraph BPA["Best practice areas — 7, in the order of the through-line"]
-        direction TB
+        direction LR
         subgraph G1["Control who can do what"]
-            direction TB
-            A1["Security foundations"]
-            A2["Identity and access management"]
-            A1 ~~~ A2
+            direction LR
+            A1["Security<br/>foundations"] ~~~ A2["Identity and access<br/>management"]
         end
         subgraph G2["Spot incidents"]
             A3["Detection"]
         end
         subgraph G3["Protect systems and data"]
-            direction TB
-            A4["Infrastructure protection"]
-            A5["Data protection"]
-            A7["Application security"]
-            A4 ~~~ A5 ~~~ A7
+            direction LR
+            A4["Infrastructure<br/>protection"] ~~~ A5["Data<br/>protection"] ~~~ A7["Application<br/>security"]
         end
         subgraph G4["Rehearse the response"]
-            A6["Incident response"]
+            A6["Incident<br/>response"]
         end
         G1 --> G2 --> G3 --> G4
     end
 
     subgraph DP["Design principles — 7"]
-        direction TB
-        P1["Implement a strong identity foundation"]
-        P2["Maintain traceability"]
-        P3["Apply security at all layers"]
-        P4["Automate security best practices"]
-        P5["Protect data in transit and at rest"]
-        P6["Keep people away from data"]
-        P7["Prepare for security events"]
-        P1 ~~~ P2 ~~~ P3 ~~~ P4 ~~~ P5 ~~~ P6 ~~~ P7
+        direction LR
+        P1["Implement a strong<br/>identity foundation"] ~~~ P2["Maintain traceability"] ~~~ P3["Apply security<br/>at all layers"] ~~~ P4["Automate security<br/>best practices"]
+        P5["Protect data in<br/>transit and at rest"] ~~~ P6["Keep people<br/>away from data"] ~~~ P7["Prepare for<br/>security events"]
     end
 
     SEC --> BPA
-    SEC --> DP
+    BPA ~~~ DP
 
     classDef sec fill:#fadcdc,stroke:#c04a4a,stroke-width:2px,color:#3f1010
     classDef seclight fill:#fdf0f0,stroke:#c04a4a,stroke-width:1px,color:#3f1010
@@ -367,30 +351,22 @@ capacity** appears here as well as in the general design principles — one of t
 few genuine repeats in the framework.
 
 ```mermaid
-flowchart LR
-    REL["<b>Reliability</b><br/><b>REL</b> prefix"]
+flowchart TB
+    REL["<b>Reliability</b> — <b>REL</b> prefix"]
 
     subgraph BPA["Best practice areas — 4, each resting on the one before"]
-        direction TB
-        A1["<b>Foundations</b><br/>requirements that must be in place<br/>before anything else"]
-        A2["<b>Workload architecture</b><br/>distributed system design that<br/>survives component failure"]
-        A3["<b>Change management</b><br/>change is a source of outage, so make it<br/>planned and reversible"]
-        A4["<b>Failure management</b><br/>failures happen; detect, recover,<br/>and learn from them"]
-        A1 --> A2 --> A3 --> A4
+        direction LR
+        A1["<b>Foundations</b><br/>requirements that must be<br/>in place before anything else"] --> A2["<b>Workload architecture</b><br/>distributed system design that<br/>survives component failure"] --> A3["<b>Change management</b><br/>change is a source of outage, so<br/>make it planned and reversible"] --> A4["<b>Failure management</b><br/>failures happen; detect, recover,<br/>and learn from them"]
     end
 
     subgraph DP["Design principles — 5"]
-        direction TB
-        P1["Automatically recover from failure"]
-        P2["Test recovery procedures"]
-        P3["Scale horizontally to increase<br/>aggregate workload availability"]
-        P4["Stop guessing capacity<br/><i>also a general design principle</i>"]
-        P5["Manage change through automation"]
-        P1 ~~~ P2 ~~~ P3 ~~~ P4 ~~~ P5
+        direction LR
+        P1["Automatically recover<br/>from failure"] ~~~ P2["Test recovery<br/>procedures"] ~~~ P3["Scale horizontally to increase<br/>aggregate workload availability"]
+        P4["Stop guessing capacity<br/><i>also a general design principle</i>"] ~~~ P5["Manage change<br/>through automation"]
     end
 
     REL --> BPA
-    REL --> DP
+    BPA ~~~ DP
 
     classDef rel fill:#d6ecd9,stroke:#4a9457,stroke-width:2px,color:#12300f
     classDef rellight fill:#eef7ef,stroke:#4a9457,stroke-width:1px,color:#12300f
@@ -412,32 +388,23 @@ and culture** is drawn as the loop back to the start rather than as a fifth item
 in a list: efficiency achieved once and never revisited decays.
 
 ```mermaid
-flowchart LR
-    PERF["<b>Performance Efficiency</b><br/><b>PERF</b> prefix"]
+flowchart TB
+    PERF["<b>Performance Efficiency</b> — <b>PERF</b> prefix"]
 
     subgraph BPA["Best practice areas — 5"]
-        direction TB
-        A1["<b>Architecture selection</b>"]
-        A2["<b>Compute and hardware</b>"]
-        A3["<b>Data management</b>"]
-        A4["<b>Networking and content delivery</b>"]
-        A5["<b>Process and culture</b><br/>review choices regularly · monitor for deviance<br/>· make experimentation routine"]
-        A1 --> A2 --> A3 --> A4 --> A5
+        direction LR
+        A1["<b>Architecture<br/>selection</b>"] --> A2["<b>Compute and<br/>hardware</b>"] --> A3["<b>Data<br/>management</b>"] --> A4["<b>Networking and<br/>content delivery</b>"] --> A5["<b>Process and culture</b><br/>review choices regularly · monitor for<br/>deviance · make experimentation routine"]
         A5 -.->|"or the other four decay"| A1
     end
 
     subgraph DP["Design principles — 5"]
-        direction TB
-        P1["Democratize advanced technologies"]
-        P2["Go global in minutes"]
-        P3["Use serverless architectures"]
-        P4["Experiment more often"]
-        P5["Consider mechanical sympathy"]
-        P1 ~~~ P2 ~~~ P3 ~~~ P4 ~~~ P5
+        direction LR
+        P1["Democratize advanced<br/>technologies"] ~~~ P2["Go global in minutes"] ~~~ P3["Use serverless<br/>architectures"]
+        P4["Experiment more often"] ~~~ P5["Consider mechanical<br/>sympathy"]
     end
 
     PERF --> BPA
-    PERF --> DP
+    BPA ~~~ DP
 
     classDef perf fill:#e4dcf5,stroke:#7a5bbf,stroke-width:2px,color:#24123f
     classDef perflight fill:#f3effa,stroke:#7a5bbf,stroke-width:1px,color:#24123f
@@ -454,40 +421,30 @@ flowchart LR
 **Covers:** running systems that deliver business value at the lowest price
 point.
 
-The shape here is a capability underneath and a loop on top. **Practice Cloud
-Financial Management** is framed as an organizational capability you build, not
-a task you complete — which is why it sits under the other areas rather than
-beside them — and **Optimize over time** feeds back into the cycle, because new
-services and better pricing options keep arriving.
+**Practice Cloud Financial Management** leads the row, but it isn't simply the
+first step. It's framed as an organizational capability you build rather than a
+task you complete, which is why the arrow leaving it reads *underpins* rather
+than *then*. At the far end, **Optimize over time** feeds back into the cycle,
+because new services and better pricing options keep arriving.
 
 ```mermaid
-flowchart LR
-    COST["<b>Cost Optimization</b><br/><b>COST</b> prefix"]
+flowchart TB
+    COST["<b>Cost Optimization</b> — <b>COST</b> prefix"]
 
-    subgraph BPA["Best practice areas — 5"]
-        direction TB
-        A2["<b>Expenditure and usage awareness</b><br/>know what is being spent, and by whom"]
-        A3["<b>Cost-effective resources</b><br/>the right service, type, and pricing model"]
-        A4["<b>Manage demand and supply resources</b><br/>match supply to actual demand"]
-        A5["<b>Optimize over time</b><br/>new services and better options keep arriving"]
-        A1["<b>Practice Cloud Financial Management</b><br/>a capability the organization builds,<br/>not a task it completes"]
-        A2 --> A3 --> A4 --> A5
+    subgraph BPA["Best practice areas — 5, a capability plus a loop"]
+        direction LR
+        A1["<b>Practice Cloud Financial Management</b><br/>a capability the organization builds,<br/>not a task it completes"] -->|"underpins<br/>the four<br/>that follow"| A2["<b>Expenditure and<br/>usage awareness</b><br/>know what is being<br/>spent, and by whom"] --> A3["<b>Cost-effective<br/>resources</b><br/>the right service, type,<br/>and pricing model"] --> A4["<b>Manage demand and<br/>supply resources</b><br/>match supply to<br/>actual demand"] --> A5["<b>Optimize over time</b><br/>new services and better<br/>options keep arriving"]
         A5 -.->|"feeds back"| A2
-        A1 -->|"underpins all four"| A2
     end
 
     subgraph DP["Design principles — 5"]
-        direction TB
-        P1["Implement Cloud Financial Management"]
-        P2["Adopt a consumption model"]
-        P3["Measure overall efficiency"]
-        P4["Stop spending money on<br/>undifferentiated heavy lifting"]
-        P5["Analyze and attribute expenditure"]
-        P1 ~~~ P2 ~~~ P3 ~~~ P4 ~~~ P5
+        direction LR
+        P1["Implement Cloud<br/>Financial Management"] ~~~ P2["Adopt a<br/>consumption model"] ~~~ P3["Measure overall<br/>efficiency"]
+        P4["Stop spending money on<br/>undifferentiated heavy lifting"] ~~~ P5["Analyze and attribute<br/>expenditure"]
     end
 
     COST --> BPA
-    COST --> DP
+    BPA ~~~ DP
 
     classDef cost fill:#fbeacd,stroke:#c9902f,stroke-width:2px,color:#3f2c0f
     classDef costlight fill:#fdf6e9,stroke:#c9902f,stroke-width:1px,color:#3f2c0f
@@ -511,45 +468,29 @@ asked to measure is broader than the running workload: it includes customers
 using your product, and eventually decommissioning it.
 
 ```mermaid
-flowchart LR
-    SUS["<b>Sustainability</b><br/><b>SUS</b> prefix"]
+flowchart TB
+    SUS["<b>Sustainability</b> — <b>SUS</b> prefix"]
 
     subgraph BPA["Best practice areas — 6"]
-        direction TB
-        A1["<b>Region selection</b><br/>highest leverage, hardest to revisit"]
-        A2["<b>Alignment to demand</b><br/>provision only what is actually used"]
-        A3["<b>Software and architecture</b>"]
-        A4["<b>Data management</b>"]
-        A5["<b>Hardware and services</b>"]
-        A6["<b>Process and culture</b>"]
-        A1 --> A2 --> A3 --> A4 --> A5 --> A6
+        direction LR
+        A1["<b>Region selection</b><br/>highest leverage,<br/>hardest to revisit"] --> A2["<b>Alignment to demand</b><br/>provision only what<br/>is actually used"] --> A3["<b>Software and<br/>architecture</b>"] --> A4["<b>Data<br/>management</b>"] --> A5["<b>Hardware and<br/>services</b>"] --> A6["<b>Process and<br/>culture</b>"]
         A6 -.->|"feeds back"| A2
     end
 
     subgraph DP["Design principles — 6"]
-        direction TB
-        P1["Understand your impact"]
-        P2["Establish sustainability goals"]
-        P3["Maximize utilization"]
-        P4["Anticipate and adopt new, more efficient<br/>hardware and software offerings"]
-        P5["Use managed services"]
-        P6["Reduce the downstream impact<br/>of your cloud workloads"]
-        P1 ~~~ P2 ~~~ P3 ~~~ P4 ~~~ P5 ~~~ P6
+        direction LR
+        P1["Understand your impact<br/><i>the running workload, customers using<br/>your product, and retiring it</i>"] ~~~ P2["Establish<br/>sustainability goals"] ~~~ P3["Maximize utilization"]
+        P4["Anticipate and adopt new, more efficient<br/>hardware and software offerings"] ~~~ P5["Use managed services"] ~~~ P6["Reduce the downstream impact<br/>of your cloud workloads"]
     end
 
-    SCOPE["<b>Impact means all sources of it</b><br/>the running workload · customers using your product<br/>· eventually decommissioning and retiring it"]
-
     SUS --> BPA
-    SUS --> DP
-    DP -.->|"what <b>Understand your impact</b><br/>actually asks you to measure"| SCOPE
+    BPA ~~~ DP
 
     classDef sus fill:#d3ecea,stroke:#3f9691,stroke-width:2px,color:#0f302f
     classDef suslight fill:#edf7f6,stroke:#3f9691,stroke-width:1px,color:#0f302f
-    classDef neutral fill:#e8e8e8,stroke:#7a7a7a,stroke-width:2px,color:#1a1a1a
     classDef sub fill:#f7f7f9,stroke:#b0b6c0,stroke-width:1px,color:#1a1a1a
     class SUS,A1,A2,A3,A4,A5,A6 sus
     class P1,P2,P3,P4,P5,P6 suslight
-    class SCOPE neutral
     class BPA,DP sub
 ```
 
